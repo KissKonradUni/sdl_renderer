@@ -23,6 +23,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -I$(INC_DIR) -c $< -o $@
 
+# Precompile shaders
+shaders: 
+	@assets/shaders/source/compile.sh
+
 # Run target
 run: $(TARGET)
 	$(TARGET)
