@@ -25,7 +25,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 # Precompile shaders
 shaders: 
-	@assets/shaders/source/compile.sh
+	(cd assets/shaders/source && bash compile.sh)
 
 # Run target
 run: $(TARGET)
