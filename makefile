@@ -10,7 +10,7 @@ OBJ_DIR = obj
 BUILD_DIR = build
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
-TARGET = $(BUILD_DIR)/my_sdl3_app
+TARGET = $(BUILD_DIR)/sdl3_app.out
 
 # Build target
 all: $(TARGET)

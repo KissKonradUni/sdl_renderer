@@ -1,0 +1,3 @@
+/build/*.out
+/obj/*.o
+/assets/shaders/compiled/SPIRV/*.spv
