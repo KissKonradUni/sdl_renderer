@@ -1,3 +1,4 @@
 /build/*.out
+/build/*.exe
+
 /obj/*.o
-/assets/shaders/compiled/*
