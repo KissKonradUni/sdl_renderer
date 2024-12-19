@@ -49,7 +49,7 @@ shaders:
 run: $(TARGET)
 # If on windows copy the SDL3.dll to the build directory
 ifeq ($(OS),Windows_NT)
-	copy $(SDL3)\bin\SDL3.dll $(BUILD_DIR)
+	if not exist $(BUILD_DIR)\SDL3.dll copy $(SDL3)\bin\SDL3.dll $(BUILD_DIR)
 endif
 	$(TARGET)
 
