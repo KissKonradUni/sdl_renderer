@@ -1,5 +1,4 @@
 #include "shader.hpp"
-#include <SDL3/SDL_gpu.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
@@ -14,6 +13,7 @@ static SDL_AppState App;
 static SDL_GPUShader* vertex;
 static SDL_GPUShader* fragment;
 static SDL_GPUGraphicsPipeline* fillPipeline;
+static SDL_GPUViewport viewport = { 0.0f, 0.0f, 2000.0f, 2000.0f, 0.0f, 1.0f };
 
 void initShaders() {
     vertex   = LoadShader(App.gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
@@ -47,6 +47,24 @@ void initPipeline() {
     }
 }
 
+void updateWindowSize() {
+    int w, h;
+    if (SDL_GetWindowSize(App.window, &w, &h)) {
+        viewport.w = w;
+        viewport.h = h;
+    }
+    
+    if (w > h) {
+        viewport.x = (w - h) / 2.0f;
+        viewport.y = 0;
+        viewport.w = h;
+    } else {
+        viewport.x = 0;
+        viewport.y = (h - w) / 2.0f;
+        viewport.h = w;
+    }
+}
+
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("App", "1.0", "com.example.app");
 
@@ -60,6 +78,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         SDL_Log("Couldn't create window: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+    updateWindowSize();
 
     App.gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, NULL);
     if (!App.gpuDevice) {
@@ -80,28 +99,31 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS;
-    } else if (event->type == SDL_EVENT_KEY_DOWN) {
-        switch (event->key.scancode) {
-            case SDL_SCANCODE_ESCAPE:
-                return SDL_APP_SUCCESS;
-            default:
-                break;
-        }
+    switch (event->type) {
+        case SDL_EVENT_QUIT:
+            return SDL_APP_SUCCESS;
+        case SDL_EVENT_KEY_DOWN:
+            switch (event->key.scancode) {
+                case SDL_SCANCODE_ESCAPE:
+                    return SDL_APP_SUCCESS;
+                default:
+                    break;
+            }
+        case SDL_EVENT_WINDOW_RESIZED:
+            updateWindowSize();
+            break;
     }
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    //const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    
     SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(App.gpuDevice);
     if (!commandBuffer) {
         SDL_Log("Couldn't acquire command buffer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-
-    SDL_GPUViewport viewport = { 600.0f, 0.0f, 2000.0f, 2000.0f, 0.0f, 1.0f };
 
     SDL_GPUTexture* swapchainTexture;
     if (!SDL_AcquireGPUSwapchainTexture(commandBuffer, App.window, &swapchainTexture, NULL, NULL)) {
@@ -112,7 +134,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     if (swapchainTexture != NULL) {
         SDL_GPUColorTargetInfo colorTargetInfo = { 0 };
         colorTargetInfo.texture     = swapchainTexture;
-        colorTargetInfo.clear_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+        colorTargetInfo.clear_color = { 
+            SDL_sinf(now * 3        ) * 0.5f + 0.5f,
+            SDL_sinf(now * 3 + 2.09f) * 0.5f + 0.5f,
+            SDL_sinf(now * 3 + 4.18f) * 0.5f + 0.5f,
+        1.0f };
         colorTargetInfo.load_op     = SDL_GPU_LOADOP_CLEAR;
         colorTargetInfo.store_op    = SDL_GPU_STOREOP_STORE;
 
