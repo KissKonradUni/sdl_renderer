@@ -1,4 +1,5 @@
-# Requires shadercross CLI installed from SDL_shadercross
+# Requires shaderc
+
 for filename in *.vert.hlsl; do
     if [ -f "$filename" ]; then
         glslc -fshader-stage=vert -o "../compiled/SPIRV/${filename/.hlsl/.spv}" "$filename"

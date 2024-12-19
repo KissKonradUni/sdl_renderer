@@ -6,6 +6,7 @@ ifeq ($(OS),Windows_NT)
 	SDLLIBS = -L$(SDL3)\lib -lSDL3
 	CXX = clang++.exe -target x86_64-pc-windows-msvc
 	EXT = exe
+	SHADER_SCRIPT = (cd assets/shaders/source && compile.bat)
 else
 	RM = rm -rf
 	MKDIR = mkdir -p $(1)
@@ -13,6 +14,7 @@ else
 	SDLLIBS = `pkg-config sdl3 --libs`
 	CXX = clang++
 	EXT = out
+	SHADER_SCRIPT = (cd assets/shaders/source && bash compile.sh)
 endif
 
 # Compiler and flags
@@ -41,7 +43,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 # Precompile shaders
 shaders: 
-	(cd assets/shaders/source && bash compile.sh)
+	$(SHADER_SCRIPT)
 
 # Run target
 run: $(TARGET)
@@ -55,5 +57,4 @@ endif
 clean:
 	$(RM) $(OBJ_DIR) $(BUILD_DIR)
 
-# Phony targets
-.PHONY: all clean
+.PHONY: all shaders run clean
