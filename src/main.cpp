@@ -16,8 +16,8 @@ static SDL_GPUShader* fragment;
 static SDL_GPUGraphicsPipeline* fillPipeline;
 
 void initShaders() {
-    vertex = LoadShader(App.gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
-    fragment = LoadShader(App.gpuDevice, "SolidColor.frag", 0, 0, 0, 0);
+    vertex   = LoadShader(App.gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
+    fragment = LoadShader(App.gpuDevice, "SolidColor.frag" , 0, 0, 0, 0);
 }
 
 void initPipeline() {
@@ -55,7 +55,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         return SDL_APP_FAILURE;
     }
 
-    App.window = SDL_CreateWindow("App", 1920, 1200, SDL_WINDOW_VULKAN);
+    App.window = SDL_CreateWindow("App", 1920, 1200, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
     if (!App.window) {
         SDL_Log("Couldn't create window: %s", SDL_GetError());
         return SDL_APP_FAILURE;
@@ -101,6 +101,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         return SDL_APP_FAILURE;
     }
 
+    SDL_GPUViewport viewport = { 600.0f, 0.0f, 2000.0f, 2000.0f, 0.0f, 1.0f };
+
     SDL_GPUTexture* swapchainTexture;
     if (!SDL_AcquireGPUSwapchainTexture(commandBuffer, App.window, &swapchainTexture, NULL, NULL)) {
         SDL_Log("Couldn't get swapchain texture: %s", SDL_GetError());
@@ -116,8 +118,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
         SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(commandBuffer, &colorTargetInfo, 1, NULL);
         
+        SDL_SetGPUViewport(renderPass, &viewport);
         SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline);
-        SDL_DrawGPUPrimitives(renderPass, 3, 1, 0, 0);
+        SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
 
         SDL_EndGPURenderPass(renderPass);
     }
