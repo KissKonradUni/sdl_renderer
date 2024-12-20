@@ -1,5 +1,7 @@
 /build/*.out
 /build/*.exe
 /build/*.dll
+/build/*.ilk
+/build/*.pdb
 
 /obj/*.o
