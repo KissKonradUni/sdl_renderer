@@ -1,55 +1,32 @@
+#include "SDL3/SDL_gpu.h"
+#include "SDL3/SDL_video.h"
+#include "app.hpp"
 #include "shader.hpp"
+#include "pipeline.hpp"
+
+#include <memory>
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL.h>
 
-typedef struct SDL_AppState {
-    SDL_Window*       window;
-    SDL_GPUDevice* gpuDevice;
-} SDL_AppState;
-static SDL_AppState App;
-
-static SDL_GPUShader* vertex;
-static SDL_GPUShader* fragment;
-static SDL_GPUGraphicsPipeline* fillPipeline;
+static std::shared_ptr<SDL_GPUShader> vertex;
+static std::shared_ptr<SDL_GPUShader> fragment;
+static std::shared_ptr<SDL_GPUGraphicsPipeline> fillPipeline;
 static SDL_GPUViewport viewport = { 0.0f, 0.0f, 2000.0f, 2000.0f, 0.0f, 1.0f };
 
 void initShaders() {
-    vertex   = LoadShader(App.gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
-    fragment = LoadShader(App.gpuDevice, "SolidColor.frag" , 0, 0, 0, 0);
+    vertex   = LoadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
+    fragment = LoadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 0, 0, 0);
 }
 
 void initPipeline() {
-    SDL_GPUColorTargetDescription colorTargetDescription = {
-        .format = SDL_GetGPUSwapchainTextureFormat(App.gpuDevice, App.window)
-    };
-
-    SDL_GPUGraphicsPipelineCreateInfo pipelineCreateInfo = {
-        .vertex_shader   = vertex,
-        .fragment_shader = fragment,
-        .primitive_type  = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-        .rasterizer_state = {
-            .fill_mode  = SDL_GPU_FILLMODE_FILL,
-            //.cull_mode  = SDL_GPU_CULLMODE_BACK,
-            //.front_face = SDL_GPU_FRONTFACE_CLOCKWISE,
-        },
-        .target_info = {
-            .color_target_descriptions = &colorTargetDescription,
-            .num_color_targets         = 1,
-        },
-    };
-
-    fillPipeline = SDL_CreateGPUGraphicsPipeline(App.gpuDevice, &pipelineCreateInfo);
-    if (!fillPipeline) {
-        SDL_Log("Couldn't create graphics pipeline: %s", SDL_GetError());
-        return;
-    }
+    fillPipeline = CreatePipeline(vertex, fragment);
 }
 
 void updateWindowSize() {
     int w, h;
-    if (SDL_GetWindowSize(App.window, &w, &h)) {
+    if (SDL_GetWindowSize(AppState->window.get(), &w, &h)) {
         viewport.w = w;
         viewport.h = h;
     }
@@ -73,24 +50,26 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         return SDL_APP_FAILURE;
     }
 
-    App.window = SDL_CreateWindow("App", 1920, 1200, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
-    if (!App.window) {
+    SDL_Window* rawWindow = SDL_CreateWindow("App", 1920, 1200, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
+    if (rawWindow == NULL) {
         SDL_Log("Couldn't create window: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+    AppState->window.reset(rawWindow, AppDeleter);
     updateWindowSize();
 
-    App.gpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, NULL);
-    if (!App.gpuDevice) {
+    SDL_GPUDevice* rawGpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, NULL);
+    if (rawGpuDevice == NULL) {
         SDL_Log("Couldn't create GPU device: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+    AppState->gpuDevice.reset(rawGpuDevice, AppDeleter);
     
-    if (!SDL_ClaimWindowForGPUDevice(App.gpuDevice, App.window)) {
+    if (!SDL_ClaimWindowForGPUDevice(AppState->gpuDevice.get(), AppState->window.get())) {
         SDL_Log("Couldn't claim window for GPU device: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    SDL_SetGPUSwapchainParameters(App.gpuDevice, App.window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR, SDL_GPU_PRESENTMODE_MAILBOX);
+    SDL_SetGPUSwapchainParameters(AppState->gpuDevice.get(), AppState->window.get(), SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR, SDL_GPU_PRESENTMODE_MAILBOX);
 
     initShaders();
     initPipeline();
@@ -119,14 +98,14 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 SDL_AppResult SDL_AppIterate(void *appstate) {
     const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
     
-    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(App.gpuDevice);
+    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(AppState->gpuDevice.get());
     if (!commandBuffer) {
         SDL_Log("Couldn't acquire command buffer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
     SDL_GPUTexture* swapchainTexture;
-    if (!SDL_AcquireGPUSwapchainTexture(commandBuffer, App.window, &swapchainTexture, NULL, NULL)) {
+    if (!SDL_AcquireGPUSwapchainTexture(commandBuffer, AppState->window.get(), &swapchainTexture, NULL, NULL)) {
         SDL_Log("Couldn't get swapchain texture: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
@@ -145,7 +124,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(commandBuffer, &colorTargetInfo, 1, NULL);
         
         SDL_SetGPUViewport(renderPass, &viewport);
-        SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline);
+        SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline.get());
         SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
 
         SDL_EndGPURenderPass(renderPass);
@@ -161,16 +140,5 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     // Release Vulkan context from SDL window
-    SDL_ReleaseWindowFromGPUDevice(App.gpuDevice, App.window);
-    
-    // Release Vulkan child objects
-    SDL_ReleaseGPUShader(App.gpuDevice, vertex);
-    SDL_ReleaseGPUShader(App.gpuDevice, fragment);
-    SDL_ReleaseGPUGraphicsPipeline(App.gpuDevice, fillPipeline);
-
-    // Release Vulkan device
-    SDL_DestroyGPUDevice(App.gpuDevice);
-
-    // Release SDL window
-    SDL_DestroyWindow(App.window);
+    SDL_ReleaseWindowFromGPUDevice(AppState->gpuDevice.get(), AppState->window.get());
 }

@@ -18,7 +18,7 @@ else
 endif
 
 # Compiler and flags
-CXXFLAGS = -Wall -std=c++23 $(SDLFLAGS)
+CXXFLAGS = -Wall -std=c++23 $(SDLFLAGS) -g
 LDFLAGS = $(SDLLIBS)
 
 # Project structure
@@ -32,10 +32,14 @@ TARGET = $(BUILD_DIR)/sdl3_app.$(EXT)
 
 # Build target
 all: $(TARGET)
+# If on windows copy the SDL3.dll to the build directory
+ifeq ($(OS),Windows_NT)
+	if not exist $(BUILD_DIR)\SDL3.dll copy $(SDL3)\bin\SDL3.dll $(BUILD_DIR)
+endif
 
 $(TARGET): $(OBJS)
 	$(call MKDIR,$(BUILD_DIR))
-	$(CXX) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS) -g
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(call MKDIR,$(OBJ_DIR))
@@ -47,10 +51,6 @@ shaders:
 
 # Run target
 run: $(TARGET)
-# If on windows copy the SDL3.dll to the build directory
-ifeq ($(OS),Windows_NT)
-	if not exist $(BUILD_DIR)\SDL3.dll copy $(SDL3)\bin\SDL3.dll $(BUILD_DIR)
-endif
 	$(TARGET)
 
 # Clean target

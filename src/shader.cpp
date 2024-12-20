@@ -1,7 +1,7 @@
 #include "shader.hpp"
 
-SDL_GPUShader* LoadShader(
-    SDL_GPUDevice* device,
+std::shared_ptr<SDL_GPUShader> LoadShader(
+    std::shared_ptr<SDL_GPUDevice> device,
     std::string shaderFilename,
     Uint32 samplerCount,
     Uint32 uniformCount,
@@ -21,7 +21,7 @@ SDL_GPUShader* LoadShader(
     std::string basePath = SDL_GetBasePath();
     std::string fullPath;
 
-    SDL_GPUShaderFormat backendFormats = SDL_GetGPUShaderFormats(device);
+    SDL_GPUShaderFormat backendFormats = SDL_GetGPUShaderFormats(device.get());
     SDL_GPUShaderFormat format = SDL_GPU_SHADERFORMAT_INVALID;
 
     std::string entryPoint;
@@ -65,7 +65,7 @@ SDL_GPUShader* LoadShader(
         .num_uniform_buffers = uniformCount
     };
 
-    SDL_GPUShader* shaderPtr = SDL_CreateGPUShader(device, &info);
+    SDL_GPUShader* shaderPtr = SDL_CreateGPUShader(device.get(), &info);
     if (!shaderPtr) {
         SDL_Log("Couldn't create shader: %s", SDL_GetError());
         SDL_free(code);
@@ -73,5 +73,5 @@ SDL_GPUShader* LoadShader(
     }
 
     SDL_free(code);
-    return shaderPtr;
+    return std::shared_ptr<SDL_GPUShader>(shaderPtr, ShaderDeleter);
 }
