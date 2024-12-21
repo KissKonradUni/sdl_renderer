@@ -1,6 +1,5 @@
-#include "SDL3/SDL_gpu.h"
-#include "SDL3/SDL_video.h"
 #include "app.hpp"
+#include "input.hpp"
 #include "shader.hpp"
 #include "pipeline.hpp"
 
@@ -42,6 +41,25 @@ void updateWindowSize() {
     }
 }
 
+void initEvents() {    
+    EventHandler->add(SDL_EVENT_QUIT    , [](SDL_Event* event) { 
+        return SDL_APP_SUCCESS; 
+    });
+    EventHandler->add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
+        switch (event->key.scancode) {
+            case SDL_SCANCODE_ESCAPE:
+                return SDL_APP_SUCCESS;
+            default:
+                break;
+        }
+        return SDL_APP_CONTINUE;
+    });
+    EventHandler->add(SDL_EVENT_WINDOW_RESIZED, [](SDL_Event* event) {
+        updateWindowSize();
+        return SDL_APP_CONTINUE;
+    });
+}
+
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetAppMetadata("App", "1.0", "com.example.app");
 
@@ -73,26 +91,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     initShaders();
     initPipeline();
+    initEvents();
 
     return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    switch (event->type) {
-        case SDL_EVENT_QUIT:
-            return SDL_APP_SUCCESS;
-        case SDL_EVENT_KEY_DOWN:
-            switch (event->key.scancode) {
-                case SDL_SCANCODE_ESCAPE:
-                    return SDL_APP_SUCCESS;
-                default:
-                    break;
-            }
-        case SDL_EVENT_WINDOW_RESIZED:
-            updateWindowSize();
-            break;
-    }
-    return SDL_APP_CONTINUE;
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
+    return EventHandler->handle(event);
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
@@ -110,25 +115,29 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         return SDL_APP_FAILURE;
     }
 
-    if (swapchainTexture != NULL) {
-        SDL_GPUColorTargetInfo colorTargetInfo = { 0 };
-        colorTargetInfo.texture     = swapchainTexture;
-        colorTargetInfo.clear_color = { 
-            SDL_sinf(now * 3        ) * 0.5f + 0.5f,
-            SDL_sinf(now * 3 + 2.09f) * 0.5f + 0.5f,
-            SDL_sinf(now * 3 + 4.18f) * 0.5f + 0.5f,
-        1.0f };
-        colorTargetInfo.load_op     = SDL_GPU_LOADOP_CLEAR;
-        colorTargetInfo.store_op    = SDL_GPU_STOREOP_STORE;
-
-        SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(commandBuffer, &colorTargetInfo, 1, NULL);
-        
-        SDL_SetGPUViewport(renderPass, &viewport);
-        SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline.get());
-        SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
-
-        SDL_EndGPURenderPass(renderPass);
+    if (swapchainTexture == NULL) {
+        SDL_SubmitGPUCommandBuffer(commandBuffer);
+        return SDL_APP_CONTINUE;
     }
+
+    SDL_GPUColorTargetInfo colorTargetInfo = { 0 };
+    colorTargetInfo.texture     = swapchainTexture;
+    colorTargetInfo.clear_color = { 
+        SDL_sinf(now * 3        ) * 0.5f + 0.5f,
+        SDL_sinf(now * 3 + 2.09f) * 0.5f + 0.5f,
+        SDL_sinf(now * 3 + 4.18f) * 0.5f + 0.5f,
+        1.0f 
+    };
+    colorTargetInfo.load_op     = SDL_GPU_LOADOP_CLEAR;
+    colorTargetInfo.store_op    = SDL_GPU_STOREOP_STORE;
+
+    SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(commandBuffer, &colorTargetInfo, 1, NULL);
+    
+    SDL_SetGPUViewport(renderPass, &viewport);
+    SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline.get());
+    SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
+
+    SDL_EndGPURenderPass(renderPass);
 
     if (!SDL_SubmitGPUCommandBuffer(commandBuffer)) {
         SDL_Log("Couldn't submit command buffer: %s", SDL_GetError());
@@ -139,6 +148,4 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    // Release Vulkan context from SDL window
-    SDL_ReleaseWindowFromGPUDevice(AppState->gpuDevice.get(), AppState->window.get());
 }

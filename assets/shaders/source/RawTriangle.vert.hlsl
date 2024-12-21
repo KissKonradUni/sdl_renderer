@@ -34,7 +34,7 @@ Output main(Input input)
             }
             else {
                 pos = float2(-0.5f, 0.5f);
-                output.Color = float4(1.0f, 1.0f, 0.0f, 1.0f);
+                output.Color = float4(1.0f, 0.0f, 1.0f, 1.0f);
             }
         }
     }
