@@ -18,7 +18,7 @@ else
 endif
 
 # Compiler and flags
-CXXFLAGS = -Wall -std=c++23 $(SDLFLAGS) -g
+CXXFLAGS = -Wall -std=c++23 $(SDLFLAGS) -g -msse4.2 -mavx
 LDFLAGS = $(SDLLIBS)
 
 # Project structure

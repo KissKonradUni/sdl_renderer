@@ -2,6 +2,7 @@
 #include "input.hpp"
 #include "shader.hpp"
 #include "pipeline.hpp"
+#include "floatmath.hpp"
 
 #include <memory>
 
@@ -12,10 +13,10 @@
 static std::shared_ptr<SDL_GPUShader> vertex;
 static std::shared_ptr<SDL_GPUShader> fragment;
 static std::shared_ptr<SDL_GPUGraphicsPipeline> fillPipeline;
-static SDL_GPUViewport viewport = { 0.0f, 0.0f, 2000.0f, 2000.0f, 0.0f, 1.0f };
+static SDL_GPUViewport viewport = { 0.0f, 0.0f, 1920.0f, 2000.0f, 0.0f, 1.0f };
 
 void initShaders() {
-    vertex   = loadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
+    vertex   = loadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 1, 0, 0);
     fragment = loadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 0, 0, 0);
 }
 
@@ -28,16 +29,6 @@ void updateWindowSize() {
     if (SDL_GetWindowSize(AppState->window.get(), &w, &h)) {
         viewport.w = w;
         viewport.h = h;
-    }
-    
-    if (w > h) {
-        viewport.x = (w - h) / 2.0f;
-        viewport.y = 0;
-        viewport.w = h;
-    } else {
-        viewport.x = 0;
-        viewport.y = (h - w) / 2.0f;
-        viewport.h = w;
     }
 }
 
@@ -60,6 +51,12 @@ void initEvents() {
     });
 }
 
+void runTests() {
+    runFloatMathTests();
+
+    matrix4x4f test;
+}
+
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     
     const auto result = AppState->initApp("App", "1.0", "com.sdl3.app");
@@ -70,6 +67,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initShaders();
     initPipeline();
     initEvents();
+
+    runTests();
 
     return SDL_APP_CONTINUE;
     
@@ -114,7 +113,25 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     
     SDL_SetGPUViewport(renderPass, &viewport);
     SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline.get());
-    SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
+
+    // Move camera back and look at origin
+    matrix4x4f view = matrix4x4f::translation(0.0f, 0.0f, -5.0f);
+    
+    // Position object further back
+    matrix4x4f model = matrix4x4f::translation(0.0f, 0.0f, -15.0f) *
+                       matrix4x4f::rotation(now, 0.0f, 1.0f, 0.0f);
+    
+    float aspect = viewport.w / viewport.h;
+    // Use 60 degree FOV (converted to radians)
+    matrix4x4f projection = matrix4x4f::perspective(60.0f * SDL_PI_F / 180.0f, 
+                                                    aspect, 
+                                                    0.1f,   
+                                                    100.0f);
+    
+    matrix4x4f matrix = projection * view * model;
+
+    SDL_PushGPUVertexUniformData(commandBuffer, 0, &matrix, sizeof(matrix4x4f));
+    SDL_DrawGPUPrimitives(renderPass, 12, 1, 0, 0);
 
     SDL_EndGPURenderPass(renderPass);
 
