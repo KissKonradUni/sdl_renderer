@@ -3,11 +3,18 @@
 #include <SDL3/SDL.h>
 
 #include <memory>
+#include <string>
 
 class SDL_AppState {
 public:
     std::shared_ptr<SDL_Window>       window;
     std::shared_ptr<SDL_GPUDevice> gpuDevice;
+
+    SDL_AppResult initSDL();
+    SDL_AppResult initWindow();
+    SDL_AppResult initGPUDevice();
+
+    SDL_AppResult initApp(std::string appName, std::string appVersion, std::string appId);
 };
 
 class SDL_AppDeleter {

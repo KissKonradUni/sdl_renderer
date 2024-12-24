@@ -15,7 +15,7 @@ public:
 };
 extern SDL_PipelineDeleter PipelineDeleter;
 
-std::shared_ptr<SDL_GPUGraphicsPipeline> CreatePipeline(
+std::shared_ptr<SDL_GPUGraphicsPipeline> createPipeline(
     std::shared_ptr<SDL_GPUShader> vertexShader,
     std::shared_ptr<SDL_GPUShader> fragmentShader
 );

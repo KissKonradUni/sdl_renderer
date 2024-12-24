@@ -16,7 +16,7 @@ public:
 };
 extern SDL_ShaderDeleter ShaderDeleter;
 
-std::shared_ptr<SDL_GPUShader> LoadShader(
+std::shared_ptr<SDL_GPUShader> loadShader(
     std::shared_ptr<SDL_GPUDevice> device,
     std::string shaderFilename,
     Uint32 samplerCount,

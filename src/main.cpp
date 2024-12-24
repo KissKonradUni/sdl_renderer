@@ -15,12 +15,12 @@ static std::shared_ptr<SDL_GPUGraphicsPipeline> fillPipeline;
 static SDL_GPUViewport viewport = { 0.0f, 0.0f, 2000.0f, 2000.0f, 0.0f, 1.0f };
 
 void initShaders() {
-    vertex   = LoadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
-    fragment = LoadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 0, 0, 0);
+    vertex   = loadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
+    fragment = loadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 0, 0, 0);
 }
 
 void initPipeline() {
-    fillPipeline = CreatePipeline(vertex, fragment);
+    fillPipeline = createPipeline(vertex, fragment);
 }
 
 void updateWindowSize() {
@@ -61,39 +61,18 @@ void initEvents() {
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    SDL_SetAppMetadata("App", "1.0", "com.example.app");
-
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-
-    SDL_Window* rawWindow = SDL_CreateWindow("App", 1920, 1200, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
-    if (rawWindow == NULL) {
-        SDL_Log("Couldn't create window: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-    AppState->window.reset(rawWindow, AppDeleter);
-    updateWindowSize();
-
-    SDL_GPUDevice* rawGpuDevice = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, NULL);
-    if (rawGpuDevice == NULL) {
-        SDL_Log("Couldn't create GPU device: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-    AppState->gpuDevice.reset(rawGpuDevice, AppDeleter);
     
-    if (!SDL_ClaimWindowForGPUDevice(AppState->gpuDevice.get(), AppState->window.get())) {
-        SDL_Log("Couldn't claim window for GPU device: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
-    SDL_SetGPUSwapchainParameters(AppState->gpuDevice.get(), AppState->window.get(), SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR, SDL_GPU_PRESENTMODE_MAILBOX);
+    const auto result = AppState->initApp("App", "1.0", "com.sdl3.app");
+    if (result != SDL_APP_CONTINUE)
+        return result;
+    updateWindowSize();
 
     initShaders();
     initPipeline();
     initEvents();
 
     return SDL_APP_CONTINUE;
+    
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
