@@ -112,6 +112,16 @@ struct alignas(16) quaternionf {
     quaternionf(const quaternionf& other) : simd(other.simd) {}
 };
 
+enum specialMatrixType {
+    IDENTITY,
+    NULL_MATRIX,
+    TRANSLATION,
+    ROTATION,
+    SCALE,
+    ORTHOGRAPHIC,
+    PERSPECTIVE
+};
+
 /**
  * @brief 4x4 matrix of floats.
  * Uses SIMD for faster calculations.
@@ -125,8 +135,9 @@ struct alignas(16) matrix4x4f {
             float m20, m21, m22, m23;
             float m30, m31, m32, m33;
         };
-         std::array<float, 16> as_array;
-         std::array<std::array<float, 4>, 4> as_array_rows;
+        std::array<float, 16> as_array;
+        std::array<std::array<float, 4>, 4> as_array_rows;
+        std::array<vector4f, 4> as_vector_rows;
         __m128 simd_rows[4];
     };
 
@@ -222,11 +233,22 @@ struct alignas(16) matrix4x4f {
      */
     static matrix4x4f scale(float s) { return scale(s, s, s); }
 
+    static matrix4x4f lookAt(const vector4f& rotation);
+
     /**
      * @return matrix4x4f The transpose of the matrix.
      */
     matrix4x4f transpose() const;
 
+    /**
+     * @param type The type of special matrix to invert.
+     * @return matrix4x4f The inverse of the matrix.
+     */
+    matrix4x4f specialInverse(specialMatrixType type) const;
+
+    matrix4x4f operator+(const matrix4x4f& other) const;
+    matrix4x4f operator-(const matrix4x4f& other) const;
+    matrix4x4f operator*(float scalar) const;
     matrix4x4f operator*(const matrix4x4f& other) const;
 };
 

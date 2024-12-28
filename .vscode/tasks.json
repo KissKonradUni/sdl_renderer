@@ -12,18 +12,8 @@
       "problemMatcher": ["$gcc"],
     },
     {
-      "label": "clean",
-      "type": "shell",
-      "command": "make clean",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
       "label": "debug",
       "dependsOn": [
-        "clean",
         "build"
       ]
     }

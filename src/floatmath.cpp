@@ -167,6 +167,24 @@ matrix4x4f matrix4x4f::rotation(float angle, float x, float y, float z) {
     });
 }
 
+matrix4x4f matrix4x4f::lookAt(const vector4f& rotation) {
+    const auto rotationMatrix = matrix4x4f::rotation(rotation.x, 1.0f, 0.0f, 0.0f) *
+                                matrix4x4f::rotation(rotation.y, 0.0f, 1.0f, 0.0f) *
+                                matrix4x4f::rotation(rotation.z, 0.0f, 0.0f, 1.0f);
+    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * rotationMatrix * -1.0f;
+    const auto up      = vector4f(0.0f, 1.0f, 0.0f, 0.0f) * rotationMatrix;
+    const auto right   = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * rotationMatrix;
+
+    matrix4x4f result = matrix4x4f(std::array<float, 16> {
+        right.x,   right.y,   right.z,   0.0f,
+        up.x,      up.y,      up.z,      0.0f,
+        forward.x, forward.y, forward.z, 0.0f,
+        0.0f,      0.0f,      0.0f,      1.0f
+    });
+
+    return result;
+}
+
 matrix4x4f matrix4x4f::scale(float x, float y, float z) {
     return matrix4x4f(std::array<float, 16> {
            x, 0.0f, 0.0f, 0.0f,
@@ -181,6 +199,60 @@ matrix4x4f matrix4x4f::transpose() const {
 
     _MM_TRANSPOSE4_PS(result.simd_rows[0], result.simd_rows[1], result.simd_rows[2], result.simd_rows[3]);
     
+    return result;
+}
+
+matrix4x4f matrix4x4f::specialInverse(specialMatrixType type) const {
+    switch (type) {
+        case IDENTITY:
+            return (*this);
+        case NULL_MATRIX:
+            return (*this);
+        case TRANSLATION:
+        case ROTATION:
+        case SCALE:
+        case ORTHOGRAPHIC:
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Special inverse not implemented for this matrix type.");
+            return matrix4x4f::identity();
+        case PERSPECTIVE:
+            matrix4x4f result = matrix4x4f::identity();
+            result.m00 = 1.0f / m00;
+            result.m11 = 1.0f / m11;
+            result.m22 = 0.0f;
+            result.m23 = 1.0f / m32;
+            result.m32 = 1.0f / m23;
+            result.m33 = -m22 / m23;
+            return result;
+    }
+}
+
+matrix4x4f matrix4x4f::operator+(const matrix4x4f& other) const {
+    matrix4x4f result;
+
+    for (int i = 0; i < 4; i++) {
+        result.simd_rows[i] = _mm_add_ps(simd_rows[i], other.simd_rows[i]);
+    }
+
+    return result;
+}
+
+matrix4x4f matrix4x4f::operator-(const matrix4x4f& other) const {
+    matrix4x4f result;
+
+    for (int i = 0; i < 4; i++) {
+        result.simd_rows[i] = _mm_sub_ps(simd_rows[i], other.simd_rows[i]);
+    }
+
+    return result;
+}
+
+matrix4x4f matrix4x4f::operator*(float scalar) const {
+    matrix4x4f result;
+
+    for (int i = 0; i < 4; i++) {
+        result.simd_rows[i] = _mm_mul_ps(simd_rows[i], _mm_set1_ps(scalar));
+    }
+
     return result;
 }
 

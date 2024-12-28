@@ -15,9 +15,24 @@ static std::shared_ptr<SDL_GPUShader> fragment;
 static std::shared_ptr<SDL_GPUGraphicsPipeline> fillPipeline;
 static SDL_GPUViewport viewport = { 0.0f, 0.0f, 1920.0f, 2000.0f, 0.0f, 1.0f };
 
+static struct {
+    vector4f position = vector4f( 0.0f,     2.0f, -5.0f,  1.0f);
+    vector4f rotation = vector4f( 0.0f, SDL_PI_F,  0.0f,  1.0f);
+
+    matrix4x4f translation;
+    matrix4x4f lookAt;
+    matrix4x4f projection;
+} camera;
+
+static struct {
+    float x = 0.0f;
+    float y = 0.0f;
+    float r = 0.0f;
+} input;
+
 void initShaders() {
-    vertex   = loadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 1, 0, 0);
-    fragment = loadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 0, 0, 0);
+    vertex   = loadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
+    fragment = loadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 1, 0, 0);
 }
 
 void initPipeline() {
@@ -40,6 +55,43 @@ void initEvents() {
         switch (event->key.scancode) {
             case SDL_SCANCODE_ESCAPE:
                 return SDL_APP_SUCCESS;
+            case SDL_SCANCODE_W:
+                input.y = 1.0f;
+                break;
+            case SDL_SCANCODE_S:
+                input.y = -1.0f;
+                break;
+            case SDL_SCANCODE_A:
+                input.x = -1.0f;
+                break;
+            case SDL_SCANCODE_D:
+                input.x = 1.0f;
+                break;
+            case SDL_SCANCODE_Q:
+                input.r = 1.0f;
+                break;
+            case SDL_SCANCODE_E:
+                input.r = -1.0f;
+                break;
+            default:
+                break;
+        }
+        return SDL_APP_CONTINUE;
+    });
+    EventHandler->add(SDL_EVENT_KEY_UP, [](SDL_Event* event) {
+        switch (event->key.scancode) {
+            case SDL_SCANCODE_W:
+            case SDL_SCANCODE_S:
+                input.y = 0.0f;
+                break;
+            case SDL_SCANCODE_A:
+            case SDL_SCANCODE_D:
+                input.x = 0.0f;
+                break;
+            case SDL_SCANCODE_Q:
+            case SDL_SCANCODE_E:
+                input.r = 0.0f;
+                break;
             default:
                 break;
         }
@@ -53,8 +105,6 @@ void initEvents() {
 
 void runTests() {
     runFloatMathTests();
-
-    matrix4x4f test;
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -68,18 +118,19 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initPipeline();
     initEvents();
 
-    runTests();
+    //runTests();
 
     return SDL_APP_CONTINUE;
-    
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
     return EventHandler->handle(event);
 }
 
+static double lastTime = 0.0;
 SDL_AppResult SDL_AppIterate(void *appstate) {
     const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    const double delta = now - lastTime;
     
     SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(AppState->gpuDevice.get());
     if (!commandBuffer) {
@@ -98,6 +149,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         return SDL_APP_CONTINUE;
     }
 
+    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * camera.lookAt * input.y * delta * 60.0f;
+    camera.position = camera.position + forward * 0.1f;
+    const auto right = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * camera.lookAt * input.x * delta * 60.0f;
+    camera.position = camera.position + right * 0.1f;
+    camera.rotation.y = camera.rotation.y + input.r * delta * 3.14f;
+    std::string title = "App - " + std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z) + " - y rot: " + std::to_string(camera.rotation.y) + " - delta: " + std::to_string(delta);
+    SDL_SetWindowTitle(AppState->window.get(), title.c_str());
+
     SDL_GPUColorTargetInfo colorTargetInfo = { 0 };
     colorTargetInfo.texture     = swapchainTexture;
     colorTargetInfo.clear_color = { 
@@ -115,23 +174,30 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline.get());
 
     // Move camera back and look at origin
-    matrix4x4f view = matrix4x4f::translation(0.0f, 0.0f, -5.0f);
-    
-    // Position object further back
-    matrix4x4f model = matrix4x4f::translation(0.0f, 0.0f, -15.0f) *
-                       matrix4x4f::rotation(now, 0.0f, 1.0f, 0.0f);
-    
-    float aspect = viewport.w / viewport.h;
-    // Use 60 degree FOV (converted to radians)
-    matrix4x4f projection = matrix4x4f::perspective(60.0f * SDL_PI_F / 180.0f, 
-                                                    aspect, 
-                                                    0.1f,   
-                                                    100.0f);
-    
-    matrix4x4f matrix = projection * view * model;
+    camera.translation = matrix4x4f::translation(-camera.position.x, -camera.position.y, -camera.position.z);
+    camera.lookAt      = matrix4x4f::lookAt(camera.rotation);
 
-    SDL_PushGPUVertexUniformData(commandBuffer, 0, &matrix, sizeof(matrix4x4f));
-    SDL_DrawGPUPrimitives(renderPass, 12, 1, 0, 0);
+    float aspect = viewport.h / viewport.w;
+    camera.projection  = matrix4x4f::perspective(90.0f * SDL_PI_F / 180.0f, 
+                                                 aspect, 
+                                                 0.1f,   
+                                                 1000.0f);
+
+    struct {
+        matrix4x4f cameraTranslation;
+        matrix4x4f cameraLookAt;
+        matrix4x4f cameraProjection;
+        vector4f cameraPos;
+    } uniformData = { 
+        camera.translation, 
+        camera.lookAt, 
+        camera.projection, 
+        camera.position 
+    };
+
+    //SDL_PushGPUVertexUniformData(commandBuffer, 0, &uniformData, sizeof(uniformData));
+    SDL_PushGPUFragmentUniformData(commandBuffer, 0, &uniformData, sizeof(uniformData));
+    SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
 
     SDL_EndGPURenderPass(renderPass);
 
@@ -140,6 +206,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         return SDL_APP_FAILURE;
     }
 
+    lastTime = now;
     return SDL_APP_CONTINUE;
 }
 

@@ -1,8 +1,3 @@
-cbuffer UniformBlock : register(b0, space1)
-{
-    float4x4 MatrixTransform : packoffset(c0);
-};
-
 struct Input
 {
     uint VertexIndex : SV_VertexID;
@@ -10,7 +5,7 @@ struct Input
 
 struct Output
 {
-    float4 Color : TEXCOORD0;
+    float2 UV : TEXCOORD0;
     float4 Position : SV_Position;
 };
 
@@ -18,40 +13,35 @@ Output main(Input input)
 {
     Output output;
     float3 pos;
+    float2 uv;
 
     switch (input.VertexIndex)
     {
-        // Front face
         case 0:
-        case 4:
-        case 8:
-            pos = float3(0.0f, 0.6f, 0.0f);  // Top vertex
-            output.Color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+            pos = float3(-1.0f, 1.0f, 0.0f);  // Top left
+            uv = float2(-1.0f, 1.0f);
             break;
         case 1:
-        case 5:
-        case 9:
-            pos = float3(-0.5f, -0.3f, 0.3f);  // Bottom left
-            output.Color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+        case 3:
+            pos = float3(-1.0f, -1.0f, 0.0f);  // Bottom left
+            uv = float2(-1.0f, -1.0f);
             break;
         case 2:
-        case 6:
-        case 10:
-            pos = float3(0.5f, -0.3f, 0.3f);  // Bottom right
-            output.Color = float4(0.0f, 1.0f, 0.0f, 1.0f);
+        case 4:
+            pos = float3(1.0f, 1.0f, 0.0f);  // Top right
+            uv = float2(1.0f, 1.0f);
             break;
-        case 3:
-        case 7:
-        case 11:
-            pos = float3(0.0f, -0.3f, -0.5f);  // Back vertex
-            output.Color = float4(0.0f, 0.0f, 1.0f, 1.0f);
+        case 5:
+            pos = float3(1.0f, -1.0f, 0.0f);  // Bottom right
+            uv = float2(1.0f, -1.0f);
             break;
         default:
             pos = float3(0.0f, 0.0f, 0.0f);
-            output.Color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+            uv = float2(0.0f, 0.0f);
             break;
     }
 
-    output.Position = mul(MatrixTransform, float4(pos, 1.0f));
+    output.Position = float4(pos, 1.0f);
+    output.UV = uv;
     return output;
 }
