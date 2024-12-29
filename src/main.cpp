@@ -16,8 +16,8 @@ static std::shared_ptr<SDL_GPUGraphicsPipeline> fillPipeline;
 static SDL_GPUViewport viewport = { 0.0f, 0.0f, 1920.0f, 2000.0f, 0.0f, 1.0f };
 
 static struct {
-    vector4f position = vector4f( 0.0f,     2.0f, -5.0f,  1.0f);
-    vector4f rotation = vector4f( 0.0f, SDL_PI_F,  0.0f,  1.0f);
+    vector4f position = vector4f( 0.0f,      2.0f, -5.0f,  1.0f);
+    vector4f rotation = vector4f( 0.0f,  SDL_PI_F,  0.0f,  1.0f);
 
     matrix4x4f translation;
     matrix4x4f lookAt;
@@ -62,16 +62,16 @@ void initEvents() {
                 input.y = -1.0f;
                 break;
             case SDL_SCANCODE_A:
-                input.x = -1.0f;
-                break;
-            case SDL_SCANCODE_D:
                 input.x = 1.0f;
                 break;
+            case SDL_SCANCODE_D:
+                input.x = -1.0f;
+                break;
             case SDL_SCANCODE_Q:
-                input.r = 1.0f;
+                input.r = -1.0f;
                 break;
             case SDL_SCANCODE_E:
-                input.r = -1.0f;
+                input.r = 1.0f;
                 break;
             default:
                 break;
@@ -149,10 +149,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         return SDL_APP_CONTINUE;
     }
 
-    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * camera.lookAt * input.y * delta * 60.0f;
-    camera.position = camera.position + forward * 0.1f;
-    const auto right = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * camera.lookAt * input.x * delta * 60.0f;
-    camera.position = camera.position + right * 0.1f;
+    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * camera.lookAt * input.y;
+    const auto right = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * camera.lookAt * input.x;
+    const auto move = (forward + right).normalize3d() * delta * 10.0f;
+    camera.position   = camera.position + move;
     camera.rotation.y = camera.rotation.y + input.r * delta * 3.14f;
     std::string title = "App - " + std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z) + " - y rot: " + std::to_string(camera.rotation.y) + " - delta: " + std::to_string(delta);
     SDL_SetWindowTitle(AppState->window.get(), title.c_str());

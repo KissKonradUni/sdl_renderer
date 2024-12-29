@@ -171,7 +171,7 @@ matrix4x4f matrix4x4f::lookAt(const vector4f& rotation) {
     const auto rotationMatrix = matrix4x4f::rotation(rotation.x, 1.0f, 0.0f, 0.0f) *
                                 matrix4x4f::rotation(rotation.y, 0.0f, 1.0f, 0.0f) *
                                 matrix4x4f::rotation(rotation.z, 0.0f, 0.0f, 1.0f);
-    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * rotationMatrix * -1.0f;
+    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * rotationMatrix * - 1.0f;
     const auto up      = vector4f(0.0f, 1.0f, 0.0f, 0.0f) * rotationMatrix;
     const auto right   = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * rotationMatrix;
 

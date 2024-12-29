@@ -12,7 +12,7 @@ cbuffer UniformBlock : register(b0, space3)
 
 float3 calculateRayDirection(float2 UV)
 {
-    float4 worldDir = float4(UV.x * -1.0f, UV.y * -1.0f, 1.0f, 1.0f);
+    float4 worldDir = float4(UV.x, UV.y * -1.0f, 1.0f, 1.0f);
     worldDir = mul(mul(CameraRotation, CameraProjection), worldDir);
     worldDir *= (1 / worldDir.w);
     float3 result = normalize(worldDir.xyz);
@@ -23,6 +23,20 @@ float rectangleSDF(float3 rayPos, float3 rectCenter, float3 rectSize)
 {
     float3 d = abs(rayPos - rectCenter) - rectSize;
     return min(max(d.x, max(d.y, d.z)), 0.0f) + length(max(d, 0.0f));
+}
+
+float cylinderSDF(float3 rayPos, float3 cylinderCenter, float cylinderRadius, float cylinderHeight)
+{
+    float3 p = rayPos - cylinderCenter;
+    float2 d = float2(length(float2(p.x, p.z)) - cylinderRadius, abs(p.y) - cylinderHeight);
+    return min(max(d.x, d.y), 0.0f) + length(max(d, 0.0f));
+}
+
+float cylinderXSDF(float3 rayPos, float3 cylinderCenter, float cylinderRadius, float cylinderHeight)
+{
+    float3 p = rayPos - cylinderCenter;
+    float2 d = float2(length(float2(p.y, p.z)) - cylinderRadius, abs(p.x) - cylinderHeight);
+    return min(max(d.x, d.y), 0.0f) + length(max(d, 0.0f));
 }
 
 float sphereSDF(float3 rayPos, float3 sphereCenter, float sphereRadius)
@@ -55,8 +69,21 @@ float sceneSDF(float3 rayPos)
     combined = min(combined, plane);
 
     float backwall = rayPos.z * -1.0f + 2.0f;
-    float hole = rectangleSDF(rayPos, float3(0.0f, 1.0f, 3.0f), float3(3.0f, 3.0f, 2.0f));
-    combined = min(combined, max(backwall, -hole));
+
+    float3 repeatPos = rayPos;
+    repeatPos.x = fmod(abs(repeatPos.x) + 3.5f, 7.0f) - 3.5f;
+    float hole = cylinderSDF(repeatPos, float3(0.0f, 0.0f, 2.0f), 3.0f, 3.0f);
+    float holeSphere = sphereSDF(repeatPos, float3(0.0f, 3.0f, 2.0f), 3.0f);
+    backwall = max(max(backwall, -hole), -holeSphere);
+    combined = min(combined, backwall);
+
+    float roof = rayPos.y * -1.0f + 12.0f;
+    float roofEnd = rayPos.z;
+    float roofHole = cylinderXSDF(rayPos, float3(0.0f, 12.0f, 2.0f), 2.0f, 1000.0f);
+    combined = min(combined, min(max(roof, -roofEnd), roofHole));
+
+    float randomPillar = rectangleSDF(rayPos, float3( -10.0f, 5.0f, -20.0f), float3(1.0f, 10.0f, 1.0f));
+    combined = min(combined, randomPillar);
 
     return combined;
 }
@@ -92,7 +119,7 @@ hitResult rayMarch(float3 rayOrigin, float3 rayDirection)
             result.steps = i;
             return result;
         }
-        if (dist < smallestDist) { smallestDist = dist; }
+        if (dist < smallestDist && dist > 0.1f) { smallestDist = dist; }
         t += dist;
         if (t >= FAR_PLANE) { break; }
     }
@@ -100,6 +127,30 @@ hitResult rayMarch(float3 rayOrigin, float3 rayDirection)
     result.t = -1.0f;
     result.smallestDist = smallestDist;
     result.steps = MAX_STEPS;
+    return result;
+}
+
+float softShadow(float3 pos, float3 lightDir, float k)
+{
+    float result = 1.0f;
+    float t = 0.0f;
+    
+    for(int i = 0; i < MAX_STEPS; i++)
+    {
+        float3 p = pos + lightDir * t;
+        float dist = sceneSDF(p);
+        
+        if(dist < EPSILON)
+            return 0.0f;
+            
+        if(t > FAR_PLANE)
+            break;
+            
+        // This is the key for soft shadows
+        result = min(result, k * dist / t);
+        t += dist;
+    }
+    
     return result;
 }
 
@@ -112,21 +163,24 @@ float4 main(float2 UV: TEXCOORD0) : SV_Target0
     float3 rayOrigin = CameraPosition;
     float3 rayDirection = normalize(calculateRayDirection(UV));
 
+    float3 halfwayDir = normalize(rayDirection + lightDir);
+
     hitResult hit = rayMarch(rayOrigin, rayDirection);
     float t = hit.t;
     float3 pos = rayOrigin + rayDirection * t;
     float3 normal = computeNormal(pos);
 
-    hitResult shadowHit = rayMarch(pos + normal * EPSILON, lightDir);
+    float shadowHit = softShadow(pos + normal * EPSILON * 5.0f, lightDir, 64.0f);
 
     if (t > 0.0f) { 
-        float diffuse = max(0.0f, dot(normal, lightDir));
+        float diffuse  = max(0.0f, dot(normal, lightDir));
+        float specular = pow(max(0.0f, dot(normal, halfwayDir)), 32.0f);
         
-        if (shadowHit.t > 0.0f) {
-            diffuse *= 0.01f;
-        }
+        diffuse  *= shadowHit;
+        specular *= shadowHit;
 
-        result = float4(diffuse, diffuse, diffuse, 1.0f);
+        float value = diffuse + specular;
+        result = float3(value, value, value);
     }
 
     // Fog
@@ -136,11 +190,9 @@ float4 main(float2 UV: TEXCOORD0) : SV_Target0
     
     // Debug override
     // hit debug
-    //float col = result;
-    //if (hit.steps == MAX_STEPS) {
-    //    col = shadowHit.smallestDist;
-    //}
-    //result = float3(col, col, col);
+    // float3 col = result;
+    // col *= shadowHit.smallestDist;
+    // result = col;
 
     return float4(result, 1.0f);
 }
