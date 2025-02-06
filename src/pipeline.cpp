@@ -19,6 +19,7 @@ std::shared_ptr<SDL_GPUGraphicsPipeline> createPipeline(
         },
         .depth_stencil_state = {
             .compare_op = SDL_GPU_COMPAREOP_LESS,
+            /*
             .back_stencil_state = {
                 .fail_op = SDL_GPU_STENCILOP_REPLACE,
                 .pass_op = SDL_GPU_STENCILOP_KEEP,
@@ -35,12 +36,19 @@ std::shared_ptr<SDL_GPUGraphicsPipeline> createPipeline(
             .enable_depth_test = true,
             .enable_depth_write = true,
             .enable_stencil_test = true
+            */
+            .write_mask = 0,
+            .enable_depth_test = false,
+            .enable_depth_write = false,
+            .enable_stencil_test = false
         },
         .target_info = {
             .color_target_descriptions = &colorTargetDescription,
             .num_color_targets         = 1,
+            /*
             .depth_stencil_format      = SDL_GPU_TEXTUREFORMAT_D32_FLOAT_S8_UINT,
             .has_depth_stencil_target  = true,
+            */
         },
     };
 

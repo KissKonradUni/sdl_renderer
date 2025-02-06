@@ -1,5 +1,9 @@
 #include "app.hpp"
 
+SDL_AppDeleter AppDeleter;
+
+std::unique_ptr<SDL_AppState, SDL_AppDeleter> AppState(new SDL_AppState(), AppDeleter);
+
 SDL_AppResult SDL_AppState::initSDL() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
@@ -52,7 +56,3 @@ SDL_AppResult SDL_AppState::initApp(std::string appName, std::string appVersion,
 
     return SDL_APP_CONTINUE;
 }
-
-static SDL_AppDeleter AppDeleter;
-
-static std::unique_ptr<SDL_AppState, SDL_AppDeleter> AppState(new SDL_AppState(), AppDeleter);

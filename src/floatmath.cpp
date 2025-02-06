@@ -1,5 +1,7 @@
 #include "floatmath.hpp"
 
+#include <cmath>
+
 // Vector4f
 
 float vector4f::length4d() const {
