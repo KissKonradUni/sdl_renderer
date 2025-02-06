@@ -30,9 +30,6 @@ public:
     void operator()(SDL_AppState* appState) {
         SDL_ReleaseWindowFromGPUDevice(appState->gpuDevice.get(), appState->window.get());
         SDL_Log("Window released from GPU device");
-
-        appState->gpuDevice.reset();
-        appState->window.reset();
     }
 };
 extern SDL_AppDeleter AppDeleter;

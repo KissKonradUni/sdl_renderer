@@ -108,7 +108,6 @@ void runTests() {
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    
     const auto result = AppState->initApp("App", "1.0", "com.sdl3.app");
     if (result != SDL_APP_CONTINUE)
         return result;
@@ -178,10 +177,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     camera.lookAt      = matrix4x4f::lookAt(camera.rotation);
 
     float aspect = viewport.h / viewport.w;
-    camera.projection  = matrix4x4f::perspective(90.0f * SDL_PI_F / 180.0f, 
-                                                 aspect, 
-                                                 0.1f,   
-                                                 1000.0f);
+    camera.projection  = matrix4x4f::perspective(
+        90.0f * SDL_PI_F / 180.0f, 
+        aspect, 
+        0.1f,   
+        1000.0f
+    );
 
     struct {
         matrix4x4f cameraTranslation;
@@ -211,4 +212,5 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+    SDL_Log("Quitting with result: %d", result);
 }
