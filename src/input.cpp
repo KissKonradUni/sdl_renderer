@@ -1,6 +1,6 @@
 #include "input.hpp"
 
-static std::unique_ptr<SDL_EventHandler> EventHandler = std::make_unique<SDL_EventHandler>();
+std::unique_ptr<SDL_EventHandler> EventHandler = std::make_unique<SDL_EventHandler>();
 
 SDL_AppResult SDL_EventHandler::handle(SDL_Event* event) {
     if (!eventHandlers.contains(event->type))

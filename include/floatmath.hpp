@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <array>
+#include <xmmintrin.h>
 
 /*
     Data types for this rendering engine.
