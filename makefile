@@ -32,6 +32,10 @@ TARGET = $(BUILD_DIR)/sdl3_app.$(EXT)
 
 # Build target
 all: $(TARGET)
+# If on Windows, copy SDL3.dll to build directory
+ifeq ($(OS),Windows_NT)
+	if not exist $(BUILD_DIR)\SDL3.dll copy $(SDL3)\bin\SDL3.dll $(BUILD_DIR)
+endif
 
 $(TARGET): $(OBJS)
 	$(call MKDIR,$(BUILD_DIR))
@@ -47,10 +51,6 @@ shaders:
 
 # Run target
 run: $(TARGET)
-# If on windows copy the SDL3.dll to the build directory
-ifeq ($(OS),Windows_NT)
-	if not exist $(BUILD_DIR)\SDL3.dll copy $(SDL3)\bin\SDL3.dll $(BUILD_DIR)
-endif
 	$(TARGET)
 
 # Clean target

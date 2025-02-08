@@ -5,17 +5,14 @@
       "label": "build",
       "type": "shell",
       "command": "make",
+      "args": [
+        ""
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
       },
       "problemMatcher": ["$gcc"],
-    },
-    {
-      "label": "debug",
-      "dependsOn": [
-        "build"
-      ]
     }
   ]
 }

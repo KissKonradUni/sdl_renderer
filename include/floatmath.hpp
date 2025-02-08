@@ -102,7 +102,7 @@ struct alignas(16) quaternionf {
         struct {
             float x, y, z, w;
         };
-         std::array<float, 4> as_array;
+        std::array<float, 4> as_array;
         vector4f as_vector;
         __m128 simd;
     };

@@ -26,3 +26,10 @@ make
 ```sh
 make run
 ```
+
+## Debugging
+Visual Studio Code:
+- Install the **Clangd** extension
+- Install the **C/C++** extension (disable the **IntelliSense** engine, clangd already provides it)
+- Add the **CodeLLDB** extension for debugging
+- Run the **(lldb) Build and debug** task (F5)
