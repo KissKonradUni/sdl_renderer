@@ -117,34 +117,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     const double delta = now - lastTime;
     
     const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * camera.lookAt * input.y;
-    const auto right = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * camera.lookAt * input.x;
-    const auto move = (forward + right).normalize3d() * delta * 10.0f;
+    const auto right   = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * camera.lookAt * input.x;
+    const auto move    = (forward + right).normalize3d() * delta * 10.0f;
+
     camera.position   = camera.position + move;
     camera.rotation.y = camera.rotation.y + input.r * delta * 3.14f;
+    
     std::string title = "App - " + std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z) + " - y rot: " + std::to_string(camera.rotation.y) + " - delta: " + std::to_string(delta);
     SDL_SetWindowTitle(AppState->window.get(), title.c_str());
-
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);   
-
-    glPushMatrix();
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(camera.translation.as_array.data());
-    glMultMatrixf(camera.lookAt.as_array.data());
-    glMultMatrixf(camera.projection.as_array.data());
-
-    glBegin(GL_QUADS);
-
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex2f(-0.5f, -0.5f);
-    glVertex2f( 0.5f, -0.5f);
-    glVertex2f( 0.5f,  0.5f);
-    glVertex2f(-0.5f,  0.5f);
-    
-    glEnd();
-
-    glPopMatrix();
 
     // Move camera back and look at origin
     camera.translation = matrix4x4f::translation(camera.position);
@@ -157,6 +137,26 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         0.1f,   
         1000.0f
     );
+
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
+
+    glPushMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    glBegin(GL_QUADS);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex3f(-0.5f, -0.5f, 0.0f);
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex3f( 0.5f, -0.5f, 0.0f);
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex3f( 0.5f,  0.5f, 0.0f);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glVertex3f(-0.5f,  0.5f, 0.0f);
+    glEnd();
+
+    glPopMatrix();
 
     SDL_GL_SwapWindow(AppState->window.get());
 
