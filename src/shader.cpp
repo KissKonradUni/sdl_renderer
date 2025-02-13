@@ -8,6 +8,8 @@ std::shared_ptr<SDL_GPUShader> loadShader(
     Uint32 storageBufferCount,
     Uint32 storageTextureCount
 ) {
+    //TODO: Rewrite for opengl
+    
     SDL_GPUShaderStage stage;
     if (SDL_strstr(shaderFilename.c_str(), ".vert")) {
         stage = SDL_GPU_SHADERSTAGE_VERTEX;

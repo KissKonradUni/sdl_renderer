@@ -113,16 +113,6 @@ struct alignas(16) quaternionf {
     quaternionf(const quaternionf& other) : simd(other.simd) {}
 };
 
-enum specialMatrixType {
-    IDENTITY,
-    NULL_MATRIX,
-    TRANSLATION,
-    ROTATION,
-    SCALE,
-    ORTHOGRAPHIC,
-    PERSPECTIVE
-};
-
 /**
  * @brief 4x4 matrix of floats.
  * Uses SIMD for faster calculations.
@@ -233,19 +223,18 @@ struct alignas(16) matrix4x4f {
      * @return matrix4x4f The scale matrix.
      */
     static matrix4x4f scale(float s) { return scale(s, s, s); }
-
+    /**
+     * @brief Use for creating a rotation matrix for the camera.
+     * 
+     * @param rotation The rotation vector.
+     * @return matrix4x4f The look-at matrix.
+     */
     static matrix4x4f lookAt(const vector4f& rotation);
 
     /**
      * @return matrix4x4f The transpose of the matrix.
      */
     matrix4x4f transpose() const;
-
-    /**
-     * @param type The type of special matrix to invert.
-     * @return matrix4x4f The inverse of the matrix.
-     */
-    matrix4x4f specialInverse(specialMatrixType type) const;
 
     matrix4x4f operator+(const matrix4x4f& other) const;
     matrix4x4f operator-(const matrix4x4f& other) const;

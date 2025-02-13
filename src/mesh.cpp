@@ -10,10 +10,7 @@ void Mesh::loadMesh(const std::string& filename) {
 
     SDL_Log("Loaded mesh: %s", filename.c_str());
 
-    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(AppState->gpuDevice.get());
-    SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(commandBuffer);
-
-    
+    throw std::runtime_error("Not implemented");
 }
 
 void render(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass) {

@@ -10,7 +10,6 @@
 class SDL_ShaderDeleter {
 public:
     void operator()(SDL_GPUShader* shader) {
-        SDL_ReleaseGPUShader(AppState->gpuDevice.get(), shader);
         SDL_Log("Shader released");
     }
 };

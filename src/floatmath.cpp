@@ -204,30 +204,6 @@ matrix4x4f matrix4x4f::transpose() const {
     return result;
 }
 
-matrix4x4f matrix4x4f::specialInverse(specialMatrixType type) const {
-    switch (type) {
-        case IDENTITY:
-            return (*this);
-        case NULL_MATRIX:
-            return (*this);
-        case TRANSLATION:
-        case ROTATION:
-        case SCALE:
-        case ORTHOGRAPHIC:
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Special inverse not implemented for this matrix type.");
-            return matrix4x4f::identity();
-        case PERSPECTIVE:
-            matrix4x4f result = matrix4x4f::identity();
-            result.m00 = 1.0f / m00;
-            result.m11 = 1.0f / m11;
-            result.m22 = 0.0f;
-            result.m23 = 1.0f / m32;
-            result.m32 = 1.0f / m23;
-            result.m33 = -m22 / m23;
-            return result;
-    }
-}
-
 matrix4x4f matrix4x4f::operator+(const matrix4x4f& other) const {
     matrix4x4f result;
 

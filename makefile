@@ -22,7 +22,7 @@ endif
 # TODO: Add O3 optimization for release builds
 SANITIZERS = # -fsanitize=address -fno-omit-frame-pointer -O1 -fno-optimize-sibling-calls
 CXXFLAGS = -Wall -std=c++23 $(SDLFLAGS) -g -msse4.2 -mavx $(SANITIZERS)
-LDFLAGS = $(SDLLIBS) $(SANITIZERS)
+LDFLAGS = $(SDLLIBS) $(SANITIZERS) -lGL -lassimp
 
 # Project structure
 SRC_DIR = src
