@@ -36,6 +36,7 @@ void updateWindowSize() {
         viewport.w = w;
         viewport.h = h;
     }
+    glViewport(0, 0, viewport.w, viewport.h);
 }
 
 void initEvents() {    
@@ -123,9 +124,27 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     std::string title = "App - " + std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z) + " - y rot: " + std::to_string(camera.rotation.y) + " - delta: " + std::to_string(delta);
     SDL_SetWindowTitle(AppState->window.get(), title.c_str());
 
-    glClearColor(1, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    SDL_GL_SwapWindow(AppState->window.get());
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);   
+
+    glPushMatrix();
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(camera.translation.as_array.data());
+    glMultMatrixf(camera.lookAt.as_array.data());
+    glMultMatrixf(camera.projection.as_array.data());
+
+    glBegin(GL_QUADS);
+
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex2f(-0.5f, -0.5f);
+    glVertex2f( 0.5f, -0.5f);
+    glVertex2f( 0.5f,  0.5f);
+    glVertex2f(-0.5f,  0.5f);
+    
+    glEnd();
+
+    glPopMatrix();
 
     // Move camera back and look at origin
     camera.translation = matrix4x4f::translation(camera.position);
@@ -138,6 +157,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         0.1f,   
         1000.0f
     );
+
+    SDL_GL_SwapWindow(AppState->window.get());
 
     lastTime = now;
     return SDL_APP_CONTINUE;
