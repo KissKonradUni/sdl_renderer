@@ -18,8 +18,11 @@ else
 endif
 
 # Compiler and flags
-CXXFLAGS = -Wall -std=c++23 $(SDLFLAGS) -g -msse4.2 -mavx
-LDFLAGS = $(SDLLIBS)
+# TODO: Remove sanitizers for release builds
+# TODO: Add O3 optimization for release builds
+SANITIZERS = # -fsanitize=address -fno-omit-frame-pointer -O1 -fno-optimize-sibling-calls
+CXXFLAGS = -Wall -std=c++23 $(SDLFLAGS) -g -msse4.2 -mavx $(SANITIZERS)
+LDFLAGS = $(SDLLIBS) $(SANITIZERS)
 
 # Project structure
 SRC_DIR = src

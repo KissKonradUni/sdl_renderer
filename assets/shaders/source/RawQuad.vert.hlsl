@@ -22,16 +22,14 @@ Output main(Input input)
             uv = float2(-1.0f, 1.0f);
             break;
         case 1:
-        case 3:
             pos = float3(-1.0f, -1.0f, 0.0f);  // Bottom left
             uv = float2(-1.0f, -1.0f);
             break;
         case 2:
-        case 4:
             pos = float3(1.0f, 1.0f, 0.0f);  // Top right
             uv = float2(1.0f, 1.0f);
             break;
-        case 5:
+        case 3:
             pos = float3(1.0f, -1.0f, 0.0f);  // Bottom right
             uv = float2(1.0f, -1.0f);
             break;

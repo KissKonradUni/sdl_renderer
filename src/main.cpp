@@ -16,8 +16,8 @@ static std::shared_ptr<SDL_GPUGraphicsPipeline> fillPipeline;
 static SDL_GPUViewport viewport = { 0.0f, 0.0f, 1920.0f, 2000.0f, 0.0f, 1.0f };
 
 static struct {
-    vector4f position = vector4f( 0.0f,      2.0f, -5.0f,  1.0f);
-    vector4f rotation = vector4f( 0.0f,  SDL_PI_F,  0.0f,  1.0f);
+    vector4f position = vector4f( 0.0f,  0.0f,  3.0f,  1.0f);
+    vector4f rotation = vector4f( 0.0f,  0.0f,  0.0f,  1.0f);
 
     matrix4x4f translation;
     matrix4x4f lookAt;
@@ -31,8 +31,8 @@ static struct {
 } input;
 
 void initShaders() {
-    vertex   = loadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
-    fragment = loadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 1, 0, 0);
+    vertex   = loadShader(AppState->gpuDevice, "RawCube.vert", 0, 1, 0, 0);
+    fragment = loadShader(AppState->gpuDevice, "BlinnPhong.frag" , 0, 2, 0, 0);
 }
 
 void initPipeline() {
@@ -158,12 +158,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     SDL_GPUColorTargetInfo colorTargetInfo = { 0 };
     colorTargetInfo.texture     = swapchainTexture;
-    colorTargetInfo.clear_color = { 
-        SDL_sinf(now * 3        ) * 0.5f + 0.5f,
-        SDL_sinf(now * 3 + 2.09f) * 0.5f + 0.5f,
-        SDL_sinf(now * 3 + 4.18f) * 0.5f + 0.5f,
-        1.0f 
-    };
+    //colorTargetInfo.clear_color = { 
+    //    SDL_sinf(now * 3        ) * 0.5f + 0.5f,
+    //    SDL_sinf(now * 3 + 2.09f) * 0.5f + 0.5f,
+    //    SDL_sinf(now * 3 + 4.18f) * 0.5f + 0.5f,
+    //    1.0f 
+    //};
     colorTargetInfo.load_op     = SDL_GPU_LOADOP_CLEAR;
     colorTargetInfo.store_op    = SDL_GPU_STOREOP_STORE;
 
@@ -173,10 +173,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline.get());
 
     // Move camera back and look at origin
-    camera.translation = matrix4x4f::translation(-camera.position.x, -camera.position.y, -camera.position.z);
+    camera.translation = matrix4x4f::translation(camera.position);
     camera.lookAt      = matrix4x4f::lookAt(camera.rotation);
 
-    float aspect = viewport.h / viewport.w;
+    float aspect = viewport.w / viewport.h;
     camera.projection  = matrix4x4f::perspective(
         90.0f * SDL_PI_F / 180.0f, 
         aspect, 
@@ -185,20 +185,33 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     );
 
     struct {
-        matrix4x4f cameraTranslation;
-        matrix4x4f cameraLookAt;
+        matrix4x4f cameraView;
         matrix4x4f cameraProjection;
-        vector4f cameraPos;
-    } uniformData = { 
-        camera.translation, 
-        camera.lookAt, 
+    } cameraData = { 
+        camera.translation * camera.lookAt, 
         camera.projection, 
-        camera.position 
     };
 
-    //SDL_PushGPUVertexUniformData(commandBuffer, 0, &uniformData, sizeof(uniformData));
-    SDL_PushGPUFragmentUniformData(commandBuffer, 0, &uniformData, sizeof(uniformData));
-    SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
+    struct {
+        vector4f cameraPosition;
+        vector4f cameraViewDirection;
+    } fragCameraData = {
+        camera.position,
+        vector4f(0.0f, 0.0f, 1.0f, 0.0f) * camera.lookAt
+    };
+
+    alignas(16) struct {
+        vector4f albedo;
+        float    shininess;
+    } materialData = {
+        vector4f(1.0f, 1.0f, 0.0f, 1.0f),
+        32.0f
+    };
+
+    SDL_PushGPUVertexUniformData(commandBuffer, 0, &cameraData, sizeof(cameraData));
+    SDL_PushGPUFragmentUniformData(commandBuffer, 0, &fragCameraData, sizeof(fragCameraData));
+    SDL_PushGPUFragmentUniformData(commandBuffer, 1, &materialData, sizeof(materialData));
+    SDL_DrawGPUPrimitives(renderPass, 4, 1, 0, 0);
 
     SDL_EndGPURenderPass(renderPass);
 
@@ -213,4 +226,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Quitting with result: %d", result);
+
+    fillPipeline.reset();
+
+    vertex.reset();
+    fragment.reset();
+
+    AppState.reset();
 }

@@ -149,10 +149,10 @@ matrix4x4f matrix4x4f::perspective(float fov, float aspect, float near, float fa
 
 matrix4x4f matrix4x4f::translation(float x, float y, float z) {
     return matrix4x4f(std::array<float, 16> {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        x,    y,    z,    1.0f
+        1.0f, 0.0f, 0.0f,   x,
+        0.0f, 1.0f, 0.0f,   y,
+        0.0f, 0.0f, 1.0f,   z,
+        0.0f, 0.0f, 0.0f, 1.0f
     });
 }
 

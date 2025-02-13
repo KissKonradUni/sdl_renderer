@@ -11,7 +11,7 @@ std::shared_ptr<SDL_GPUGraphicsPipeline> createPipeline(
     SDL_GPUGraphicsPipelineCreateInfo pipelineCreateInfo = {
         .vertex_shader   = vertexShader.get(),
         .fragment_shader = fragmentShader.get(),
-        .primitive_type  = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+        .primitive_type  = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP,
         .rasterizer_state = {
             .fill_mode  = SDL_GPU_FILLMODE_FILL,
             .cull_mode  = SDL_GPU_CULLMODE_NONE,
