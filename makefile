@@ -19,6 +19,8 @@ SDLLIBS = `pkg-config sdl3 --libs`
 ASSIMPFLAGS = `pkg-config assimp --cflags`
 ASSIMPLIBS = `pkg-config assimp --libs`
 
+GLAD = -Iinclude/glad -Iinclude/KHR
+
 CXX = clang++
 
 # Compiler and flags
@@ -61,7 +63,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 # Run target
 run: $(TARGET)
 	@echo "[MAKEFILE] Running target..."
-	@$(TARGET)
+	$(TARGET)
 
 # Clean target
 clean:

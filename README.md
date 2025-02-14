@@ -20,6 +20,11 @@
 > Also, the .dll files of the dependencies should be provided in the `win_dlls` folder.
 > The `win_dlls/dll_list.txt` contains the necessary .dll files' names.
 
+## Licenses
+- SDL3: [zlib license](https://www.libsdl.org/license.php)
+- Assimp: [BSD 3-Clause license](https://github.com/assimp/assimp/blob/master/LICENSE)
+- Glad: [Public Domain, WTFPL or CC0](https://github.com/Dav1dde/glad)
+
 ## Compiling
 ```sh
 make
