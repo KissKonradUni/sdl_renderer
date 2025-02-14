@@ -30,15 +30,15 @@ struct alignas(16) vector4f {
     vector4f(const __m128 simd) : simd(simd) {}
     vector4f(const vector4f& other) : simd(other.simd) {}
 
-    static vector4f zero()  { return vector4f( 0.0f,  0.0f,  0.0f,  0.0f); }
-    static vector4f one()   { return vector4f( 1.0f,  1.0f,  1.0f,  1.0f); }
+    static constexpr vector4f zero()  { return vector4f( 0.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr vector4f one()   { return vector4f( 1.0f,  1.0f,  1.0f,  1.0f); }
 
-    static vector4f up()    { return vector4f( 0.0f,  1.0f,  0.0f,  0.0f); }
-    static vector4f down()  { return vector4f( 0.0f, -1.0f,  0.0f,  0.0f); }
-    static vector4f right() { return vector4f( 1.0f,  0.0f,  0.0f,  0.0f); }
-    static vector4f left()  { return vector4f(-1.0f,  0.0f,  0.0f,  0.0f); }
-    static vector4f front() { return vector4f( 0.0f,  0.0f,  1.0f,  0.0f); }
-    static vector4f back()  { return vector4f( 0.0f,  0.0f, -1.0f,  0.0f); }
+    static constexpr vector4f up()    { return vector4f( 0.0f,  1.0f,  0.0f,  0.0f); }
+    static constexpr vector4f down()  { return vector4f( 0.0f, -1.0f,  0.0f,  0.0f); }
+    static constexpr vector4f right() { return vector4f( 1.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr vector4f left()  { return vector4f(-1.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr vector4f back()  { return vector4f( 0.0f,  0.0f,  1.0f,  0.0f); }
+    static constexpr vector4f front() { return vector4f( 0.0f,  0.0f, -1.0f,  0.0f); }
 
     /**
      * @return float The length of the vector.
@@ -141,11 +141,20 @@ struct alignas(16) matrix4x4f {
     /**
      * @return matrix4x4f The identity matrix.
      */
-    static matrix4x4f identity();
+    static constexpr matrix4x4f identity() {
+        return matrix4x4f(std::array<float, 16> {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        });
+    }
     /**
      * @return matrix4x4f The null matrix.
      */
-    static matrix4x4f null();
+    static constexpr matrix4x4f null() {
+        return matrix4x4f(std::array<float, 16> {});
+    }
 
     /**
      * @param left 

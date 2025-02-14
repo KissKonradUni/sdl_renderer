@@ -114,19 +114,6 @@ vector4f vector4f::operator*(const matrix4x4f& matrix) const {
 
 // Matrix4x4f
 
-matrix4x4f matrix4x4f::identity() {
-    return matrix4x4f(std::array<float, 16> {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    });
-}
-
-matrix4x4f matrix4x4f::null() {
-    return matrix4x4f();
-}
-
 matrix4x4f matrix4x4f::orthographic(float left, float right, float bottom, float top, float near, float far) {
     vector4f scale = vector4f(2.0f / (right - left), 2.0f / (top - bottom), -2.0f / (far - near), 1.0f);
     vector4f translation = vector4f(-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 0.0f);
@@ -138,12 +125,16 @@ matrix4x4f matrix4x4f::orthographic(float left, float right, float bottom, float
 }
 
 matrix4x4f matrix4x4f::perspective(float fov, float aspect, float near, float far) {
-    float f = 1.0f / SDL_tanf(fov / 2.0f);
+    float tangent = tanf(fov / 2.0f);
+    float right   = far * tangent;
+    float top     = right / aspect;
+
+
     return matrix4x4f(std::array<float, 16> {
-        f / aspect, 0.0f,  0.0f,                       0.0f,
-              0.0f,    f,  0.0f,                       0.0f,
-              0.0f, 0.0f,  (far + near)/(near - far), (2.0f * far * near)/(near - far),
-              0.0f, 0.0f, -1.0f,                       0.0f
+        far / right,       0.0f,                                0.0f,  0.0f,
+                0.0f, far / top,                                0.0f,  0.0f,
+                0.0f,       0.0f,        -(near + far) / (near - far), -1.0f,
+                0.0f,       0.0f, -(2.0f * near * far) / (near - far),  0.0f
     });
 }
 
@@ -173,9 +164,9 @@ matrix4x4f matrix4x4f::lookAt(const vector4f& rotation) {
     const auto rotationMatrix = matrix4x4f::rotation(rotation.x, 1.0f, 0.0f, 0.0f) *
                                 matrix4x4f::rotation(rotation.y, 0.0f, 1.0f, 0.0f) *
                                 matrix4x4f::rotation(rotation.z, 0.0f, 0.0f, 1.0f);
-    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * rotationMatrix * - 1.0f;
-    const auto up      = vector4f(0.0f, 1.0f, 0.0f, 0.0f) * rotationMatrix;
-    const auto right   = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * rotationMatrix;
+    const auto forward = vector4f::front() * rotationMatrix;
+    const auto up      = vector4f::up()    * rotationMatrix;
+    const auto right   = vector4f::right() * rotationMatrix;
 
     matrix4x4f result = matrix4x4f(std::array<float, 16> {
         right.x,   right.y,   right.z,   0.0f,

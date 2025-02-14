@@ -1,5 +1,7 @@
 #include "app.hpp"
+#include "mesh.hpp"
 #include "input.hpp"
+#include "shader.hpp"
 #include "floatmath.hpp"
 
 #include <memory>
@@ -9,14 +11,14 @@
 #include <SDL3/SDL.h>
 
 #ifdef _WIN32
-#include <windows.h>
+    #include <windows.h>
 #endif
 #include <GL/gl.h>
 
 static SDL_GPUViewport viewport = { 0.0f, 0.0f, 1920.0f, 2000.0f, 0.0f, 1.0f };
 
 static struct {
-    vector4f position = vector4f( 0.0f,  0.0f,  3.0f,  1.0f);
+    vector4f position = vector4f( 0.0f,  0.0f, -3.0f,  1.0f);
     vector4f rotation = vector4f( 0.0f,  0.0f,  0.0f,  1.0f);
 
     matrix4x4f translation;
@@ -27,11 +29,35 @@ static struct {
 static struct {
     float x = 0.0f;
     float y = 0.0f;
-    float r = 0.0f;
+
+    float pitch = 0.0f;
+    float yaw   = 0.0f;
+
+    bool lock = true;
 } input;
 
-void initShaders() {
+float vertices[] = {
+    -0.5f, -0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+     0.5f,  0.5f, 0.0f,
+    -0.5f,  0.5f, 0.0f
+};
 
+unsigned int indices[] = {
+    0, 1, 2,
+    2, 3, 0
+};
+
+std::unique_ptr<Mesh> mesh = nullptr;
+std::unique_ptr<Shader> shader = nullptr;
+
+void initShaders() {
+    // Put the mesh data into vectors
+    std::vector<float> verticesVector(vertices, vertices + sizeof(vertices) / sizeof(float));
+    std::vector<unsigned int> indicesVector(indices, indices + sizeof(indices) / sizeof(unsigned int));
+
+    mesh   = std::make_unique<Mesh>(verticesVector, indicesVector);
+    shader = Shader::load("assets/shaders/glsl/Basic.vert.glsl", "assets/shaders/glsl/Basic.frag.glsl");
 }
 
 void updateWindowSize() {
@@ -63,11 +89,8 @@ void initEvents() {
             case SDL_SCANCODE_D:
                 input.x = -1.0f;
                 break;
-            case SDL_SCANCODE_Q:
-                input.r = -1.0f;
-                break;
-            case SDL_SCANCODE_E:
-                input.r = 1.0f;
+            case SDL_SCANCODE_INSERT:
+                input.lock = !input.lock;
                 break;
             default:
                 break;
@@ -84,13 +107,17 @@ void initEvents() {
             case SDL_SCANCODE_D:
                 input.x = 0.0f;
                 break;
-            case SDL_SCANCODE_Q:
-            case SDL_SCANCODE_E:
-                input.r = 0.0f;
-                break;
             default:
                 break;
         }
+        return SDL_APP_CONTINUE;
+    });
+    EventHandler->add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {
+        if (input.lock) return SDL_APP_CONTINUE;
+        
+        input.pitch += event->motion.xrel;
+        input.yaw   += event->motion.yrel;
+
         return SDL_APP_CONTINUE;
     });
     EventHandler->add(SDL_EVENT_WINDOW_RESIZED, [](SDL_Event* event) {
@@ -120,12 +147,15 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
     const double delta = now - lastTime;
     
-    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * camera.lookAt * input.y;
-    const auto right   = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * camera.lookAt * input.x;
+    const auto forward = vector4f::front() * camera.lookAt * input.y;
+    const auto right   = vector4f::right() * camera.lookAt * input.x;
     const auto move    = (forward + right).normalize3d() * delta * 10.0f;
 
     camera.position   = camera.position + move;
-    camera.rotation.y = camera.rotation.y + input.r * delta * 3.14f;
+    camera.rotation.x = SDL_clamp(camera.rotation.x - input.yaw   * delta * 0.314f, -SDL_PI_F / 2.0f, SDL_PI_F / 2.0f);
+    camera.rotation.y = SDL_clamp(camera.rotation.y - input.pitch * delta * 0.314f, -SDL_PI_F / 2.0f, SDL_PI_F / 2.0f);
+    input.yaw   = 0.0f;
+    input.pitch = 0.0f;
     
     std::string title = "App - " + std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z) + " - y rot: " + std::to_string(camera.rotation.y) + " - delta: " + std::to_string(delta);
     SDL_SetWindowTitle(AppState->window.get(), title.c_str());
@@ -136,31 +166,25 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     float aspect = viewport.w / viewport.h;
     camera.projection  = matrix4x4f::perspective(
-        90.0f * SDL_PI_F / 180.0f, 
+        80.0f * (SDL_PI_F / 180.0f), 
         aspect, 
-        0.1f,   
-        1000.0f
+        0.5f,   
+        100.0f
     );
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
-    glPushMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
+    shader->bind();
 
-    glBegin(GL_QUADS);
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glVertex3f(-0.5f, -0.5f, 0.0f);
-    glColor3f(0.0f, 1.0f, 0.0f);
-    glVertex3f( 0.5f, -0.5f, 0.0f);
-    glColor3f(0.0f, 0.0f, 1.0f);
-    glVertex3f( 0.5f,  0.5f, 0.0f);
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glVertex3f(-0.5f,  0.5f, 0.0f);
-    glEnd();
+    std::string uniformName = "projection";
+    shader->setUniform(uniformName, camera.projection);
+    uniformName = "view";
+    shader->setUniform(uniformName, camera.translation * camera.lookAt);
+    uniformName = "model";
+    shader->setUniform(uniformName, matrix4x4f::identity());
 
-    glPopMatrix();
+    mesh->draw();
 
     SDL_GL_SwapWindow(AppState->window.get());
 

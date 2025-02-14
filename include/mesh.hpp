@@ -5,16 +5,21 @@
 
 #include <SDL3/SDL.h>
 
-#include "app.hpp"
+#include <vector>
 
 class Mesh {
 public:
-    Mesh();
+    // TODO: Add layout
+    Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices/*, layout*/);
     ~Mesh();
 
-    void loadMesh(const std::string& filename);
-    void render(SDL_GPUCommandBuffer* commandBuffer, SDL_GPURenderPass* renderPass);
-
+    void draw();
 protected:
-    const aiScene* scene;
+    unsigned int vertexBufferObjectHandle;
+    unsigned int indexBufferObjectHandle;
+    unsigned int vertexArrayObjectHandle;
+
+    unsigned int indexCount;
+
+    void bind();
 };

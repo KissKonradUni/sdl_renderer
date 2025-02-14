@@ -1,25 +1,22 @@
 #pragma once
 
-#include "app.hpp"
+#include "floatmath.hpp"
 
 #include <SDL3/SDL.h>
 
 #include <memory>
 #include <string>
 
-class SDL_ShaderDeleter {
+class Shader {
 public:
-    void operator()(SDL_GPUShader* shader) {
-        SDL_Log("Shader released");
-    }
-};
-extern SDL_ShaderDeleter ShaderDeleter;
+    Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource);
+    ~Shader();
 
-std::shared_ptr<SDL_GPUShader> loadShader(
-    std::shared_ptr<SDL_GPUDevice> device,
-    std::string shaderFilename,
-    Uint32 samplerCount,
-    Uint32 uniformCount,
-    Uint32 storageBufferCount,
-    Uint32 storageTextureCount
-);
+    void bind();
+    
+    void setUniform(const std::string& name, const matrix4x4f& value);
+
+    static std::unique_ptr<Shader> load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
+protected:
+    unsigned int programHandle;
+};
