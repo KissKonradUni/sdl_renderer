@@ -1,0 +1,7 @@
+# Provide these DLLs in this directory to run the project on Windows
+# These should be provided from the used mingw compiler
+
+libassimp-5.dll
+libminizip-1.dll
+libstdc++-6.dll
+SDL3.dll
