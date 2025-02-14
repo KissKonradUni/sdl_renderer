@@ -10,13 +10,13 @@
             "args": [],
 
             "windows": {
-                "program": "${workspaceFolder}/build/sdl3_app.exe",
+                "program": "${workspaceFolder}/bin/sdl3_app.exe",
             },
             "linux": {
-                "program": "${workspaceFolder}/build/sdl3_app.out",
+                "program": "${workspaceFolder}/bin/sdl3_app.out",
             },
             
-            "program": "${workspaceFolder}/build/sdl3_app",
+            "program": "${workspaceFolder}/bin/sdl3_app",
             "preLaunchTask": "build"
         }
     ],
