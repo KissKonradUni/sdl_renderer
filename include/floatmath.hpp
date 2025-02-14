@@ -249,6 +249,7 @@ struct alignas(16) matrix4x4f {
     matrix4x4f operator-(const matrix4x4f& other) const;
     matrix4x4f operator*(float scalar) const;
     matrix4x4f operator*(const matrix4x4f& other) const;
+    vector4f operator*(const vector4f& matrix) const;
 };
 
 void logMatrix(const matrix4x4f& matrix);

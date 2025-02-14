@@ -1,7 +1,17 @@
 #version 460 core
-out vec4 OutputColor;
+
+in vec3 fragmentPosition;
+in vec3 fragmentNormal;
+
+out vec4 outputColor;
 
 void main()
 {
-    OutputColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    vec3 normal = normalize(fragmentNormal);
+    vec3 lightDirection = normalize(vec3(1.0, -1.0, 1.0));
+
+    float diff = max(dot(normal, lightDirection), 0.0);
+    vec3 diffuse = vec3(1.0, 1.0, 1.0) * diff;
+
+    outputColor = vec4(diffuse, 1.0);
 }

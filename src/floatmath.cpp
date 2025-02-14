@@ -244,6 +244,11 @@ matrix4x4f matrix4x4f::operator*(const matrix4x4f& other) const {
     return result;
 }
 
+vector4f matrix4x4f::operator*(const vector4f& vector) const {
+    vector4f result = vector * *this;
+    return result;
+}
+
 // Tests
 
 void logMatrix(const matrix4x4f &matrix) {

@@ -62,7 +62,7 @@ void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
         SDL_Log("Uniform %s not found", name.c_str());  
         return;
     }
-    glUniformMatrix4fv(location, 1, GL_TRUE, value.as_array.data());
+    glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
 }
 
 std::unique_ptr<Shader> Shader::load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
