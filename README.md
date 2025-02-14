@@ -3,19 +3,22 @@
 # Building
 ## Dependencies
 ### Linux
-- SDL3
-- Assimp
-- Clang++
-- Make
+- From the package manager (Arch):
+    - Clang++
+    - Make
+    - SDL3
+    - Assimp
 
 ### Windows
-- SDL3 binaries ([GitHub](https://github.com/mmozeiko/build-sdl3/)) - Add to **SDL3** env variable
-- Shaderc binaries ([GitHub](github.com/google/shaderc)) - Add to **PATH**
-- MSVC with Clang (LLVM) support - ([Microsoft](https://visualstudio.microsoft.com/downloads/?q=build+tools#build-tools-for-visual-studio-2022)) - Be sure to **tick** the **Clang compiler** option
-- Clang++ and LLVM binaries ([LLVM](https://releases.llvm.org/download.html)) - Add to **PATH**
-- Make (from [Chocolatey](https://chocolatey.org/)) - Any mingw build of *make* should work
-
-> The build pipeline is much simpler on Linux, as you can see.
+- MSYS2 ([https://www.msys2.org/](https://www.msys2.org/))
+- UCRT64 packages of the following:
+    - Clang++ (`mingw-w64-ucrt-x86_64-clang`)
+    - Make (`mingw-w64-ucrt-x86_64-make` and regular `make`)
+    - SDL3 (`mingw-w64-ucrt-x86_64-SDL3`)
+    - Assimp (`mingw-w64-ucrt-x86_64-assimp`)
+> On windows the compilation should be done from the MSYS2 UCRT64 terminal.
+> Also, the .dll files of the dependencies should be provided in the `win_dlls` folder.
+> The `win_dlls/dll_list.txt` contains the necessary .dll files' names.
 
 ## Compiling
 ```sh
