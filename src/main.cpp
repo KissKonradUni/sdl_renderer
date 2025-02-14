@@ -7,6 +7,10 @@
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <GL/gl.h>
 
 static SDL_GPUViewport viewport = { 0.0f, 0.0f, 1920.0f, 2000.0f, 0.0f, 1.0f };

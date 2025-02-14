@@ -5,3 +5,5 @@
 /build/*.pdb
 
 /obj/*.o
+
+/win_dlls/*.dll

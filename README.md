@@ -3,8 +3,8 @@
 # Building
 ## Dependencies
 ### Linux
-- SDL3 (from AUR)
-- Shaderc
+- SDL3
+- Assimp
 - Clang++
 - Make
 
@@ -19,7 +19,6 @@
 
 ## Compiling
 ```sh
-make shaders
 make
 ```
 ## Running
