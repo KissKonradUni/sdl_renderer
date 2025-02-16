@@ -1,13 +1,11 @@
 ifeq ($(OS),Windows_NT)
 	EXT = exe
 	OPENGL = -lopengl32
-	SHADER_SCRIPT = (cd assets/shaders/source && compile.bat)
 # Copy from ..\win_dlls to bin using unix commands
 	COPY_DLLS = cp -r ./win_dlls/* bin/
 else
 	EXT = out
 	OPENGL = -lGL
-	SHADER_SCRIPT = (cd assets/shaders/source && bash compile.sh)
 endif
 
 RM = rm -rf
@@ -21,6 +19,19 @@ ASSIMPLIBS = `pkg-config assimp --libs`
 
 GLAD = -Iinclude/glad -Iinclude/KHR
 
+# Specify the path to the imgui library
+IMGUI_PATH = ../imgui
+
+IMGUI_SRCS = $(IMGUI_PATH)/imgui.cpp \
+			 $(IMGUI_PATH)/imgui_demo.cpp \
+			 $(IMGUI_PATH)/imgui_draw.cpp \
+			 $(IMGUI_PATH)/imgui_tables.cpp \
+			 $(IMGUI_PATH)/imgui_widgets.cpp \
+			 $(IMGUI_PATH)/backends/imgui_impl_sdl3.cpp \
+			 $(IMGUI_PATH)/backends/imgui_impl_opengl3.cpp
+IMGUI_OBJS = $(patsubst $(IMGUI_PATH)/%.cpp, $(IMGUI_PATH)/obj/%.o, $(IMGUI_SRCS))
+IMGUI_FLAGS = -I$(IMGUI_PATH) -I$(IMGUI_PATH)/backends
+
 CXX = clang++
 
 # Compiler and flags
@@ -28,8 +39,8 @@ CXX = clang++
 # TODO: Add O3 optimization for release builds
 SANITIZERS = -O1 # -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
 
-CXXFLAGS = -Wall -std=c++23 -g $(SDLFLAGS) $(ASSIMPFLAGS) -msse4.2 -mavx $(SANITIZERS)
-LDFLAGS = $(SDLLIBS) $(ASSIMPLIBS) $(OPENGL) $(SANITIZERS)
+CXXFLAGS = -Wall -std=c++23 -g -msse4.2 -mavx $(SANITIZERS) $(SDLFLAGS) $(ASSIMPFLAGS) $(IMGUI_FLAGS)
+LDFLAGS = $(SANITIZERS) $(OPENGL) $(SDLLIBS) $(ASSIMPLIBS) $(GLAD)
 
 # Project structure
 SRC_DIR = src
@@ -38,8 +49,10 @@ OBJ_DIR = obj
 BUILD_DIR = bin
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
+OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS)) $(IMGUI_OBJS)
 TARGET = $(BUILD_DIR)/sdl3_app.$(EXT)
+
+MAKEFLAGS += -j12
 
 # Build target
 all: $(TARGET)
@@ -57,6 +70,11 @@ endif
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@$(call MKDIR,$(OBJ_DIR))
+	@$(CXX) $(CXXFLAGS) -I$(INC_DIR) -c $< -o $@
+	@echo "[MAKEFILE] Compiled $<"
+
+$(IMGUI_PATH)/obj/%.o: $(IMGUI_PATH)/%.cpp
+	@$(call MKDIR,$(dir $@))
 	@$(CXX) $(CXXFLAGS) -I$(INC_DIR) -c $< -o $@
 	@echo "[MAKEFILE] Compiled $<"
 
