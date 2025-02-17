@@ -9,3 +9,5 @@
 /obj/*.o
 
 /win_dlls/*.dll
+
+imgui.ini

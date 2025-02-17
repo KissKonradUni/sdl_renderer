@@ -8,7 +8,7 @@ out vec4 outputColor;
 void main()
 {
     vec3 normal = normalize(fragmentNormal);
-    vec3 lightDirection = normalize(vec3(1.0, -1.0, 1.0));
+    vec3 lightDirection = normalize(vec3(1.0, 1.0, 1.0));
 
     float diff = max(dot(normal, lightDirection), 0.0);
     vec3 diffuse = vec3(1.0, 1.0, 1.0) * diff;
