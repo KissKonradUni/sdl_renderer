@@ -59,7 +59,7 @@ void Shader::bind() {
 }
 
 void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
-    const GLint location = glGetUniformLocation(programHandle, name.c_str());
+    const GLint location = getUniformLocation(name);
     if (location == -1) {
         SDL_Log("Uniform %s not found", name.c_str());  
         return;
@@ -75,4 +75,15 @@ std::unique_ptr<Shader> Shader::load(const std::string& vertexShaderFilename, co
     std::string fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
 
     return std::make_unique<Shader>(vertexShaderSource, fragmentShaderSource);
+}
+
+unsigned int Shader::getUniformLocation(const std::string& name) {
+    auto it = uniformLocations.find(name);
+    if (it != uniformLocations.end()) {
+        return it->second;
+    }
+
+    const unsigned int location = glGetUniformLocation(programHandle, name.c_str());
+    uniformLocations[name] = location;
+    return location;
 }

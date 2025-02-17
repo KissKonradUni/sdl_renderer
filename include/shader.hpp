@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 class Shader {
 public:
@@ -19,4 +20,7 @@ public:
     static std::unique_ptr<Shader> load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
 protected:
     unsigned int programHandle;
+    std::unordered_map<std::string, unsigned int> uniformLocations;
+
+    unsigned int getUniformLocation(const std::string& name);
 };

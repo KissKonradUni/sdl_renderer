@@ -37,7 +37,7 @@ public:
     Camera(CameraViewport viewport);
     ~Camera();
 
-    void update(CameraInput& input, float deltaTime, float mouseSensitivity = 1.0f);
+    void update(CameraInput& input, float deltaTime, float mouseSensitivity = 0.314f);
 
     matrix4x4f getViewMatrix();
     matrix4x4f getProjectionMatrix(bool recalculate = false);

@@ -37,7 +37,7 @@ void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity)
 
     this->m_position   = this->m_position + move;
     this->m_rotation.x = SDL_clamp(this->m_rotation.x - input.rotation.yaw * deltaTime * 0.314f, -SDL_PI_F / 2.0f, SDL_PI_F / 2.0f);
-    this->m_rotation.y = this->m_rotation.y - input.rotation.pitch * deltaTime * 0.314f;
+    this->m_rotation.y = this->m_rotation.y - input.rotation.pitch * deltaTime * mouseSensitivity;
 
     if (this->m_rotation.y >  SDL_PI_F) this->m_rotation.y -= 2.0f * SDL_PI_F;
     if (this->m_rotation.y < -SDL_PI_F) this->m_rotation.y += 2.0f * SDL_PI_F;

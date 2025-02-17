@@ -123,8 +123,7 @@ void initEvents() {
     });
 }
 
-void exampleWindow() {
-    // TODO: Move to camera class
+void performanceWindow() {
     ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoBackground);
 
     ImGui::Text("Delta time: %.4f", deltaTime);
@@ -135,15 +134,18 @@ void exampleWindow() {
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     const auto result = AppState->initApp("App", "1.0", "com.sdl3.app");
+    
     if (result != SDL_APP_CONTINUE)
         return result;
+    
     updateWindowSize();
 
     initShaders();
     initMeshes();
     initEvents();
+
     UIManager->initUI();
-    UIManager->addUIFunction(exampleWindow);
+    UIManager->addUIFunction(performanceWindow);
 
     return SDL_APP_CONTINUE;
 }
@@ -155,15 +157,26 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
+    // ======================
+    // Time management
+    
     nowTime = static_cast<double>(SDL_GetTicks()) / 1000.0;
     deltaTime = nowTime - lastTime;
+    lastTime = nowTime;
+
+    // ======================
+    // Process new frame
 
     UIManager->newFrame();
-
-    // Update camera
     camera->update(cameraInput, deltaTime);
     
+    // ======================
+    // Update "game" logic
+
     mesh->rotation.y += deltaTime * 0.314f;
+
+    // ======================
+    // Render
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
@@ -182,12 +195,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     shader->setUniform(uniformName, floorMesh->getModelMatrix());
     floorMesh->draw();
 
-    // Wait before swapping for IMGUI
+    // Draw UI on top of everything
     UIManager->render();
 
+    // Finalize frame
     SDL_GL_SwapWindow(AppState->window.get());
 
-    lastTime = nowTime;
+    // ======================
+    // Wait for next frame
     return SDL_APP_CONTINUE;
 }
 
