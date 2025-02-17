@@ -2,7 +2,11 @@
 
 #include "mesh.hpp"
 
-#include <stdexcept>
+#include <assimp/scene.h>
+#include <assimp/cimport.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/postprocess.h>
 
 Mesh::Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices) {
     glGenVertexArrays(1, &vertexArrayObjectHandle);
@@ -33,6 +37,8 @@ Mesh::~Mesh() {
     glDeleteBuffers(1, &vertexBufferObjectHandle);
     glDeleteBuffers(1, &indexBufferObjectHandle);
     glDeleteVertexArrays(1, &vertexArrayObjectHandle);
+
+    SDL_Log("Mesh destroyed");
 }
 
 void Mesh::bind() const {
@@ -55,17 +61,48 @@ matrix4x4f Mesh::getModelMatrix() const {
     return scaleMatrix * rotationMatrixZ * rotationMatrixY * rotationMatrixX * translationMatrix;
 }
 
-void loadMesh(const std::string& filename) {
+std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
     auto scene = aiImportFile(filename.c_str(), aiProcess_Triangulate);
 
     if (!scene) {
         SDL_Log("Couldn't load mesh: %s", filename.c_str());
-        return;
+        return nullptr;
     }
 
     SDL_Log("Loaded mesh: %s", filename.c_str());
 
-    throw std::runtime_error("Not implemented");
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+        auto mesh = scene->mMeshes[i];
+
+        for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
+            vertices.push_back(mesh->mVertices[j].x);
+            vertices.push_back(mesh->mVertices[j].y);
+            vertices.push_back(mesh->mVertices[j].z);
+
+            if (mesh->HasNormals()) {
+                vertices.push_back(mesh->mNormals[j].x);
+                vertices.push_back(mesh->mNormals[j].y);
+                vertices.push_back(mesh->mNormals[j].z);
+            } else {
+                vertices.push_back(0.0f);
+                vertices.push_back(0.0f);
+                vertices.push_back(0.0f);
+            }
+        }
+
+        for (unsigned int j = 0; j < mesh->mNumFaces; j++) {
+            auto face = mesh->mFaces[j];
+
+            for (unsigned int k = 0; k < face.mNumIndices; k++) {
+                indices.push_back(face.mIndices[k]);
+            }
+        }
+    }
+
+    return std::make_unique<Mesh>(vertices, indices);
 }
 
 /*

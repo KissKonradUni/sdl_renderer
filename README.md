@@ -9,7 +9,7 @@
     - SDL3
     - Assimp
 - From GitHub:
-    - Dear Imgui [source](https://github.com/ocornut/imgui) `// Specify the path in the Makefile`
+    - Dear Imgui [source](https://github.com/ocornut/imgui) `// Use the docking branch. Specify the path in the Makefile`
 
 ### Windows
 - MSYS2 ([https://www.msys2.org/](https://www.msys2.org/))
@@ -19,7 +19,7 @@
     - SDL3 (`mingw-w64-ucrt-x86_64-SDL3`)
     - Assimp (`mingw-w64-ucrt-x86_64-assimp`)
 - From GitHub:
-    - Dear Imgui [source](https://github.com/ocornut/imgui) `// Specify the path in the Makefile`
+    - Dear Imgui [source](https://github.com/ocornut/imgui) `// Use the docking branch. Specify the path in the Makefile`
 
 > On windows the compilation should be done from the MSYS2 UCRT64 terminal.
 > Also, the .dll files of the dependencies should be provided in the `win_dlls` folder in order to make the executable shippable.

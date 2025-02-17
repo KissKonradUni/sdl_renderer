@@ -1,11 +1,9 @@
 #pragma once
 
-#include <assimp/cimport.h>
-#include <assimp/postprocess.h>
-
 #include <SDL3/SDL.h>
 
 #include <vector>
+#include <memory>
 
 #include "floatmath.hpp"
 
@@ -21,6 +19,8 @@ public:
 
     void draw() const;
     matrix4x4f getModelMatrix() const;
+
+    static std::unique_ptr<Mesh> loadMeshFromFile(const std::string& filename);
 protected:
     unsigned int vertexBufferObjectHandle;
     unsigned int indexBufferObjectHandle;

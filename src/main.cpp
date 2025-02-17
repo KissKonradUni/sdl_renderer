@@ -1,3 +1,4 @@
+#include "ui.hpp"
 #include "app.hpp"
 #include "mesh.hpp"
 #include "input.hpp"
@@ -5,8 +6,6 @@
 #include "floatmath.hpp"
 
 #include "imgui.h"
-#include "imgui_impl_sdl3.h"
-#include "imgui_impl_opengl3.h"
 
 #include <memory>
 
@@ -29,6 +28,10 @@ static struct {
     matrix4x4f lookAt;
     matrix4x4f projection;
 } camera;
+
+static double lastTime = 0.0;
+static double nowTime = 0.0;
+static double deltaTime = 0.0;
 
 static struct {
     float x = 0.0f;
@@ -64,11 +67,12 @@ void initShaders() {
 }
 
 void initMeshes() {
+    mesh = Mesh::loadMeshFromFile("assets/models/suzanne.glb");
+    
     // Put the mesh data into vectors
     std::vector<float> verticesVector(vertices, vertices + sizeof(vertices) / sizeof(float));
     std::vector<unsigned int> indicesVector(indices, indices + sizeof(indices) / sizeof(unsigned int));
 
-    mesh      = std::make_unique<Mesh>(verticesVector, indicesVector);
     floorMesh = std::make_unique<Mesh>(verticesVector, indicesVector);
 
     floorMesh->position = vector4f(0.0f, -1.0f, 0.0f, 1.0f);
@@ -142,23 +146,27 @@ void initEvents() {
     });
 }
 
-void initImgui() {
-    SDL_Log("Initializing ImGui");
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+void exampleWindow() {
+    ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_NoBackground);
     
-    // Set DPI scale to match the window
-    auto displays = SDL_GetDisplays(NULL);
-    auto dpi      = SDL_GetDisplayContentScale(displays[0]);
-    io.FontGlobalScale = dpi;
+    ImGui::Text("Position: ");
+    ImGui::SameLine();
+    ImGui::InputFloat3("##cam_pos", camera.position.as_array.data());
 
-    ImGui_ImplSDL3_InitForOpenGL(AppState->window.get(), AppState->glContext.get());
-    ImGui_ImplOpenGL3_Init();
+    ImGui::Text("Rotation: ");
+    ImGui::SameLine();
+    ImGui::InputFloat3("##cam_rot", camera.rotation.as_array.data());
 
-    SDL_Log("Initialized ImGui");
+    ImGui::End();
+
+
+
+    ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoBackground);
+
+    ImGui::Text("Delta time: %.4f", deltaTime);
+    ImGui::Text("FPS: ~%.0f", 1.0 / deltaTime);
+
+    ImGui::End();
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -170,26 +178,23 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initShaders();
     initMeshes();
     initEvents();
-    initImgui();
+    UIManager->initUI();
+    UIManager->addUIFunction(exampleWindow);
 
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
-    ImGui_ImplSDL3_ProcessEvent(event);
+    UIManager->processEvent(event);
     
     return EventHandler->handle(event);
 }
 
-static double lastTime = 0.0;
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
-    const double delta = now - lastTime;
+    nowTime = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    deltaTime = nowTime - lastTime;
 
-    // Init ImGui
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
-    ImGui::NewFrame();
+    UIManager->newFrame();
 
     // Update camera
     camera.translation = matrix4x4f::translation(camera.position);
@@ -201,22 +206,19 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         100.0f
     );
     
-    mesh->rotation.y += delta * 0.314f;
+    mesh->rotation.y += deltaTime * 0.314f;
 
     const auto forward = vector4f(input.x, 0.0f, input.y, 0.0f).normalize3d();
     const auto rotate  = matrix4x4f::rotation(camera.rotation.y, vector4f::up());
-    const auto move    = (rotate * (forward * delta * 2.0f)).normalize3d() * 10.0f * delta;
+    const auto move    = (rotate * (forward * deltaTime * 2.0f)).normalize3d() * 10.0f * deltaTime;
 
     camera.position   = camera.position + move;
-    camera.rotation.x = SDL_clamp(camera.rotation.x - input.yaw   * delta * 0.314f, -SDL_PI_F / 2.0f, SDL_PI_F / 2.0f);
-    camera.rotation.y = camera.rotation.y - input.pitch * delta * 0.314f;
+    camera.rotation.x = SDL_clamp(camera.rotation.x - input.yaw   * deltaTime * 0.314f, -SDL_PI_F / 2.0f, SDL_PI_F / 2.0f);
+    camera.rotation.y = camera.rotation.y - input.pitch * deltaTime * 0.314f;
     if (camera.rotation.y > SDL_PI_F) camera.rotation.y -= 2.0f * SDL_PI_F;
     if (camera.rotation.y < -SDL_PI_F) camera.rotation.y += 2.0f * SDL_PI_F;
     input.yaw   = 0.0f;
     input.pitch = 0.0f;
-    
-    std::string title = "App - Pos: " + std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z) + " - Rot: " + std::to_string(camera.rotation.x) + ", " + std::to_string(camera.rotation.y) + " - delta: " + std::to_string(delta);
-    SDL_SetWindowTitle(AppState->window.get(), title.c_str());
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
@@ -236,22 +238,16 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     floorMesh->draw();
 
     // Wait before swapping for IMGUI
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    UIManager->render();
 
     SDL_GL_SwapWindow(AppState->window.get());
 
-    lastTime = now;
+    lastTime = nowTime;
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     SDL_Log("Quitting with result: %d", result);
-
-    SDL_Log("Cleaning up ImGui");
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
 
     AppState.reset();
 }

@@ -50,6 +50,8 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
 
 Shader::~Shader() {
     glDeleteProgram(programHandle);
+
+    SDL_Log("Shader program destroyed");
 }
 
 void Shader::bind() {

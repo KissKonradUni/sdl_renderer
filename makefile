@@ -88,4 +88,9 @@ clean:
 	@echo "[MAKEFILE] Cleaning up..."
 	@$(RM) $(OBJ_DIR) $(BUILD_DIR)
 
+# Clean imgui objects
+clean-imgui:
+	@echo "[MAKEFILE] Cleaning up imgui objects..."
+	@$(RM) $(IMGUI_PATH)/obj
+
 .PHONY: all run clean
