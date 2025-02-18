@@ -3,23 +3,38 @@
 # Building
 ## Dependencies
 ### Linux
-- SDL3 (from AUR)
-- Shaderc
-- Clang++
-- Make
+- From the package manager (Arch):
+    - Clang++
+    - Make
+    - SDL3
+    - Assimp
+- From GitHub:
+    - Dear Imgui [source](https://github.com/ocornut/imgui) `// Use the docking branch. Specify the path in the Makefile`
 
 ### Windows
-- SDL3 binaries ([GitHub](https://github.com/mmozeiko/build-sdl3/)) - Add to **SDL3** env variable
-- Shaderc binaries ([GitHub](github.com/google/shaderc)) - Add to **PATH**
-- MSVC with Clang (LLVM) support - ([Microsoft](https://visualstudio.microsoft.com/downloads/?q=build+tools#build-tools-for-visual-studio-2022)) - Be sure to **tick** the **Clang compiler** option
-- Clang++ and LLVM binaries ([LLVM](https://releases.llvm.org/download.html)) - Add to **PATH**
-- Make (from [Chocolatey](https://chocolatey.org/)) - Any mingw build of *make* should work
+- MSYS2 ([https://www.msys2.org/](https://www.msys2.org/))
+- UCRT64 packages of the following:
+    - Clang++ (`mingw-w64-ucrt-x86_64-clang`)
+    - Make (`mingw-w64-ucrt-x86_64-make` and regular `make`)
+    - SDL3 (`mingw-w64-ucrt-x86_64-SDL3`)
+    - Assimp (`mingw-w64-ucrt-x86_64-assimp`)
+- From GitHub:
+    - Dear Imgui [source](https://github.com/ocornut/imgui) `// Use the docking branch. Specify the path in the Makefile`
 
-> The build pipeline is much simpler on Linux, as you can see.
+> On windows the compilation should be done from the MSYS2 UCRT64 terminal.
+> Also, the .dll files of the dependencies should be provided in the `win_dlls` folder in order to make the executable shippable.
+> The `win_dlls/dll_list.txt` contains the necessary .dll files' names.
+
+## Licenses
+- SDL3: [zlib license](https://www.libsdl.org/license.php)
+- Assimp: [BSD 3-Clause license](https://github.com/assimp/assimp/blob/master/LICENSE)
+- Glad: [Public Domain, WTFPL or CC0](https://github.com/Dav1dde/glad)
+- Dear Imgui: [MIT license](https://github.com/ocornut/imgui?tab=MIT-1-ov-file)
+- stb_image: [Public Domain](https://github.com/nothings/stb/tree/master?tab=License-1-ov-file)
+- FiraCode font: [SIL Open Font License](https://github.com/tonsky/FiraCode?tab=OFL-1.1-1-ov-file)
 
 ## Compiling
 ```sh
-make shaders
 make
 ```
 ## Running

@@ -10,6 +10,11 @@
     - 16-byte aligned data types for SIMD.
 */
 
+// Type definitions for clarity
+typedef float radians;
+typedef float degrees;
+
+// Forward declaration
 struct matrix4x4f;
 
 /**
@@ -30,15 +35,15 @@ struct alignas(16) vector4f {
     vector4f(const __m128 simd) : simd(simd) {}
     vector4f(const vector4f& other) : simd(other.simd) {}
 
-    static vector4f zero()  { return vector4f( 0.0f,  0.0f,  0.0f,  0.0f); }
-    static vector4f one()   { return vector4f( 1.0f,  1.0f,  1.0f,  1.0f); }
+    static constexpr vector4f zero()  { return vector4f( 0.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr vector4f one()   { return vector4f( 1.0f,  1.0f,  1.0f,  1.0f); }
 
-    static vector4f up()    { return vector4f( 0.0f,  1.0f,  0.0f,  0.0f); }
-    static vector4f down()  { return vector4f( 0.0f, -1.0f,  0.0f,  0.0f); }
-    static vector4f right() { return vector4f( 1.0f,  0.0f,  0.0f,  0.0f); }
-    static vector4f left()  { return vector4f(-1.0f,  0.0f,  0.0f,  0.0f); }
-    static vector4f front() { return vector4f( 0.0f,  0.0f,  1.0f,  0.0f); }
-    static vector4f back()  { return vector4f( 0.0f,  0.0f, -1.0f,  0.0f); }
+    static constexpr vector4f up()    { return vector4f( 0.0f,  1.0f,  0.0f,  0.0f); }
+    static constexpr vector4f down()  { return vector4f( 0.0f, -1.0f,  0.0f,  0.0f); }
+    static constexpr vector4f right() { return vector4f( 1.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr vector4f left()  { return vector4f(-1.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr vector4f back()  { return vector4f( 0.0f,  0.0f,  1.0f,  0.0f); }
+    static constexpr vector4f front() { return vector4f( 0.0f,  0.0f, -1.0f,  0.0f); }
 
     /**
      * @return float The length of the vector.
@@ -113,16 +118,6 @@ struct alignas(16) quaternionf {
     quaternionf(const quaternionf& other) : simd(other.simd) {}
 };
 
-enum specialMatrixType {
-    IDENTITY,
-    NULL_MATRIX,
-    TRANSLATION,
-    ROTATION,
-    SCALE,
-    ORTHOGRAPHIC,
-    PERSPECTIVE
-};
-
 /**
  * @brief 4x4 matrix of floats.
  * Uses SIMD for faster calculations.
@@ -151,11 +146,20 @@ struct alignas(16) matrix4x4f {
     /**
      * @return matrix4x4f The identity matrix.
      */
-    static matrix4x4f identity();
+    static constexpr matrix4x4f identity() {
+        return matrix4x4f(std::array<float, 16> {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        });
+    }
     /**
      * @return matrix4x4f The null matrix.
      */
-    static matrix4x4f null();
+    static constexpr matrix4x4f null() {
+        return matrix4x4f(std::array<float, 16> {});
+    }
 
     /**
      * @param left 
@@ -174,7 +178,7 @@ struct alignas(16) matrix4x4f {
      * @param far 
      * @return matrix4x4f The perspective projection matrix.
      */
-    static matrix4x4f perspective(float fov, float aspect, float near, float far);
+    static matrix4x4f perspective(radians fov, float aspect, float near, float far);
 
     /**
      * @brief Use for moving objects in 3D space.
@@ -201,7 +205,7 @@ struct alignas(16) matrix4x4f {
      * @param z 
      * @return matrix4x4f The rotation matrix.
      */
-    static matrix4x4f rotation(float angle, float x, float y, float z);
+    static matrix4x4f rotation(radians angle, float x, float y, float z);
     /**
      * @brief Use for rotating objects in 3D space. Select which axis to rotate around using a unit vector.
      * 
@@ -209,7 +213,7 @@ struct alignas(16) matrix4x4f {
      * @param unit The unit vector to rotate around.
      * @return matrix4x4f The rotation matrix.
      */
-    static matrix4x4f rotation(float angle, vector4f unit) { return rotation(angle, unit.x, unit.y, unit.z); }
+    static matrix4x4f rotation(radians angle, vector4f unit) { return rotation(angle, unit.x, unit.y, unit.z); }
     /**
      * @brief Use for scaling objects in 3D space.
      * 
@@ -233,7 +237,12 @@ struct alignas(16) matrix4x4f {
      * @return matrix4x4f The scale matrix.
      */
     static matrix4x4f scale(float s) { return scale(s, s, s); }
-
+    /**
+     * @brief Use for creating a rotation matrix for the camera.
+     * 
+     * @param rotation The rotation vector.
+     * @return matrix4x4f The look-at matrix.
+     */
     static matrix4x4f lookAt(const vector4f& rotation);
 
     /**
@@ -241,16 +250,11 @@ struct alignas(16) matrix4x4f {
      */
     matrix4x4f transpose() const;
 
-    /**
-     * @param type The type of special matrix to invert.
-     * @return matrix4x4f The inverse of the matrix.
-     */
-    matrix4x4f specialInverse(specialMatrixType type) const;
-
     matrix4x4f operator+(const matrix4x4f& other) const;
     matrix4x4f operator-(const matrix4x4f& other) const;
     matrix4x4f operator*(float scalar) const;
     matrix4x4f operator*(const matrix4x4f& other) const;
+    vector4f operator*(const vector4f& matrix) const;
 };
 
 void logMatrix(const matrix4x4f& matrix);

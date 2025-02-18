@@ -1,77 +1,140 @@
 #include "shader.hpp"
+#include "console.hpp"
 
-std::shared_ptr<SDL_GPUShader> loadShader(
-    std::shared_ptr<SDL_GPUDevice> device,
-    std::string shaderFilename,
-    Uint32 samplerCount,
-    Uint32 uniformCount,
-    Uint32 storageBufferCount,
-    Uint32 storageTextureCount
-) {
-    SDL_GPUShaderStage stage;
-    if (SDL_strstr(shaderFilename.c_str(), ".vert")) {
-        stage = SDL_GPU_SHADERSTAGE_VERTEX;
-    } else if (SDL_strstr(shaderFilename.c_str(), ".frag")) {
-        stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-    } else {
-        SDL_Log("Invalid shader file extension: %s", shaderFilename.c_str());
-        return NULL;
+#include "glad/glad.h"
+
+#include <fstream>
+
+UniformBuffer::UniformBuffer(size_t size, int binding) {
+    glGenBuffers(1, &m_uniformBufferObjectHandle);
+    glBindBuffer(GL_UNIFORM_BUFFER, m_uniformBufferObjectHandle);
+    glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, binding, m_uniformBufferObjectHandle);
+
+    console->log("Uniform buffer created.");
+
+    m_size = size;
+}
+
+void UniformBuffer::bind() {
+    glBindBuffer(GL_UNIFORM_BUFFER, m_uniformBufferObjectHandle);
+}
+
+void UniformBuffer::updateData(const UniformBufferData* data) {
+    bind();
+    UniformBufferData* dataPointer = (UniformBufferData*)glMapBufferRange(
+        GL_UNIFORM_BUFFER,
+        0,
+        m_size,
+        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT
+    );
+    if (dataPointer) {
+        SDL_memcpy(dataPointer, data, m_size);
+    }
+    glUnmapBuffer(GL_UNIFORM_BUFFER);
+}
+
+Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource) {
+    int success;
+    char infoLog[512];
+    
+    auto vertexShaderHandle = glCreateShader(GL_VERTEX_SHADER);
+    const char* vertexSource = vertexShaderSource.c_str();
+    glShaderSource(vertexShaderHandle, 1, &vertexSource, NULL);
+    glCompileShader(vertexShaderHandle);
+
+    glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertexShaderHandle, 512, NULL, infoLog);
+        console->warn("Vertex shader compilation failed...");
+        console->warn(infoLog);
+    }
+    
+    auto fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
+    const char* fragmentSource = fragmentShaderSource.c_str();
+    glShaderSource(fragmentShaderHandle, 1, &fragmentSource, NULL);
+    glCompileShader(fragmentShaderHandle);
+
+    glGetShaderiv(fragmentShaderHandle, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragmentShaderHandle, 512, NULL, infoLog);
+        console->warn("Fragment shader compilation failed...");
+        console->warn(infoLog);
     }
 
-    std::string basePath = SDL_GetBasePath();
-    std::string fullPath;
+    m_programHandle = glCreateProgram();
+    glAttachShader(m_programHandle, vertexShaderHandle);
+    glAttachShader(m_programHandle, fragmentShaderHandle);
+    glLinkProgram(m_programHandle);
 
-    SDL_GPUShaderFormat backendFormats = SDL_GetGPUShaderFormats(device.get());
-    SDL_GPUShaderFormat format = SDL_GPU_SHADERFORMAT_INVALID;
+    glGetProgramiv(m_programHandle, GL_LINK_STATUS, &success);
 
-    std::string entryPoint;
-
-    if (backendFormats & SDL_GPU_SHADERFORMAT_SPIRV) {
-        // Vulkan
-        fullPath = basePath + "../assets/shaders/compiled/SPIRV/" + shaderFilename + ".spv";
-        format = SDL_GPU_SHADERFORMAT_SPIRV;
-        entryPoint = "main";
-    } else if (backendFormats & SDL_GPU_SHADERFORMAT_MSL) {
-        // Metal
-        fullPath = basePath + "../assets/shaders/compiled/MSL/" + shaderFilename + ".msl";
-        format = SDL_GPU_SHADERFORMAT_MSL;
-        entryPoint = "main0";
-    } else if (backendFormats & SDL_GPU_SHADERFORMAT_DXIL) {
-        // DirectX
-        fullPath = basePath + "../assets/shaders/compiled/DXIL/" + shaderFilename + ".dxil";
-        format = SDL_GPU_SHADERFORMAT_DXIL;
-        entryPoint = "main";
-    } else {
-        SDL_Log("No supported shader formats found!");
-        return NULL;
+    if (!success) {
+        glGetProgramInfoLog(m_programHandle, 512, NULL, infoLog);
+        console->warn("Shader program linking failed...");
+        console->warn(infoLog);
     }
 
-    size_t codeSize;
-    void* code = SDL_LoadFile(fullPath.c_str(), &codeSize);
-    if (!code) {
-        SDL_Log("Couldn't load shader file: %s", SDL_GetError());
-        return NULL;
+    glDeleteShader(vertexShaderHandle);
+    glDeleteShader(fragmentShaderHandle);
+
+    console->log("Shader program created.");
+}
+
+Shader::~Shader() {
+    glDeleteProgram(m_programHandle);
+
+    console->log("Shader program destroyed");
+}
+
+void Shader::bind() {
+    glUseProgram(m_programHandle);
+}
+
+void Shader::setUniform(const std::string& name, const int& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        console->warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    glUniform1i(location, value);
+}
+
+void Shader::setUniform(const std::string& name, const vector4f& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        console->warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    glUniform4fv(location, 1, value.as_array.data());
+}
+
+void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        console->warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
+}
+
+std::unique_ptr<Shader> Shader::load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
+    std::ifstream vertexShaderFile(vertexShaderFilename);
+    std::string vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
+
+    std::ifstream fragmentShaderFile(fragmentShaderFilename);
+    std::string fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
+
+    return std::make_unique<Shader>(vertexShaderSource, fragmentShaderSource);
+}
+
+unsigned int Shader::getUniformLocation(const std::string& name) {
+    auto it = m_uniformLocations.find(name);
+    if (it != m_uniformLocations.end()) {
+        return it->second;
     }
 
-    SDL_GPUShaderCreateInfo info = {
-        .code_size = codeSize,
-        .code = static_cast<const Uint8*>(code),
-        .entrypoint = entryPoint.c_str(),
-        .format = format,
-        .stage = stage,
-        .num_samplers = samplerCount,
-        .num_storage_textures = storageTextureCount,
-        .num_storage_buffers = storageBufferCount,
-        .num_uniform_buffers = uniformCount
-    };
-
-    SDL_GPUShader* shaderPtr = SDL_CreateGPUShader(device.get(), &info);
-    if (!shaderPtr) {
-        SDL_Log("Couldn't create shader: %s", SDL_GetError());
-        SDL_free(code);
-        return NULL;
-    }
-
-    SDL_free(code);
-    return std::shared_ptr<SDL_GPUShader>(shaderPtr, ShaderDeleter);
+    const unsigned int location = glGetUniformLocation(m_programHandle, name.c_str());
+    m_uniformLocations[name] = location;
+    return location;
 }

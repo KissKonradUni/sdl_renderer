@@ -2,5 +2,6 @@
 -g
 -std=c++23
 -I./include
--I../libs/SDL3-x64/include
+-I../imgui
+-I../imgui/backends
 -xc++

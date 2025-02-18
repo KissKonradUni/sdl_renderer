@@ -1,26 +1,41 @@
 #pragma once
 
-#include "app.hpp"
+#include "floatmath.hpp"
 
 #include <SDL3/SDL.h>
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
-class SDL_ShaderDeleter {
+struct alignas(16) UniformBufferData {};
+
+class UniformBuffer {
 public:
-    void operator()(SDL_GPUShader* shader) {
-        SDL_ReleaseGPUShader(AppState->gpuDevice.get(), shader);
-        SDL_Log("Shader released");
-    }
-};
-extern SDL_ShaderDeleter ShaderDeleter;
+    UniformBuffer(size_t size, int binding);
 
-std::shared_ptr<SDL_GPUShader> loadShader(
-    std::shared_ptr<SDL_GPUDevice> device,
-    std::string shaderFilename,
-    Uint32 samplerCount,
-    Uint32 uniformCount,
-    Uint32 storageBufferCount,
-    Uint32 storageTextureCount
-);
+    void bind();
+    void updateData(const UniformBufferData* data);
+protected:
+    unsigned int m_uniformBufferObjectHandle;
+    size_t m_size;
+};
+
+class Shader {
+public:
+    Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource);
+    ~Shader();
+
+    void bind();
+    
+    void setUniform(const std::string& name, const int& value);
+    void setUniform(const std::string& name, const vector4f& value);
+    void setUniform(const std::string& name, const matrix4x4f& value);
+
+    static std::unique_ptr<Shader> load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
+protected:
+    unsigned int m_programHandle;
+    std::unordered_map<std::string, unsigned int> m_uniformLocations;
+
+    unsigned int getUniformLocation(const std::string& name);
+};

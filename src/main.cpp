@@ -1,49 +1,89 @@
+#include "ui.hpp"
 #include "app.hpp"
+#include "mesh.hpp"
 #include "input.hpp"
+#include "camera.hpp"
 #include "shader.hpp"
-#include "pipeline.hpp"
+#include "texture.hpp"
+#include "console.hpp"
 #include "floatmath.hpp"
 
+#include "imgui.h"
+
 #include <memory>
+#include <array>
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL.h>
 
-static std::shared_ptr<SDL_GPUShader> vertex;
-static std::shared_ptr<SDL_GPUShader> fragment;
-static std::shared_ptr<SDL_GPUGraphicsPipeline> fillPipeline;
-static SDL_GPUViewport viewport = { 0.0f, 0.0f, 1920.0f, 2000.0f, 0.0f, 1.0f };
+#ifdef _WIN32
+    #include <windows.h>
+#endif
+#include <GL/gl.h>
 
-static struct {
-    vector4f position = vector4f( 0.0f,      2.0f, -5.0f,  1.0f);
-    vector4f rotation = vector4f( 0.0f,  SDL_PI_F,  0.0f,  1.0f);
+static double lastTime = 0.0;
+static double nowTime = 0.0;
+static double deltaTime = 0.0;
 
-    matrix4x4f translation;
-    matrix4x4f lookAt;
-    matrix4x4f projection;
-} camera;
+std::unique_ptr<Mesh> mesh                  = nullptr;
+std::unique_ptr<Mesh> floorMesh             = nullptr;
+std::unique_ptr<Shader> shader              = nullptr;
+std::unique_ptr<Texture> meshTexture        = nullptr;
+std::unique_ptr<Texture> floorTexture       = nullptr;
+std::unique_ptr<UniformBuffer> cameraBuffer = nullptr;
 
-static struct {
-    float x = 0.0f;
-    float y = 0.0f;
-    float r = 0.0f;
-} input;
+std::unique_ptr<Camera> camera  = nullptr;
+CameraInput cameraInput;
 
-void initShaders() {
-    vertex   = loadShader(AppState->gpuDevice, "RawTriangle.vert", 0, 0, 0, 0);
-    fragment = loadShader(AppState->gpuDevice, "SolidColor.frag" , 0, 1, 0, 0);
+void performanceWindow();
+
+void initCamera() {
+    camera = std::make_unique<Camera>(
+        CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
+        80.0f,
+        vector4f(0.0f, 0.0f, -4.0f, 0.0f),
+        vector4f::zero()
+    );
 }
 
-void initPipeline() {
-    fillPipeline = createPipeline(vertex, fragment);
+void initShaders() {
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    shader = Shader::load("assets/shaders/glsl/Basic.vert.glsl", "assets/shaders/glsl/Basic.frag.glsl");
+
+    cameraBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
+}
+
+void initTextures() {
+    meshTexture  = Texture::loadTextureFromFile("assets/images/red_texture.jpg");
+    floorTexture = Texture::loadTextureFromFile("assets/images/rock_texture.jpg");
+}
+
+void initMeshes() {
+    mesh      = Mesh::loadMeshFromFile("assets/models/sphere.glb");
+    floorMesh = Mesh::loadMeshFromFile("assets/models/floor.glb");
+
+    floorMesh->position.y = -1.0f;
 }
 
 void updateWindowSize() {
+    if (!camera)
+        return;
+    
     int w, h;
     if (SDL_GetWindowSize(AppState->window.get(), &w, &h)) {
-        viewport.w = w;
-        viewport.h = h;
+        float width  = static_cast<float>(w);
+        float height = static_cast<float>(h);
+        
+        camera->setViewport({
+            0.0f, 0.0f, width, height
+        });
+        camera->updateProjectionMatrix();
+        
+        glViewport(0, 0, width, height);
     }
 }
 
@@ -53,25 +93,21 @@ void initEvents() {
     });
     EventHandler->add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
         switch (event->key.scancode) {
-            case SDL_SCANCODE_ESCAPE:
-                return SDL_APP_SUCCESS;
             case SDL_SCANCODE_W:
-                input.y = 1.0f;
+                cameraInput.movement.y = 1.0f;
                 break;
             case SDL_SCANCODE_S:
-                input.y = -1.0f;
+                cameraInput.movement.y = -1.0f;
                 break;
             case SDL_SCANCODE_A:
-                input.x = 1.0f;
+                cameraInput.movement.x = 1.0f;
                 break;
             case SDL_SCANCODE_D:
-                input.x = -1.0f;
+                cameraInput.movement.x = -1.0f;
                 break;
-            case SDL_SCANCODE_Q:
-                input.r = -1.0f;
-                break;
-            case SDL_SCANCODE_E:
-                input.r = 1.0f;
+            case SDL_SCANCODE_ESCAPE:
+                cameraInput.lock = !cameraInput.lock;
+                cameraInput.rotation = {0.0f, 0.0f};
                 break;
             default:
                 break;
@@ -82,19 +118,21 @@ void initEvents() {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
             case SDL_SCANCODE_S:
-                input.y = 0.0f;
+                cameraInput.movement.y = 0.0f;
                 break;
             case SDL_SCANCODE_A:
             case SDL_SCANCODE_D:
-                input.x = 0.0f;
-                break;
-            case SDL_SCANCODE_Q:
-            case SDL_SCANCODE_E:
-                input.r = 0.0f;
+                cameraInput.movement.x = 0.0f;
                 break;
             default:
                 break;
         }
+        return SDL_APP_CONTINUE;
+    });
+    EventHandler->add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
+        cameraInput.rotation.pitch += event->motion.xrel;
+        cameraInput.rotation.yaw   += event->motion.yrel;
+
         return SDL_APP_CONTINUE;
     });
     EventHandler->add(SDL_EVENT_WINDOW_RESIZED, [](SDL_Event* event) {
@@ -103,114 +141,135 @@ void initEvents() {
     });
 }
 
-void runTests() {
-    runFloatMathTests();
-}
-
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     const auto result = AppState->initApp("App", "1.0", "com.sdl3.app");
+
     if (result != SDL_APP_CONTINUE)
         return result;
+    
     updateWindowSize();
 
+    initCamera();
     initShaders();
-    initPipeline();
+    initTextures();
+    initMeshes();
     initEvents();
 
-    //runTests();
+    // Enable adaptive vsync
+    SDL_GL_SetSwapInterval(-1);
+
+    UIManager->initUI();
+    UIManager->addUIFunction(performanceWindow);
+    UIManager->addUIFunction([]() {
+        console->drawConsole();
+        //ImGui::ShowMetricsWindow();
+        //ImGui::ShowDebugLogWindow();
+    });
 
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
+    UIManager->processEvent(event);
+    
     return EventHandler->handle(event);
 }
 
-static double lastTime = 0.0;
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
-    const double delta = now - lastTime;
+    // ======================
+    // Time management
     
-    SDL_GPUCommandBuffer* commandBuffer = SDL_AcquireGPUCommandBuffer(AppState->gpuDevice.get());
-    if (!commandBuffer) {
-        SDL_Log("Couldn't acquire command buffer: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
+    nowTime = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    deltaTime = nowTime - lastTime;
+    lastTime = nowTime;
 
-    SDL_GPUTexture* swapchainTexture;
-    if (!SDL_AcquireGPUSwapchainTexture(commandBuffer, AppState->window.get(), &swapchainTexture, NULL, NULL)) {
-        SDL_Log("Couldn't get swapchain texture: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
+    // ======================
+    // Process new frame
 
-    if (swapchainTexture == NULL) {
-        SDL_SubmitGPUCommandBuffer(commandBuffer);
-        return SDL_APP_CONTINUE;
-    }
-
-    const auto forward = vector4f(0.0f, 0.0f, 1.0f, 0.0f) * camera.lookAt * input.y;
-    const auto right = vector4f(1.0f, 0.0f, 0.0f, 0.0f) * camera.lookAt * input.x;
-    const auto move = (forward + right).normalize3d() * delta * 10.0f;
-    camera.position   = camera.position + move;
-    camera.rotation.y = camera.rotation.y + input.r * delta * 3.14f;
-    std::string title = "App - " + std::to_string(camera.position.x) + ", " + std::to_string(camera.position.y) + ", " + std::to_string(camera.position.z) + " - y rot: " + std::to_string(camera.rotation.y) + " - delta: " + std::to_string(delta);
-    SDL_SetWindowTitle(AppState->window.get(), title.c_str());
-
-    SDL_GPUColorTargetInfo colorTargetInfo = { 0 };
-    colorTargetInfo.texture     = swapchainTexture;
-    colorTargetInfo.clear_color = { 
-        SDL_sinf(now * 3        ) * 0.5f + 0.5f,
-        SDL_sinf(now * 3 + 2.09f) * 0.5f + 0.5f,
-        SDL_sinf(now * 3 + 4.18f) * 0.5f + 0.5f,
-        1.0f 
-    };
-    colorTargetInfo.load_op     = SDL_GPU_LOADOP_CLEAR;
-    colorTargetInfo.store_op    = SDL_GPU_STOREOP_STORE;
-
-    SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(commandBuffer, &colorTargetInfo, 1, NULL);
+    UIManager->newFrame();
+    camera->update(cameraInput, deltaTime);
     
-    SDL_SetGPUViewport(renderPass, &viewport);
-    SDL_BindGPUGraphicsPipeline(renderPass, fillPipeline.get());
+    // ======================
+    // Update "game" logic
 
-    // Move camera back and look at origin
-    camera.translation = matrix4x4f::translation(-camera.position.x, -camera.position.y, -camera.position.z);
-    camera.lookAt      = matrix4x4f::lookAt(camera.rotation);
+    mesh->rotation.y += deltaTime * 0.314f;
 
-    float aspect = viewport.h / viewport.w;
-    camera.projection  = matrix4x4f::perspective(
-        90.0f * SDL_PI_F / 180.0f, 
-        aspect, 
-        0.1f,   
-        1000.0f
-    );
+    // ======================
+    // Render
 
-    struct {
-        matrix4x4f cameraTranslation;
-        matrix4x4f cameraLookAt;
-        matrix4x4f cameraProjection;
-        vector4f cameraPos;
-    } uniformData = { 
-        camera.translation, 
-        camera.lookAt, 
-        camera.projection, 
-        camera.position 
-    };
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
-    //SDL_PushGPUVertexUniformData(commandBuffer, 0, &uniformData, sizeof(uniformData));
-    SDL_PushGPUFragmentUniformData(commandBuffer, 0, &uniformData, sizeof(uniformData));
-    SDL_DrawGPUPrimitives(renderPass, 6, 1, 0, 0);
+    shader->bind();
+    cameraBuffer->updateData(camera->getShaderBufferPointer());
 
-    SDL_EndGPURenderPass(renderPass);
+    shader->setUniform(std::string("modelMatrix"), mesh->getModelMatrix());
+    shader->setUniform(std::string("textureDiffuse"), 0);
+    meshTexture->bind(0);
+    mesh->draw();
 
-    if (!SDL_SubmitGPUCommandBuffer(commandBuffer)) {
-        SDL_Log("Couldn't submit command buffer: %s", SDL_GetError());
-        return SDL_APP_FAILURE;
-    }
+    shader->setUniform(std::string("modelMatrix"), floorMesh->getModelMatrix());
+    shader->setUniform(std::string("textureDiffuse"), 0);
+    floorTexture->bind(0);
+    floorMesh->draw();
 
-    lastTime = now;
+    // Draw UI on top of everything
+    UIManager->render();
+
+    // Finalize frame
+    SDL_GL_SwapWindow(AppState->window.get());
+
+    // ======================
+    // Wait for next frame
     return SDL_APP_CONTINUE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    SDL_Log("Quitting with result: %d", result);
+    std::string message = "Application quit with result: " + std::to_string(result);
+    console->log(message);
+
+    AppState.reset();
+}
+
+std::array<float, 256> frameTimes = {};
+std::array<float, 10> frameTimesAvg = {};
+int frameTimeAvgIndex = 0, frameTimeIndex = 0;
+void performanceWindow() {
+    ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoBackground);
+
+    ImGui::Text("Delta time: ~%0.04f ", deltaTime);
+    float fps = 1.0f / deltaTime;
+    ImGui::Text("FPS: ~%03.00f", fps);
+
+    frameTimesAvg[frameTimeAvgIndex] = fps;
+    frameTimeAvgIndex = (frameTimeAvgIndex + 1) % frameTimesAvg.size();
+
+    if (frameTimeAvgIndex == 0) {
+        float sum = 0.0f;
+        for (const auto& time : frameTimesAvg) {
+            sum += time;
+        }
+        frameTimes[frameTimeIndex] = sum / frameTimesAvg.size();
+        frameTimeIndex = (frameTimeIndex + 1) % frameTimes.size();
+    }
+
+    ImGui::Separator();
+
+    float windowWidth = ImGui::GetWindowWidth();
+
+    ImGui::BeginChild("AvgFpsGraph", ImVec2(windowWidth / 2, -1));
+        ImGui::Text("Average FPS graph: ");
+        ImGui::PlotLines("##fps", frameTimes.data(), frameTimes.size(), frameTimeIndex, nullptr, 30.0f, 200.0f, ImVec2(windowWidth / 2, -1));
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    ImGui::BeginChild("PerfGraph", ImVec2(windowWidth / 2, -1));
+        // TODO: Extra performance metrics
+        ImGui::Text("Placehold graph: ");
+        float test = 0.5f;
+        ImGui::PlotHistogram("##graph", &test, 1, 0, nullptr, 0.0f, 1.0f, ImVec2(windowWidth / 2, -1));
+    ImGui::EndChild();
+
+    ImGui::End();
 }

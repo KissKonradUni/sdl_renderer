@@ -1,7 +1,13 @@
-/build/*.out
-/build/*.exe
-/build/*.dll
-/build/*.ilk
-/build/*.pdb
+/bin/*.out
+/bin/*.exe
+/bin/*.dll
+/bin/*.ilk
+/bin/*.pdb
+/bin/*.dll
+/bin/*.txt
 
 /obj/*.o
+
+/win_dlls/*.dll
+
+imgui.ini

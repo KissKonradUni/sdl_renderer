@@ -1,4 +1,5 @@
 #include "input.hpp"
+#include "console.hpp"
 
 std::unique_ptr<SDL_EventHandler> EventHandler = std::make_unique<SDL_EventHandler>();
 
@@ -39,5 +40,5 @@ SDL_EventHandler::SDL_EventHandler() {
 SDL_EventHandler::~SDL_EventHandler() {
     // No need for custom destructor
     // The handlers are not owned by the EventHandler
-    SDL_Log("Event handler destroyed");
+    console->log("Event handler destroyed");
 }
