@@ -10,6 +10,11 @@
     - 16-byte aligned data types for SIMD.
 */
 
+// Type definitions for clarity
+typedef float radians;
+typedef float degrees;
+
+// Forward declaration
 struct matrix4x4f;
 
 /**
@@ -173,7 +178,7 @@ struct alignas(16) matrix4x4f {
      * @param far 
      * @return matrix4x4f The perspective projection matrix.
      */
-    static matrix4x4f perspective(float fov, float aspect, float near, float far);
+    static matrix4x4f perspective(radians fov, float aspect, float near, float far);
 
     /**
      * @brief Use for moving objects in 3D space.
@@ -200,7 +205,7 @@ struct alignas(16) matrix4x4f {
      * @param z 
      * @return matrix4x4f The rotation matrix.
      */
-    static matrix4x4f rotation(float angle, float x, float y, float z);
+    static matrix4x4f rotation(radians angle, float x, float y, float z);
     /**
      * @brief Use for rotating objects in 3D space. Select which axis to rotate around using a unit vector.
      * 
@@ -208,7 +213,7 @@ struct alignas(16) matrix4x4f {
      * @param unit The unit vector to rotate around.
      * @return matrix4x4f The rotation matrix.
      */
-    static matrix4x4f rotation(float angle, vector4f unit) { return rotation(angle, unit.x, unit.y, unit.z); }
+    static matrix4x4f rotation(radians angle, vector4f unit) { return rotation(angle, unit.x, unit.y, unit.z); }
     /**
      * @brief Use for scaling objects in 3D space.
      * 

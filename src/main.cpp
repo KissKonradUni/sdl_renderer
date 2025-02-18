@@ -4,11 +4,13 @@
 #include "input.hpp"
 #include "camera.hpp"
 #include "shader.hpp"
+#include "console.hpp"
 #include "floatmath.hpp"
 
 #include "imgui.h"
 
 #include <memory>
+#include <array>
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
@@ -123,11 +125,45 @@ void initEvents() {
     });
 }
 
+std::array<float, 100> frameTimes = {};
+std::array<float, 10> frameTimesAvg = {};
+int frameTimeAvgIndex = 0, frameTimeIndex = 0;
 void performanceWindow() {
     ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoBackground);
 
-    ImGui::Text("Delta time: %.4f", deltaTime);
-    ImGui::Text("FPS: ~%.0f", 1.0 / deltaTime);
+    ImGui::Text("Delta time: ~%0.04f ", deltaTime);
+    float fps = 1.0f / deltaTime;
+    ImGui::Text("FPS: ~%03.00f", fps);
+
+    frameTimesAvg[frameTimeAvgIndex] = fps;
+    frameTimeAvgIndex = (frameTimeAvgIndex + 1) % frameTimesAvg.size();
+
+    if (frameTimeAvgIndex == 0) {
+        float sum = 0.0f;
+        for (const auto& time : frameTimesAvg) {
+            sum += time;
+        }
+        frameTimes[frameTimeIndex] = sum / frameTimesAvg.size();
+        frameTimeIndex = (frameTimeIndex + 1) % frameTimes.size();
+    }
+
+    ImGui::Separator();
+
+    float windowWidth = ImGui::GetWindowWidth();
+
+    ImGui::BeginChild("AvgFpsGraph", ImVec2(windowWidth / 2, -1));
+        ImGui::Text("Average FPS graph: ");
+        ImGui::PlotLines("##fps", frameTimes.data(), frameTimes.size(), frameTimeIndex, nullptr, 30.0f, 200.0f, ImVec2(windowWidth / 2, -1));
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    ImGui::BeginChild("PerfGraph", ImVec2(windowWidth / 2, -1));
+        // TODO: Extra performance metrics
+        ImGui::Text("Placehold graph: ");
+        float test = 0.5f;
+        ImGui::PlotHistogram("##graph", &test, 1, 0, nullptr, 0.0f, 1.0f, ImVec2(windowWidth / 2, -1));
+    ImGui::EndChild();
 
     ImGui::End();
 }
@@ -144,8 +180,14 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initMeshes();
     initEvents();
 
+    // Disable VSync
+    SDL_GL_SetSwapInterval(-1);
+
     UIManager->initUI();
     UIManager->addUIFunction(performanceWindow);
+    UIManager->addUIFunction([]() {
+        console->drawConsole();
+    });
 
     return SDL_APP_CONTINUE;
 }

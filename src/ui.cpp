@@ -20,11 +20,14 @@ SDL_AppResult Imgui_UIManager::initUI() {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    
+
     // Set DPI scale to match the window
     auto displays = SDL_GetDisplays(NULL);
     auto dpi      = SDL_GetDisplayContentScale(displays[0]);
-    io.FontGlobalScale = dpi;
+    //io.FontGlobalScale = dpi;
+
+    // Load custom font
+    io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 13.0f * dpi);
 
     ImGui_ImplSDL3_InitForOpenGL(AppState->window.get(), AppState->glContext.get());
     ImGui_ImplOpenGL3_Init();
