@@ -3,6 +3,10 @@
 #include <imgui.h>
 #include <SDL3/SDL.h>
 
+#define ANSI_RED "\x1b[31m"
+#define ANSI_YELLOW "\x1b[33m"
+#define ANSI_RESET "\x1b[0m"
+
 std::unique_ptr<Imgui_Console> console = std::make_unique<Imgui_Console>();
 
 MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
@@ -98,14 +102,23 @@ void Imgui_Console::drawConsole() {
 void Imgui_Console::newMessage(const Message& message) {
     messages.push_back(message);
 
+    std::string color = ANSI_RESET;
+    if (message.level == MSG_WARN) {
+        color = ANSI_YELLOW;
+    } else if (message.level == MSG_ERROR) {
+        color = ANSI_RED;
+    }
+
     SDL_Log(
-        "[%0.2d:%0.2d:%0.2d:%0.3d][%s] %s",
+        "%s[%0.2d:%0.2d:%0.2d:%0.3d][%s] %s%s",
+        color.c_str(),
         message.timestamp.hours,
         message.timestamp.minutes,
         message.timestamp.seconds,
         message.timestamp.milliseconds,
         this->prefix.c_str(),
-        message.message.c_str()
+        message.message.c_str(),
+        ANSI_RESET
     );
 }
 

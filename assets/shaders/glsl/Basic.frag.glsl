@@ -24,6 +24,7 @@ void main()
     vec3 halfwayDir = normalize(lightDir + viewDir);
 
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+    vec3 specular = texture(textureDiffuse, fragmentUV).rgb * spec;
 
-    outputColor = vec4(vec3(0.1) + diffuse + spec, 1.0);
+    outputColor = vec4(diffuse + specular, 1.0);
 }

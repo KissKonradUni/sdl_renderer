@@ -231,7 +231,7 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     AppState.reset();
 }
 
-std::array<float, 100> frameTimes = {};
+std::array<float, 256> frameTimes = {};
 std::array<float, 10> frameTimesAvg = {};
 int frameTimeAvgIndex = 0, frameTimeIndex = 0;
 void performanceWindow() {
