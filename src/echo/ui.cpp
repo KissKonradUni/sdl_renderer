@@ -6,14 +6,12 @@
 
 #include "app.hpp"
 
-Imgui_UIManagerDeleter UIManagerDeleter;
+namespace Echo {
 
-std::unique_ptr<Imgui_UIManager, Imgui_UIManagerDeleter> UIManager(new Imgui_UIManager(), UIManagerDeleter);
-
-SDL_AppResult Imgui_UIManager::initUI() {
+SDL_AppResult UI::initUI() {
     // TODO: Add Error checking
 
-    console->log("Initializing ImGui...");
+    Echo::log("Initializing ImGui...");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -29,19 +27,19 @@ SDL_AppResult Imgui_UIManager::initUI() {
     // Load custom font
     io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 13.0f * dpi);
 
-    ImGui_ImplSDL3_InitForOpenGL(AppState->window.get(), AppState->glContext.get());
+    ImGui_ImplSDL3_InitForOpenGL(Cinder::App::getWindowPtr(), Cinder::App::getGLContextPtr());
     ImGui_ImplOpenGL3_Init();
 
-    console->log("Initialized ImGui.");
+    Echo::log("Initialized ImGui.");
 
     return SDL_APP_CONTINUE;
 }
 
-void Imgui_UIManager::processEvent(SDL_Event* event) {
+void UI::processEvent(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
-void Imgui_UIManager::newFrame() {
+void UI::newFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
@@ -53,23 +51,31 @@ void Imgui_UIManager::newFrame() {
     }
 }
 
-void Imgui_UIManager::render() {
+void UI::render() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void Imgui_UIManager::cleanup() {
+void UI::cleanup() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 }
 
-unsigned int Imgui_UIManager::addUIFunction(UIFunction uiFunction) {
+unsigned int UI::addUIFunction(UIFunction uiFunction) {
     int id = uiFunctions.size();
     uiFunctions[id] = uiFunction;
     return id;
 }
 
-void Imgui_UIManager::removeUIFunction(unsigned int id) {
+void UI::removeUIFunction(unsigned int id) {
     uiFunctions.erase(id);
 }
+
+UI::~UI() {
+    this->cleanup();
+    Echo::log("ImGui closed.");
+    Echo::log("Echo UI destroyed.");
+}
+
+}; // namespace Echo

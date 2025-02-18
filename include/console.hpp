@@ -1,10 +1,12 @@
 #pragma once
 
-#include <memory>
 #include <string>
+#include <array>
 #include <list>
 
 #include <SDL3/SDL.h>
+
+namespace Echo {
 
 enum MessageLevel {
     MSG_INFO = 0,
@@ -27,19 +29,24 @@ struct Message {
     MessageTimestamp timestamp;
 };
 
-class Imgui_Console {
+class Console {
 public:
+    static Console& instance() {
+        static Console instance;
+        return instance;
+    }
+
     void log(const std::string& message);
     void warn(const std::string& message);
     void error(const std::string& message);
 
     void drawConsole();
 
-    Imgui_Console() = default;
-    ~Imgui_Console();
-
 protected:
-    std::string prefix = "Sdl3App";
+    Console() = default;
+    ~Console();
+
+    std::string prefix = "Cinder";
     std::list<Message> messages = {};
     
     bool scrollToBottom = true;
@@ -62,4 +69,10 @@ protected:
     std::string prefix;
 };
 
-extern std::unique_ptr<Imgui_Console> console;
+void log(const std::string& message);
+void warn(const std::string& message);
+void error(const std::string& message);
+
+void drawConsole();
+
+}; // namespace Echo

@@ -2,7 +2,7 @@
 #include "console.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.hpp"
+#include "stb/stb_image.h"
 
 #include "glad/glad.h"
 
@@ -31,10 +31,10 @@ std::unique_ptr<Texture> Texture::loadTextureFromFile(const std::string& filenam
     auto data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
 
     if (!data) {
-        console->error(std::string("Failed to load texture from file: ") + filename);
+        Echo::error(std::string("Failed to load texture from file: ") + filename);
         return nullptr;
     }
-    console->log(std::string("Loaded texture from file: ") + filename);
+    Echo::log(std::string("Loaded texture from file: ") + filename);
 
     std::vector<unsigned char> textureData(data, data + width * height * 4);
     auto result = std::make_unique<Texture>(textureData, width, height, 4);

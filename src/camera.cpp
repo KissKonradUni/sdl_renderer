@@ -19,7 +19,7 @@ Camera::Camera(CameraViewport viewport, float fieldOfView, vector4f position, ve
 
     m_cameras.push_back(this);
     if (!m_uiRegistered) {
-        UIManager->addUIFunction(cameraUIs);
+        Echo::UI::instance().addUIFunction(cameraUIs);
         m_uiRegistered = true;
     }
 }

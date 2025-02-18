@@ -41,7 +41,7 @@ Mesh::~Mesh() {
     glDeleteBuffers(1, &indexBufferObjectHandle);
     glDeleteVertexArrays(1, &vertexArrayObjectHandle);
 
-    console->log("Mesh destroyed.");
+    Echo::log("Mesh destroyed.");
 }
 
 void Mesh::bind() const {
@@ -69,12 +69,12 @@ std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
 
     if (!scene) {
         std::string message = "Couldn't load mesh: " + filename;
-        console->warn(message);
+        Echo::warn(message);
         return nullptr;
     }
 
     std::string message = "Loaded mesh: " + filename;
-    console->log(message);
+    Echo::log(message);
 
     std::vector<float> vertices;
     std::vector<unsigned int> indices;

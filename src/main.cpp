@@ -22,8 +22,8 @@
 #endif
 #include <GL/gl.h>
 
-static double lastTime = 0.0;
-static double nowTime = 0.0;
+static double lastTime  = 0.0;
+static double nowTime   = 0.0;
 static double deltaTime = 0.0;
 
 std::unique_ptr<Mesh> mesh                  = nullptr;
@@ -74,7 +74,7 @@ void updateWindowSize() {
         return;
     
     int w, h;
-    if (SDL_GetWindowSize(AppState->window.get(), &w, &h)) {
+    if (SDL_GetWindowSize(Cinder::App::getWindowPtr(), &w, &h)) {
         float width  = static_cast<float>(w);
         float height = static_cast<float>(h);
         
@@ -88,10 +88,10 @@ void updateWindowSize() {
 }
 
 void initEvents() {    
-    EventHandler->add(SDL_EVENT_QUIT    , [](SDL_Event* event) { 
+    Echo::Events::add(SDL_EVENT_QUIT    , [](SDL_Event* event) { 
         return SDL_APP_SUCCESS; 
     });
-    EventHandler->add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
+    Echo::Events::add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
                 cameraInput.movement.y = 1.0f;
@@ -114,7 +114,7 @@ void initEvents() {
         }
         return SDL_APP_CONTINUE;
     });
-    EventHandler->add(SDL_EVENT_KEY_UP, [](SDL_Event* event) {
+    Echo::Events::add(SDL_EVENT_KEY_UP, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
             case SDL_SCANCODE_S:
@@ -129,20 +129,20 @@ void initEvents() {
         }
         return SDL_APP_CONTINUE;
     });
-    EventHandler->add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
+    Echo::Events::add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
         cameraInput.rotation.pitch += event->motion.xrel;
         cameraInput.rotation.yaw   += event->motion.yrel;
 
         return SDL_APP_CONTINUE;
     });
-    EventHandler->add(SDL_EVENT_WINDOW_RESIZED, [](SDL_Event* event) {
+    Echo::Events::add(SDL_EVENT_WINDOW_RESIZED, [](SDL_Event* event) {
         updateWindowSize();
         return SDL_APP_CONTINUE;
     });
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    const auto result = AppState->initApp("App", "1.0", "com.sdl3.app");
+    const auto result = Cinder::App::instance().initApp("Cinder", "1.0", "hu.konrads.cinder");
 
     if (result != SDL_APP_CONTINUE)
         return result;
@@ -158,21 +158,19 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     // Enable adaptive vsync
     SDL_GL_SetSwapInterval(-1);
 
-    UIManager->initUI();
-    UIManager->addUIFunction(performanceWindow);
-    UIManager->addUIFunction([]() {
-        console->drawConsole();
-        //ImGui::ShowMetricsWindow();
-        //ImGui::ShowDebugLogWindow();
+    Echo::UI::instance().initUI();
+    Echo::UI::instance().addUIFunction(performanceWindow);
+    Echo::UI::instance().addUIFunction([]() {
+        Echo::drawConsole();
     });
 
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
-    UIManager->processEvent(event);
+    Echo::UI::instance().processEvent(event);
     
-    return EventHandler->handle(event);
+    return Echo::Events::handle(event);
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
@@ -186,7 +184,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // ======================
     // Process new frame
 
-    UIManager->newFrame();
+    Echo::UI::instance().newFrame();
     camera->update(cameraInput, deltaTime);
     
     // ======================
@@ -214,10 +212,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     floorMesh->draw();
 
     // Draw UI on top of everything
-    UIManager->render();
+    Echo::UI::instance().render();
 
     // Finalize frame
-    SDL_GL_SwapWindow(AppState->window.get());
+    SDL_GL_SwapWindow(Cinder::App::getWindowPtr());
 
     // ======================
     // Wait for next frame
@@ -225,10 +223,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    std::string message = "Application quit with result: " + std::to_string(result);
-    console->log(message);
-
-    AppState.reset();
+    Echo::log(std::string("Application quit with result: ") + std::to_string(result));
 }
 
 std::array<float, 256> frameTimes = {};

@@ -11,7 +11,7 @@ UniformBuffer::UniformBuffer(size_t size, int binding) {
     glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, binding, m_uniformBufferObjectHandle);
 
-    console->log("Uniform buffer created.");
+    Echo::log("Uniform buffer created.");
 
     m_size = size;
 }
@@ -46,8 +46,8 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
     glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShaderHandle, 512, NULL, infoLog);
-        console->warn("Vertex shader compilation failed...");
-        console->warn(infoLog);
+        Echo::warn("Vertex shader compilation failed...");
+        Echo::warn(infoLog);
     }
     
     auto fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
@@ -58,8 +58,8 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
     glGetShaderiv(fragmentShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShaderHandle, 512, NULL, infoLog);
-        console->warn("Fragment shader compilation failed...");
-        console->warn(infoLog);
+        Echo::warn("Fragment shader compilation failed...");
+        Echo::warn(infoLog);
     }
 
     m_programHandle = glCreateProgram();
@@ -71,20 +71,20 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
 
     if (!success) {
         glGetProgramInfoLog(m_programHandle, 512, NULL, infoLog);
-        console->warn("Shader program linking failed...");
-        console->warn(infoLog);
+        Echo::warn("Shader program linking failed...");
+        Echo::warn(infoLog);
     }
 
     glDeleteShader(vertexShaderHandle);
     glDeleteShader(fragmentShaderHandle);
 
-    console->log("Shader program created.");
+    Echo::log("Shader program created.");
 }
 
 Shader::~Shader() {
     glDeleteProgram(m_programHandle);
 
-    console->log("Shader program destroyed");
+    Echo::log("Shader program destroyed");
 }
 
 void Shader::bind() {
@@ -94,7 +94,7 @@ void Shader::bind() {
 void Shader::setUniform(const std::string& name, const int& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        console->warn(std::string("Couldn't find uniform: ") + name);
+        Echo::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniform1i(location, value);
@@ -103,7 +103,7 @@ void Shader::setUniform(const std::string& name, const int& value) {
 void Shader::setUniform(const std::string& name, const vector4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        console->warn(std::string("Couldn't find uniform: ") + name);
+        Echo::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniform4fv(location, 1, value.as_array.data());
@@ -112,7 +112,7 @@ void Shader::setUniform(const std::string& name, const vector4f& value) {
 void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        console->warn(std::string("Couldn't find uniform: ") + name);
+        Echo::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());

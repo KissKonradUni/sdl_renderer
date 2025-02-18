@@ -111,7 +111,7 @@ Module names:
 
 Main: Cinder
 Assets: Codex
-IO: Sigil
+IO / Logging: Echo
 Logic: Hex
 Network: Whisper
 Audio: Chant

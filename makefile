@@ -48,7 +48,7 @@ INC_DIR = include
 OBJ_DIR = obj
 BUILD_DIR = bin
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+SRCS = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS)) $(IMGUI_OBJS)
 TARGET = $(BUILD_DIR)/sdl3_app.$(EXT)
 
@@ -69,7 +69,7 @@ ifdef COPY_DLLS
 endif
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@$(call MKDIR,$(OBJ_DIR))
+	@$(call MKDIR,$(dir $@))
 	@$(CXX) $(CXXFLAGS) -I$(INC_DIR) -c $< -o $@
 	@echo "[MAKEFILE] Compiled $<"
 

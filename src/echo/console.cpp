@@ -7,7 +7,7 @@
 #define ANSI_YELLOW "\x1b[33m"
 #define ANSI_RESET "\x1b[0m"
 
-std::unique_ptr<Imgui_Console> console = std::make_unique<Imgui_Console>();
+namespace Echo {
 
 MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
     this->milliseconds = milliseconds % 1000;
@@ -16,30 +16,29 @@ MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
     this->hours        = (milliseconds / 3600000) % 24;
 }
 
-void Imgui_Console::log(const std::string& message) {
+void Console::log(const std::string& message) {
     newMessage(Message{ 
         message, MSG_INFO, MessageTimestamp(SDL_GetTicks())
     });
 }
 
-void Imgui_Console::warn(const std::string& message) {
+void Console::warn(const std::string& message) {
     newMessage(Message{ 
         message, MSG_WARN, MessageTimestamp(SDL_GetTicks())
     });
 }
 
-void Imgui_Console::error(const std::string& message) {
+void Console::error(const std::string& message) {
     newMessage(Message{ 
         message, MSG_ERROR, MessageTimestamp(SDL_GetTicks())
     });
 }
 
-Imgui_Console::~Imgui_Console() {
+Console::~Console() {
     messages.clear();
-    SDL_Log("[*] Console destroyed");
 }
 
-void Imgui_Console::drawConsole() {
+void Console::drawConsole() {
     ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoBackground);
 
     ImGui::BeginChild("ConsoleOptions", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, false);
@@ -99,7 +98,7 @@ void Imgui_Console::drawConsole() {
     ImGui::End();
 }
 
-void Imgui_Console::newMessage(const Message& message) {
+void Console::newMessage(const Message& message) {
     messages.push_back(message);
 
     std::string color = ANSI_RESET;
@@ -122,6 +121,24 @@ void Imgui_Console::newMessage(const Message& message) {
     );
 }
 
-unsigned int Imgui_Console::getMessageWidth(const std::string& message) {
+unsigned int Console::getMessageWidth(const std::string& message) {
     return ImGui::CalcTextSize(message.c_str()).x;
 }
+
+void log(const std::string& message) {
+    Console::instance().log(message);
+}
+
+void warn(const std::string& message) {
+    Console::instance().warn(message);
+}
+
+void error(const std::string& message) {
+    Console::instance().error(message);
+}
+ 
+void drawConsole() {
+    Console::instance().drawConsole();
+}
+
+} // namespace Echo

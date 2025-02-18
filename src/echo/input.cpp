@@ -1,9 +1,9 @@
 #include "input.hpp"
 #include "console.hpp"
 
-std::unique_ptr<SDL_EventHandler> EventHandler = std::make_unique<SDL_EventHandler>();
+namespace Echo {
 
-SDL_AppResult SDL_EventHandler::handle(SDL_Event* event) {
+SDL_AppResult Events::handleEvent(SDL_Event* event) {
     if (!eventHandlers.contains(event->type))
         return SDL_APP_CONTINUE;
 
@@ -16,29 +16,45 @@ SDL_AppResult SDL_EventHandler::handle(SDL_Event* event) {
     }
     return result;
 }
+SDL_AppResult Events::handle(SDL_Event* event) {
+    return Events::instance().handleEvent(event);
+}
 
-void SDL_EventHandler::add(Uint32 eventType, EventHandlerFunction* handler) {
+void Events::addEvent(Uint32 eventType, EventHandlerFunction* handler) {
     if (!eventHandlers.contains(eventType)) {
         eventHandlers[eventType] = std::vector<EventHandlerFunction*>();
     }
 
     eventHandlers[eventType].push_back(handler);
 }
+void Events::add(Uint32 eventType, EventHandlerFunction* handler) {
+    Events::instance().addEvent(eventType, handler);
+}
 
-void SDL_EventHandler::remove(Uint32 eventType, EventHandlerFunction* handler) {
+void Events::cancelEvent(Uint32 eventType, EventHandlerFunction* handler) {
     if (!eventHandlers.contains(eventType))
         return;
 
     auto handlers = eventHandlers[eventType];
-    handlers.erase(std::remove(handlers.begin(), handlers.end(), handler), handlers.end());
+    for (auto it = handlers.begin(); it != handlers.end(); it++) {
+        if (*it == handler) {
+            handlers.erase(it);
+            return;
+        }
+    }
+}
+void Events::cancel(Uint32 eventType, EventHandlerFunction* handler) {
+    Events::instance().cancelEvent(eventType, handler);
 }
 
-SDL_EventHandler::SDL_EventHandler() {
+Events::Events() {
     eventHandlers = std::map<Uint32, std::vector<EventHandlerFunction*>>();
 }
 
-SDL_EventHandler::~SDL_EventHandler() {
+Events::~Events() {
     // No need for custom destructor
     // The handlers are not owned by the EventHandler
-    console->log("Event handler destroyed");
+    Echo::log("Event handler destroyed.");
 }
+
+};

@@ -7,8 +7,15 @@
 #include <memory>
 #include <string>
 
-class SDL_AppState {
+namespace Cinder {
+
+class App {
 public:
+    static App& instance() {
+        static App instance;
+        return instance;
+    }
+
     std::shared_ptr<SDL_Window>            window;
     std::shared_ptr<SDL_GLContextState> glContext;
 
@@ -17,27 +24,23 @@ public:
     SDL_AppResult initGLContext();
 
     SDL_AppResult initApp(std::string appName, std::string appVersion, std::string appId);
+
+    static SDL_Window*         getWindowPtr();
+    static SDL_GLContextState* getGLContextPtr();
+protected:
+    App() = default;
+    ~App();
 };
 
-class SDL_AppDeleter {
-public:
+struct CinderDeleter {
     void operator()(SDL_Window* window) {
         SDL_DestroyWindow(window);
-        console->log("Window destroyed.");
+        Echo::log("Window destroyed.");
     }
     void operator()(SDL_GLContextState* glContext) {
         SDL_GL_DestroyContext(glContext);
-        console->log("GL context destroyed.");
-    }
-    void operator()(SDL_AppState* appState) {
-        console->log("Window released from GPU device.");
-
-        appState->window.reset();
-        appState->glContext.reset();
-
-        delete appState;
+        Echo::log("GL context destroyed.");
     }
 };
-extern SDL_AppDeleter AppDeleter;
 
-extern std::unique_ptr<SDL_AppState, SDL_AppDeleter> AppState;
+}; // namespace Cinder

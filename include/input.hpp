@@ -3,22 +3,27 @@
 #include <SDL3/SDL.h>
 
 #include <map>
-#include <memory>
 #include <vector>
+
+namespace Echo {
 
 typedef SDL_AppResult (EventHandlerFunction)(SDL_Event*);
 
-class SDL_EventHandler {
-private:
-    std::map<Uint32, std::vector<EventHandlerFunction*>> eventHandlers;
+class Events {
 public:
+    static Events& instance() {
+        static Events instance;
+        return instance;
+    }
+
     /**
      * @brief Handle an incoming SDL event
      * @note If the event type is not found in the eventHandlers map, the event is ignored
      * 
      * @param event The SDL event to handle
      */
-    SDL_AppResult handle(SDL_Event* event);
+    SDL_AppResult handleEvent(SDL_Event* event);
+    static SDL_AppResult handle(SDL_Event* event);
 
     /**
      * @brief Add an event handler to the eventHandlers map
@@ -29,7 +34,8 @@ public:
      * @param eventType UInt32 representing the type of SDL event to handle
      * @param handler Pointer to the function to handle the event
      */
-    void add(Uint32 eventType, EventHandlerFunction* handler);
+    void addEvent(Uint32 eventType, EventHandlerFunction* handler);
+    static void add(Uint32 eventType, EventHandlerFunction* handler);
 
     /**
      * @brief Remove an event handler from the eventHandlers map
@@ -39,9 +45,13 @@ public:
      * @param eventType UInt32 representing the type of SDL event to handle
      * @param handler Pointer to the function to remove from the eventHandlers map
      */
-    void remove(Uint32 eventType, EventHandlerFunction* handler);
+    void cancelEvent(Uint32 eventType, EventHandlerFunction* handler);
+    static void cancel(Uint32 eventType, EventHandlerFunction* handler);
+protected:
+    std::map<Uint32, std::vector<EventHandlerFunction*>> eventHandlers;
 
-    SDL_EventHandler();
-    ~SDL_EventHandler();
+    Events();
+    ~Events();
 };
-extern std::unique_ptr<SDL_EventHandler> EventHandler;
+
+}; // namespace Echo
