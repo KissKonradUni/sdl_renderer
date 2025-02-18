@@ -1,9 +1,11 @@
-#include "camera.hpp"
+#include "hex/camera.hpp"
 
 #include "imgui.h"
-#include "ui.hpp"
+#include "echo/ui.hpp"
 
 #include <vector>
+
+namespace Hex {
 
 std::vector<Camera*> m_cameras = {};
 bool m_uiRegistered = false;
@@ -115,3 +117,5 @@ void Camera::cameraUIs() {
         ImGui::End();
     }
 }
+
+}; // namespace Hex

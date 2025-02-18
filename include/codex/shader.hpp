@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 
+namespace Codex {
+
 struct alignas(16) UniformBufferData {};
 
 class UniformBuffer {
@@ -39,3 +41,5 @@ protected:
 
     unsigned int getUniformLocation(const std::string& name);
 };
+
+}; // namespace Codex

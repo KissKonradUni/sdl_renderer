@@ -7,6 +7,8 @@
 
 #include "floatmath.hpp"
 
+namespace Codex {
+
 class Mesh {
 public:
     vector4f position;
@@ -30,3 +32,5 @@ protected:
 
     void bind() const;
 };
+
+}; // namespace Codex

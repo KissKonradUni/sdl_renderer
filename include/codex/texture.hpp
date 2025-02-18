@@ -4,6 +4,8 @@
 #include <vector>
 #include <memory>
 
+namespace Codex {
+
 class Texture {
 public:
     Texture(std::vector<unsigned char>& data, int width, int height, int channels);
@@ -17,3 +19,5 @@ protected:
 
     int m_width, m_height, m_channels;
 };
+
+}; // namespace Codex

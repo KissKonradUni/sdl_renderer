@@ -1,6 +1,6 @@
 #pragma once
 
-#include "console.hpp"
+#include "echo/console.hpp"
 
 #include <SDL3/SDL.h>
 

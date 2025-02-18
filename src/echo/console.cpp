@@ -1,4 +1,4 @@
-#include "console.hpp"
+#include "echo/console.hpp"
 
 #include <imgui.h>
 #include <SDL3/SDL.h>
@@ -51,7 +51,7 @@ void Console::drawConsole() {
 
     ImGui::Separator();
 
-    ImGui::BeginChild("ConsoleMessages", ImVec2(0, -36), false, false);
+    ImGui::BeginChild("ConsoleMessages", ImVec2(0, -46), false, false);
     ImVec4 color;
     for (const auto& message : messages) {
         switch (message.level) {

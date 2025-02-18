@@ -1,16 +1,18 @@
-#include "texture.hpp"
-#include "console.hpp"
+#include "codex/texture.hpp"
+#include "echo/console.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "lib/stb/stb_image.h"
 
-#include "glad/glad.h"
+#include "lib/glad/glad.h"
+
+namespace Codex {
 
 Texture::Texture(std::vector<unsigned char>& data, int width, int height, int channels) {
     glGenTextures(1, &m_textureHandle);
     glBindTexture(GL_TEXTURE_2D, m_textureHandle);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (data.empty()) ? NULL : data.data());
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -47,3 +49,5 @@ void Texture::bind(int slot) {
     glBindTexture(GL_TEXTURE_2D, m_textureHandle);
     glActiveTexture(GL_TEXTURE0 + slot);
 }
+
+} // namespace Codex

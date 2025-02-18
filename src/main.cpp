@@ -1,11 +1,11 @@
-#include "ui.hpp"
+#include "echo/ui.hpp"
 #include "app.hpp"
-#include "mesh.hpp"
-#include "input.hpp"
-#include "camera.hpp"
-#include "shader.hpp"
-#include "texture.hpp"
-#include "console.hpp"
+#include "codex/mesh.hpp"
+#include "echo/input.hpp"
+#include "hex/camera.hpp"
+#include "codex/shader.hpp"
+#include "codex/texture.hpp"
+#include "echo/console.hpp"
 #include "floatmath.hpp"
 
 #include "imgui.h"
@@ -26,21 +26,21 @@ static double lastTime  = 0.0;
 static double nowTime   = 0.0;
 static double deltaTime = 0.0;
 
-std::unique_ptr<Mesh> mesh                  = nullptr;
-std::unique_ptr<Mesh> floorMesh             = nullptr;
-std::unique_ptr<Shader> shader              = nullptr;
-std::unique_ptr<Texture> meshTexture        = nullptr;
-std::unique_ptr<Texture> floorTexture       = nullptr;
-std::unique_ptr<UniformBuffer> cameraBuffer = nullptr;
+std::unique_ptr<Codex::Mesh> mesh                  = nullptr;
+std::unique_ptr<Codex::Mesh> floorMesh             = nullptr;
+std::unique_ptr<Codex::Shader> shader              = nullptr;
+std::unique_ptr<Codex::Texture> meshTexture        = nullptr;
+std::unique_ptr<Codex::Texture> floorTexture       = nullptr;
+std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
 
-std::unique_ptr<Camera> camera  = nullptr;
-CameraInput cameraInput;
+std::unique_ptr<Hex::Camera> camera  = nullptr;
+Hex::CameraInput cameraInput;
 
 void performanceWindow();
 
 void initCamera() {
-    camera = std::make_unique<Camera>(
-        CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
+    camera = std::make_unique<Hex::Camera>(
+        Hex::CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
         80.0f,
         vector4f(0.0f, 0.0f, -4.0f, 0.0f),
         vector4f::zero()
@@ -52,19 +52,19 @@ void initShaders() {
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
-    shader = Shader::load("assets/shaders/glsl/Basic.vert.glsl", "assets/shaders/glsl/Basic.frag.glsl");
+    shader = Codex::Shader::load("assets/shaders/glsl/Basic.vert.glsl", "assets/shaders/glsl/Basic.frag.glsl");
 
-    cameraBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
+    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
 }
 
 void initTextures() {
-    meshTexture  = Texture::loadTextureFromFile("assets/images/red_texture.jpg");
-    floorTexture = Texture::loadTextureFromFile("assets/images/rock_texture.jpg");
+    meshTexture  = Codex::Texture::loadTextureFromFile("assets/images/red_texture.jpg");
+    floorTexture = Codex::Texture::loadTextureFromFile("assets/images/rock_texture.jpg");
 }
 
 void initMeshes() {
-    mesh      = Mesh::loadMeshFromFile("assets/models/sphere.glb");
-    floorMesh = Mesh::loadMeshFromFile("assets/models/floor.glb");
+    mesh      = Codex::Mesh::loadMeshFromFile("assets/models/sphere.glb");
+    floorMesh = Codex::Mesh::loadMeshFromFile("assets/models/floor.glb");
 
     floorMesh->position.y = -1.0f;
 }
@@ -261,7 +261,7 @@ void performanceWindow() {
 
     ImGui::BeginChild("PerfGraph", ImVec2(windowWidth / 2, -1));
         // TODO: Extra performance metrics
-        ImGui::Text("Placehold graph: ");
+        ImGui::Text("Placeholder graph: ");
         float test = 0.5f;
         ImGui::PlotHistogram("##graph", &test, 1, 0, nullptr, 0.0f, 1.0f, ImVec2(windowWidth / 2, -1));
     ImGui::EndChild();

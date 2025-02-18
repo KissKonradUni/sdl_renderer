@@ -1,9 +1,11 @@
-#include "shader.hpp"
-#include "console.hpp"
+#include "codex/shader.hpp"
+#include "echo/console.hpp"
 
-#include "glad/glad.h"
+#include "lib/glad/glad.h"
 
 #include <fstream>
+
+namespace Codex {
 
 UniformBuffer::UniformBuffer(size_t size, int binding) {
     glGenBuffers(1, &m_uniformBufferObjectHandle);
@@ -138,3 +140,5 @@ unsigned int Shader::getUniformLocation(const std::string& name) {
     m_uniformLocations[name] = location;
     return location;
 }
+
+} // namespace Codex

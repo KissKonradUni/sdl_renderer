@@ -1,5 +1,5 @@
-#include "input.hpp"
-#include "console.hpp"
+#include "echo/input.hpp"
+#include "echo/console.hpp"
 
 namespace Echo {
 

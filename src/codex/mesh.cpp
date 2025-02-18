@@ -1,13 +1,15 @@
-#include "glad/glad.h"
+#include "lib/glad/glad.h"
 
-#include "mesh.hpp"
-#include "console.hpp"
+#include "codex/mesh.hpp"
+#include "echo/console.hpp"
 
 #include <assimp/scene.h>
 #include <assimp/cimport.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/postprocess.h>
+
+namespace Codex {
 
 Mesh::Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices) {
     glGenVertexArrays(1, &vertexArrayObjectHandle);
@@ -120,3 +122,5 @@ std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
 
     return std::make_unique<Mesh>(vertices, indices);
 }
+
+}; // namespace Codex

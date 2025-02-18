@@ -1,4 +1,4 @@
-#include "ui.hpp"
+#include "echo/ui.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
@@ -25,7 +25,7 @@ SDL_AppResult UI::initUI() {
     //io.FontGlobalScale = dpi;
 
     // Load custom font
-    io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 13.0f * dpi);
+    io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 16.0f * dpi);
 
     ImGui_ImplSDL3_InitForOpenGL(Cinder::App::getWindowPtr(), Cinder::App::getGLContextPtr());
     ImGui_ImplOpenGL3_Init();

@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-#include "glad/glad.h"
+#include "lib/glad/glad.h"
 
 namespace Cinder {
 
