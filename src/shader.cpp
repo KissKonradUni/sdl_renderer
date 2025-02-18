@@ -91,6 +91,15 @@ void Shader::bind() {
     glUseProgram(m_programHandle);
 }
 
+void Shader::setUniform(const std::string& name, const int& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        console->warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    glUniform1i(location, value);
+}
+
 void Shader::setUniform(const std::string& name, const vector4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {

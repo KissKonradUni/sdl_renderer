@@ -4,6 +4,7 @@
 #include "input.hpp"
 #include "camera.hpp"
 #include "shader.hpp"
+#include "texture.hpp"
 #include "console.hpp"
 #include "floatmath.hpp"
 
@@ -28,6 +29,8 @@ static double deltaTime = 0.0;
 std::unique_ptr<Mesh> mesh                  = nullptr;
 std::unique_ptr<Mesh> floorMesh             = nullptr;
 std::unique_ptr<Shader> shader              = nullptr;
+std::unique_ptr<Texture> meshTexture        = nullptr;
+std::unique_ptr<Texture> floorTexture       = nullptr;
 std::unique_ptr<UniformBuffer> cameraBuffer = nullptr;
 
 std::unique_ptr<Camera> camera  = nullptr;
@@ -54,8 +57,13 @@ void initShaders() {
     cameraBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
 }
 
+void initTextures() {
+    meshTexture  = Texture::loadTextureFromFile("assets/images/red_texture.jpg");
+    floorTexture = Texture::loadTextureFromFile("assets/images/rock_texture.jpg");
+}
+
 void initMeshes() {
-    mesh      = Mesh::loadMeshFromFile("assets/models/suzanne.glb");
+    mesh      = Mesh::loadMeshFromFile("assets/models/sphere.glb");
     floorMesh = Mesh::loadMeshFromFile("assets/models/floor.glb");
 
     floorMesh->position.y = -1.0f;
@@ -99,6 +107,7 @@ void initEvents() {
                 break;
             case SDL_SCANCODE_ESCAPE:
                 cameraInput.lock = !cameraInput.lock;
+                cameraInput.rotation = {0.0f, 0.0f};
                 break;
             default:
                 break;
@@ -142,6 +151,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     initCamera();
     initShaders();
+    initTextures();
     initMeshes();
     initEvents();
 
@@ -193,11 +203,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     shader->bind();
     cameraBuffer->updateData(camera->getShaderBufferPointer());
 
-    std::string uniformName = "modelMatrix";
-    shader->setUniform(uniformName, mesh->getModelMatrix());
+    shader->setUniform(std::string("modelMatrix"), mesh->getModelMatrix());
+    shader->setUniform(std::string("textureDiffuse"), 0);
+    meshTexture->bind(0);
     mesh->draw();
 
-    shader->setUniform(uniformName, floorMesh->getModelMatrix());
+    shader->setUniform(std::string("modelMatrix"), floorMesh->getModelMatrix());
+    shader->setUniform(std::string("textureDiffuse"), 0);
+    floorTexture->bind(0);
     floorMesh->draw();
 
     // Draw UI on top of everything

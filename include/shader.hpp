@@ -28,6 +28,7 @@ public:
 
     void bind();
     
+    void setUniform(const std::string& name, const int& value);
     void setUniform(const std::string& name, const vector4f& value);
     void setUniform(const std::string& name, const matrix4x4f& value);
 
