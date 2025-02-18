@@ -4,17 +4,27 @@
 #include <string>
 #include <list>
 
+#include <SDL3/SDL.h>
+
 enum MessageLevel {
     MSG_INFO = 0,
     MSG_WARN = 1,
     MSG_ERROR = 2
 };
 
+struct MessageTimestamp {
+    uint8_t hours;
+    uint8_t minutes;
+    uint8_t seconds;
+    uint16_t milliseconds;
+
+    MessageTimestamp(unsigned long milliseconds);
+};
+
 struct Message {
     std::string message;
     MessageLevel level;
-    unsigned long timestamp;
-    unsigned int lengthInPixels;
+    MessageTimestamp timestamp;
 };
 
 class Imgui_Console {
@@ -26,10 +36,10 @@ public:
     void drawConsole();
 
     Imgui_Console() = default;
-    ~Imgui_Console() = default;
+    ~Imgui_Console();
 
 protected:
-    std::string prefix = "[Sdl3App]";
+    std::string prefix = "Sdl3App";
     std::list<Message> messages = {};
     
     bool scrollToBottom = true;

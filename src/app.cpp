@@ -8,10 +8,11 @@ std::unique_ptr<SDL_AppState, SDL_AppDeleter> AppState(new SDL_AppState(), AppDe
 
 SDL_AppResult SDL_AppState::initSDL() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
+        console->error("Couldn't initialize SDL.");
+        console->error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    SDL_Log("SDL initialized");
+    console->log("SDL initialized.");
     return SDL_APP_CONTINUE;
 }
 
@@ -24,10 +25,11 @@ SDL_AppResult SDL_AppState::initWindow() {
 
     SDL_Window* rawWindow = SDL_CreateWindow("App", 1920, 1200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (rawWindow == NULL) {
-        SDL_Log("Couldn't create window: %s", SDL_GetError());
+        console->error("Couldn't create window.");
+        console->error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    SDL_Log("Window created");
+    console->log("Window created successfully.");
 
     AppState->window.reset(rawWindow, AppDeleter);
     return SDL_APP_CONTINUE;
@@ -37,17 +39,19 @@ SDL_AppResult SDL_AppState::initGLContext() {
     SDL_GLContextState* rawGlContext = SDL_GL_CreateContext(this->window.get());
 
     if (rawGlContext == NULL) {
-        SDL_Log("Couldn't create GL context: %s", SDL_GetError());
+        console->error("Couldn't create GL context.");
+        console->error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
+    console->log("GL context created successfully.");
 
-    SDL_Log("Loading OpenGL 4.6 functions...");
+    console->log("Loading OpenGL 4.6 functions...");
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-        SDL_Log("Failed to initialize GLAD");
+        console->error("Failed to initialize GLAD");
         return SDL_APP_FAILURE;
     }
     gladLoadGL();
-    SDL_Log("Context created successfully, OpenGL 4.6 functions loaded");
+    console->log("OpenGL 4.6 functions loaded successfully.");
 
     AppState->glContext.reset(rawGlContext, AppDeleter);
     return SDL_APP_CONTINUE;
@@ -55,7 +59,7 @@ SDL_AppResult SDL_AppState::initGLContext() {
 
 SDL_AppResult SDL_AppState::initApp(std::string appName, std::string appVersion, std::string appId) {
     SDL_SetAppMetadata(appName.c_str(), appVersion.c_str(), appId.c_str());
-    SDL_Log("\nApplication starting...");
+    console->log("Application starting...");
 
     SDL_AppResult result = AppState->initSDL();
     if (result != SDL_APP_CONTINUE)

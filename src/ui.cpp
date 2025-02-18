@@ -13,7 +13,7 @@ std::unique_ptr<Imgui_UIManager, Imgui_UIManagerDeleter> UIManager(new Imgui_UIM
 SDL_AppResult Imgui_UIManager::initUI() {
     // TODO: Add Error checking
 
-    SDL_Log("Initializing ImGui");
+    console->log("Initializing ImGui...");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -32,7 +32,7 @@ SDL_AppResult Imgui_UIManager::initUI() {
     ImGui_ImplSDL3_InitForOpenGL(AppState->window.get(), AppState->glContext.get());
     ImGui_ImplOpenGL3_Init();
 
-    SDL_Log("Initialized ImGui");
+    console->log("Initialized ImGui.");
 
     return SDL_APP_CONTINUE;
 }

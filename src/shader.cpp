@@ -1,4 +1,5 @@
 #include "shader.hpp"
+#include "console.hpp"
 
 #include "glad/glad.h"
 
@@ -16,7 +17,8 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
     glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShaderHandle, 512, NULL, infoLog);
-        SDL_Log("Vertex shader compilation failed: %s", infoLog);
+        console->warn("Vertex shader compilation failed...");
+        console->warn(infoLog);
     }
     
     auto fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
@@ -27,7 +29,8 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
     glGetShaderiv(fragmentShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShaderHandle, 512, NULL, infoLog);
-        SDL_Log("Fragment shader compilation failed: %s", infoLog);
+        console->warn("Fragment shader compilation failed...");
+        console->warn(infoLog);
     }
 
     programHandle = glCreateProgram();
@@ -39,19 +42,20 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
 
     if (!success) {
         glGetProgramInfoLog(programHandle, 512, NULL, infoLog);
-        SDL_Log("Shader program linking failed: %s", infoLog);
+        console->warn("Shader program linking failed...");
+        console->warn(infoLog);
     }
 
     glDeleteShader(vertexShaderHandle);
     glDeleteShader(fragmentShaderHandle);
 
-    SDL_Log("Shader program created");
+    console->log("Shader program created.");
 }
 
 Shader::~Shader() {
     glDeleteProgram(programHandle);
 
-    SDL_Log("Shader program destroyed");
+    console->log("Shader program destroyed");
 }
 
 void Shader::bind() {
@@ -61,7 +65,8 @@ void Shader::bind() {
 void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        SDL_Log("Uniform %s not found", name.c_str());  
+        std::string message = "Couldn't find uniform: " + name;
+        console->warn(message);
         return;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());

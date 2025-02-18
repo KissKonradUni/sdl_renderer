@@ -31,6 +31,9 @@ Camera::~Camera() {
 }
 
 void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity) {
+    if (input.lock)
+        return;
+
     const auto forward = vector4f(input.movement.x, 0.0f, input.movement.y, 0.0f).normalize3d();
     const auto rotate  = matrix4x4f::rotation(this->m_rotation.y, vector4f::up());
     const auto move    = (rotate * (forward * deltaTime * 2.0f)).normalize3d() * 10.0f * deltaTime;

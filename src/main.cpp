@@ -32,15 +32,21 @@ std::unique_ptr<Shader> shader  = nullptr;
 std::unique_ptr<Camera> camera  = nullptr;
 CameraInput cameraInput;
 
-void initShaders() {
+void performanceWindow();
+
+void initCamera() {
     camera = std::make_unique<Camera>(
         CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
         80.0f,
         vector4f(0.0f, 0.0f, -4.0f, 0.0f),
         vector4f::zero()
     );
+}
 
+void initShaders() {
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     shader = Shader::load("assets/shaders/glsl/Basic.vert.glsl", "assets/shaders/glsl/Basic.frag.glsl");
 }
@@ -111,9 +117,7 @@ void initEvents() {
         }
         return SDL_APP_CONTINUE;
     });
-    EventHandler->add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {
-        if (cameraInput.lock) return SDL_APP_CONTINUE;
-        
+    EventHandler->add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
         cameraInput.rotation.pitch += event->motion.xrel;
         cameraInput.rotation.yaw   += event->motion.yrel;
 
@@ -125,68 +129,28 @@ void initEvents() {
     });
 }
 
-std::array<float, 100> frameTimes = {};
-std::array<float, 10> frameTimesAvg = {};
-int frameTimeAvgIndex = 0, frameTimeIndex = 0;
-void performanceWindow() {
-    ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoBackground);
-
-    ImGui::Text("Delta time: ~%0.04f ", deltaTime);
-    float fps = 1.0f / deltaTime;
-    ImGui::Text("FPS: ~%03.00f", fps);
-
-    frameTimesAvg[frameTimeAvgIndex] = fps;
-    frameTimeAvgIndex = (frameTimeAvgIndex + 1) % frameTimesAvg.size();
-
-    if (frameTimeAvgIndex == 0) {
-        float sum = 0.0f;
-        for (const auto& time : frameTimesAvg) {
-            sum += time;
-        }
-        frameTimes[frameTimeIndex] = sum / frameTimesAvg.size();
-        frameTimeIndex = (frameTimeIndex + 1) % frameTimes.size();
-    }
-
-    ImGui::Separator();
-
-    float windowWidth = ImGui::GetWindowWidth();
-
-    ImGui::BeginChild("AvgFpsGraph", ImVec2(windowWidth / 2, -1));
-        ImGui::Text("Average FPS graph: ");
-        ImGui::PlotLines("##fps", frameTimes.data(), frameTimes.size(), frameTimeIndex, nullptr, 30.0f, 200.0f, ImVec2(windowWidth / 2, -1));
-    ImGui::EndChild();
-
-    ImGui::SameLine();
-
-    ImGui::BeginChild("PerfGraph", ImVec2(windowWidth / 2, -1));
-        // TODO: Extra performance metrics
-        ImGui::Text("Placehold graph: ");
-        float test = 0.5f;
-        ImGui::PlotHistogram("##graph", &test, 1, 0, nullptr, 0.0f, 1.0f, ImVec2(windowWidth / 2, -1));
-    ImGui::EndChild();
-
-    ImGui::End();
-}
-
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     const auto result = AppState->initApp("App", "1.0", "com.sdl3.app");
-    
+
     if (result != SDL_APP_CONTINUE)
         return result;
     
     updateWindowSize();
 
+    initCamera();
     initShaders();
     initMeshes();
     initEvents();
 
-    // Disable VSync
+    // Enable adaptive vsync
     SDL_GL_SetSwapInterval(-1);
 
     UIManager->initUI();
     UIManager->addUIFunction(performanceWindow);
     UIManager->addUIFunction([]() {
         console->drawConsole();
+        //ImGui::ShowMetricsWindow();
+        //ImGui::ShowDebugLogWindow();
     });
 
     return SDL_APP_CONTINUE;
@@ -249,7 +213,51 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    SDL_Log("Quitting with result: %d", result);
+    std::string message = "Application quit with result: " + std::to_string(result);
+    console->log(message);
 
     AppState.reset();
+}
+
+std::array<float, 100> frameTimes = {};
+std::array<float, 10> frameTimesAvg = {};
+int frameTimeAvgIndex = 0, frameTimeIndex = 0;
+void performanceWindow() {
+    ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoBackground);
+
+    ImGui::Text("Delta time: ~%0.04f ", deltaTime);
+    float fps = 1.0f / deltaTime;
+    ImGui::Text("FPS: ~%03.00f", fps);
+
+    frameTimesAvg[frameTimeAvgIndex] = fps;
+    frameTimeAvgIndex = (frameTimeAvgIndex + 1) % frameTimesAvg.size();
+
+    if (frameTimeAvgIndex == 0) {
+        float sum = 0.0f;
+        for (const auto& time : frameTimesAvg) {
+            sum += time;
+        }
+        frameTimes[frameTimeIndex] = sum / frameTimesAvg.size();
+        frameTimeIndex = (frameTimeIndex + 1) % frameTimes.size();
+    }
+
+    ImGui::Separator();
+
+    float windowWidth = ImGui::GetWindowWidth();
+
+    ImGui::BeginChild("AvgFpsGraph", ImVec2(windowWidth / 2, -1));
+        ImGui::Text("Average FPS graph: ");
+        ImGui::PlotLines("##fps", frameTimes.data(), frameTimes.size(), frameTimeIndex, nullptr, 30.0f, 200.0f, ImVec2(windowWidth / 2, -1));
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    ImGui::BeginChild("PerfGraph", ImVec2(windowWidth / 2, -1));
+        // TODO: Extra performance metrics
+        ImGui::Text("Placehold graph: ");
+        float test = 0.5f;
+        ImGui::PlotHistogram("##graph", &test, 1, 0, nullptr, 0.0f, 1.0f, ImVec2(windowWidth / 2, -1));
+    ImGui::EndChild();
+
+    ImGui::End();
 }

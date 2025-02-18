@@ -1,6 +1,7 @@
 #include "glad/glad.h"
 
 #include "mesh.hpp"
+#include "console.hpp"
 
 #include <assimp/scene.h>
 #include <assimp/cimport.h>
@@ -38,7 +39,7 @@ Mesh::~Mesh() {
     glDeleteBuffers(1, &indexBufferObjectHandle);
     glDeleteVertexArrays(1, &vertexArrayObjectHandle);
 
-    SDL_Log("Mesh destroyed");
+    console->log("Mesh destroyed.");
 }
 
 void Mesh::bind() const {
@@ -65,11 +66,13 @@ std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
     auto scene = aiImportFile(filename.c_str(), aiProcess_Triangulate);
 
     if (!scene) {
-        SDL_Log("Couldn't load mesh: %s", filename.c_str());
+        std::string message = "Couldn't load mesh: " + filename;
+        console->warn(message);
         return nullptr;
     }
 
-    SDL_Log("Loaded mesh: %s", filename.c_str());
+    std::string message = "Loaded mesh: " + filename;
+    console->log(message);
 
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
@@ -102,11 +105,8 @@ std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
         }
     }
 
+    // Oops, was leaking quite a bit of memory here
+    aiReleaseImport(scene);
+
     return std::make_unique<Mesh>(vertices, indices);
 }
-
-/*
-Mesh::~Mesh() {
-    aiReleaseImport(scene);
-}
-*/

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "console.hpp"
+
 #include <memory>
 #include <map>
 
@@ -25,7 +27,9 @@ class Imgui_UIManagerDeleter {
 public:
     void operator()(Imgui_UIManager* uiManager) {
         uiManager->cleanup();
-        SDL_Log("UIManager destroyed");
+        console->log("ImGui closed.");
+        console->log("UIManager destroyed.");
+        delete uiManager;
     }
 };
 

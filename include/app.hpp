@@ -1,5 +1,7 @@
 #pragma once
 
+#include "console.hpp"
+
 #include <SDL3/SDL.h>
 
 #include <memory>
@@ -21,17 +23,19 @@ class SDL_AppDeleter {
 public:
     void operator()(SDL_Window* window) {
         SDL_DestroyWindow(window);
-        SDL_Log("Window destroyed");
+        console->log("Window destroyed.");
     }
     void operator()(SDL_GLContextState* glContext) {
         SDL_GL_DestroyContext(glContext);
-        SDL_Log("GL context destroyed");
+        console->log("GL context destroyed.");
     }
     void operator()(SDL_AppState* appState) {
-        SDL_Log("Window released from GPU device");
+        console->log("Window released from GPU device.");
 
         appState->window.reset();
         appState->glContext.reset();
+
+        delete appState;
     }
 };
 extern SDL_AppDeleter AppDeleter;
