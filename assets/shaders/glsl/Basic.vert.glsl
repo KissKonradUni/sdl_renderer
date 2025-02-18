@@ -7,20 +7,22 @@ out vec3 fragmentNormal;
 out vec3 cameraPosition;
 out vec3 cameraDirection;
 
-uniform struct Camera {
-    mat4 view;
-    mat4 projection;
-} camera;
-uniform mat4 model;
+layout(std140, binding = 0) uniform Camera {
+    mat4 camView;
+    mat4 camProjection;
+    vec3 camPosition;
+    vec3 camDirection;
+};
+uniform mat4 modelMatrix;
 
 void main()
 {
     // Reverse order for column-major matrix
-    gl_Position = vec4(vertexPosition, 1.0) * model * camera.view * camera.projection;
+    gl_Position = vec4(vertexPosition, 1.0) * modelMatrix * camView * camProjection;
 
-    fragmentPosition = vec3(vec4(vertexPosition, 1.0) * model);
-    fragmentNormal = (vec4(vertexNormal, 1.0) * transpose(inverse(model))).xyz;
+    fragmentPosition = vec3(vec4(vertexPosition, 1.0) * modelMatrix);
+    fragmentNormal = (vec4(vertexNormal, 1.0) * transpose(inverse(modelMatrix))).xyz;
 
-    cameraPosition = (inverse(camera.view))[3].xyz;
-    cameraDirection = (inverse(camera.view) * vec4(0.0, 0.0, -1.0, 0.0)).xyz;
+    cameraPosition = camPosition;
+    cameraDirection = camDirection;
 }

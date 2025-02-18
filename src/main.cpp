@@ -25,9 +25,10 @@ static double lastTime = 0.0;
 static double nowTime = 0.0;
 static double deltaTime = 0.0;
 
-std::unique_ptr<Mesh> mesh      = nullptr;
-std::unique_ptr<Mesh> floorMesh = nullptr;
-std::unique_ptr<Shader> shader  = nullptr;
+std::unique_ptr<Mesh> mesh                  = nullptr;
+std::unique_ptr<Mesh> floorMesh             = nullptr;
+std::unique_ptr<Shader> shader              = nullptr;
+std::unique_ptr<UniformBuffer> cameraBuffer = nullptr;
 
 std::unique_ptr<Camera> camera  = nullptr;
 CameraInput cameraInput;
@@ -49,6 +50,8 @@ void initShaders() {
     glCullFace(GL_BACK);
 
     shader = Shader::load("assets/shaders/glsl/Basic.vert.glsl", "assets/shaders/glsl/Basic.frag.glsl");
+
+    cameraBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
 }
 
 void initMeshes() {
@@ -188,13 +191,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
     shader->bind();
+    cameraBuffer->updateData(camera->getShaderBufferPointer());
 
-    // TODO: Use UBO
-    std::string uniformName = "camera.projection";
-    shader->setUniform(uniformName, camera->getProjectionMatrix());
-    uniformName = "camera.view";
-    shader->setUniform(uniformName, camera->getViewMatrix());
-    uniformName = "model";
+    std::string uniformName = "modelMatrix";
     shader->setUniform(uniformName, mesh->getModelMatrix());
     mesh->draw();
 

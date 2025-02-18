@@ -19,16 +19,12 @@ Camera::Camera(CameraViewport viewport, float fieldOfView, vector4f position, ve
 
     m_cameras.push_back(this);
     if (!m_uiRegistered) {
-        UIManager->addUIFunction(CameraUIs);
+        UIManager->addUIFunction(cameraUIs);
         m_uiRegistered = true;
     }
 }
 
 Camera::Camera(CameraViewport viewport): Camera(viewport, 80.0f, vector4f::zero(), vector4f::zero()) {}
-
-Camera::~Camera() {
-
-}
 
 void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity) {
     if (input.lock)
@@ -48,26 +44,50 @@ void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity)
     input.rotation.pitch = 0.0f;
 }
 
-matrix4x4f Camera::getViewMatrix() {
+void Camera::updateViewMatrix() {
     this->m_translation = matrix4x4f::translation(this->m_position);
     this->m_lookAt      = matrix4x4f::lookAt(this->m_rotation);
-
-    return this->m_translation * this->m_lookAt;
+    this->m_view        = this->m_translation * this->m_lookAt;
 }
 
-matrix4x4f Camera::getProjectionMatrix(bool recalculate) {
-    if (recalculate) {
-        this->m_projection = matrix4x4f::perspective(
-            this->m_fieldOfView * (SDL_PI_F / 180.0f), 
-            this->m_viewport.w / this->m_viewport.h, 
-            0.5f,   
-            100.0f
-        );
-    }
+matrix4x4f Camera::getViewMatrix() {
+    updateViewMatrix();
+
+    return this->m_view;
+}
+
+void Camera::updateProjectionMatrix() {
+    this->m_projection = matrix4x4f::perspective(
+        this->m_fieldOfView * (SDL_PI_F / 180.0f), 
+        this->m_viewport.w / this->m_viewport.h, 
+        0.5f,   
+        100.0f
+    );
+}
+
+matrix4x4f Camera::getProjectionMatrix() {
+    updateProjectionMatrix();
+
     return this->m_projection;
 }
 
-void Camera::CameraUIs() {
+void Camera::updateForwardVector() {
+    m_forward = vector4f::front() * m_lookAt;
+}
+
+const vector4f& Camera::getForwardVector() {
+    updateForwardVector();
+    return m_forward;
+}
+
+CameraUniformBufferData* Camera::getShaderBufferPointer() {
+    updateViewMatrix();
+    updateForwardVector();
+
+    return reinterpret_cast<CameraUniformBufferData*>(&m_view);
+}
+
+void Camera::cameraUIs() {
     int i = 1;
     for (auto& camera : m_cameras) {
         std::string name = "Camera " + std::to_string(i++);
