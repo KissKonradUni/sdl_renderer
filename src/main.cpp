@@ -1,12 +1,13 @@
-#include "echo/ui.hpp"
 #include "app.hpp"
+#include "echo/ui.hpp"
+#include "floatmath.hpp"
 #include "codex/mesh.hpp"
 #include "echo/input.hpp"
 #include "hex/camera.hpp"
 #include "codex/shader.hpp"
 #include "codex/texture.hpp"
 #include "echo/console.hpp"
-#include "floatmath.hpp"
+#include "hex/framebuffer.hpp"
 
 #include "imgui.h"
 
@@ -28,15 +29,24 @@ static double deltaTime = 0.0;
 
 std::unique_ptr<Codex::Mesh> mesh                  = nullptr;
 std::unique_ptr<Codex::Mesh> floorMesh             = nullptr;
+
 std::unique_ptr<Codex::Shader> shader              = nullptr;
+
 std::unique_ptr<Codex::Texture> meshTexture        = nullptr;
+std::unique_ptr<Codex::Texture> meshNormal         = nullptr;
 std::unique_ptr<Codex::Texture> floorTexture       = nullptr;
+std::unique_ptr<Codex::Texture> floorNormal        = nullptr;
+
 std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
 
-std::unique_ptr<Hex::Camera> camera  = nullptr;
-Hex::CameraInput cameraInput;
+std::unique_ptr<Hex::Camera> camera = nullptr;
+Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
+
+struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
+std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
 
 void performanceWindow();
+void renderWindow();
 
 void initCamera() {
     camera = std::make_unique<Hex::Camera>(
@@ -58,33 +68,19 @@ void initShaders() {
 }
 
 void initTextures() {
-    meshTexture  = Codex::Texture::loadTextureFromFile("assets/images/red_texture.jpg");
-    floorTexture = Codex::Texture::loadTextureFromFile("assets/images/rock_texture.jpg");
+    meshTexture  = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_diff_1k.jpg");
+    meshNormal   = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_nor_gl_1k.jpg");
+    floorTexture = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_diff_4k.jpg");
+    floorNormal  = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_nor_gl_4k.png");
 }
 
 void initMeshes() {
-    mesh      = Codex::Mesh::loadMeshFromFile("assets/models/sphere.glb");
+    mesh      = Codex::Mesh::loadMeshFromFile("assets/models/cannon.glb");
     floorMesh = Codex::Mesh::loadMeshFromFile("assets/models/floor.glb");
 
+    mesh->position.y = -0.66f;
+    mesh->rotation.y = SDL_PI_F / 6.0f;
     floorMesh->position.y = -1.0f;
-}
-
-void updateWindowSize() {
-    if (!camera)
-        return;
-    
-    int w, h;
-    if (SDL_GetWindowSize(Cinder::App::getWindowPtr(), &w, &h)) {
-        float width  = static_cast<float>(w);
-        float height = static_cast<float>(h);
-        
-        camera->setViewport({
-            0.0f, 0.0f, width, height
-        });
-        camera->updateProjectionMatrix();
-        
-        glViewport(0, 0, width, height);
-    }
 }
 
 void initEvents() {    
@@ -135,10 +131,6 @@ void initEvents() {
 
         return SDL_APP_CONTINUE;
     });
-    Echo::Events::add(SDL_EVENT_WINDOW_RESIZED, [](SDL_Event* event) {
-        updateWindowSize();
-        return SDL_APP_CONTINUE;
-    });
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
@@ -146,8 +138,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     if (result != SDL_APP_CONTINUE)
         return result;
-    
-    updateWindowSize();
 
     initCamera();
     initShaders();
@@ -155,10 +145,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initMeshes();
     initEvents();
 
+    sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
+
     // Enable adaptive vsync
     SDL_GL_SetSwapInterval(-1);
 
     Echo::UI::instance().initUI();
+    Echo::UI::instance().addUIFunction(renderWindow);
     Echo::UI::instance().addUIFunction(performanceWindow);
     Echo::UI::instance().addUIFunction([]() {
         Echo::drawConsole();
@@ -190,10 +183,15 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // ======================
     // Update "game" logic
 
-    mesh->rotation.y += deltaTime * 0.314f;
+    //mesh->rotation.y += deltaTime * 0.314f;
 
     // ======================
     // Render
+
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    sceneFramebuffer->bind();
 
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
@@ -202,14 +200,20 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     cameraBuffer->updateData(camera->getShaderBufferPointer());
 
     shader->setUniform(std::string("modelMatrix"), mesh->getModelMatrix());
-    shader->setUniform(std::string("textureDiffuse"), 0);
     meshTexture->bind(0);
+    shader->setUniform(std::string("textureDiffuse"), 0);
+    meshNormal->bind(1);
+    shader->setUniform(std::string("textureNormal"), 1);
     mesh->draw();
 
     shader->setUniform(std::string("modelMatrix"), floorMesh->getModelMatrix());
-    shader->setUniform(std::string("textureDiffuse"), 0);
     floorTexture->bind(0);
+    shader->setUniform(std::string("textureDiffuse"), 0);
+    floorNormal->bind(1);
+    shader->setUniform(std::string("textureNormal"), 1);
     floorMesh->draw();
+
+    sceneFramebuffer->unbind();
 
     // Draw UI on top of everything
     Echo::UI::instance().render();
@@ -230,7 +234,7 @@ std::array<float, 256> frameTimes = {};
 std::array<float, 10> frameTimesAvg = {};
 int frameTimeAvgIndex = 0, frameTimeIndex = 0;
 void performanceWindow() {
-    ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_NoBackground);
+    ImGui::Begin("Performance", nullptr);
 
     ImGui::Text("Delta time: ~%0.04f ", deltaTime);
     float fps = 1.0f / deltaTime;
@@ -265,6 +269,36 @@ void performanceWindow() {
         float test = 0.5f;
         ImGui::PlotHistogram("##graph", &test, 1, 0, nullptr, 0.0f, 1.0f, ImVec2(windowWidth / 2, -1));
     ImGui::EndChild();
+
+    ImGui::End();
+}
+
+void renderWindow() {
+    ImGui::Begin("Render", nullptr);
+
+    int width  = ImGui::GetContentRegionAvail().x;
+    int height = ImGui::GetContentRegionAvail().y;
+
+    if (lastFrameWindowSize.x != width || lastFrameWindowSize.y != height) {
+        lastFrameWindowSize.x = width;
+        lastFrameWindowSize.y = height;
+        lastFrameWindowSize.changed = true;
+
+        camera->setViewport({
+            0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)
+        });
+        camera->updateProjectionMatrix();
+        glViewport(0, 0, width, height);
+
+        sceneFramebuffer->resize(width, height);
+    }
+
+    ImGui::Image(
+        sceneFramebuffer->getColorTarget().getHandle(),
+        ImVec2(width, height),
+        ImVec2(0, 1),
+        ImVec2(1, 0)
+    );
 
     ImGui::End();
 }

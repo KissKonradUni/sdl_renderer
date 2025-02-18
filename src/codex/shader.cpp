@@ -86,7 +86,7 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
 Shader::~Shader() {
     glDeleteProgram(m_programHandle);
 
-    Echo::log("Shader program destroyed");
+    Echo::log("Shader program destroyed.");
 }
 
 void Shader::bind() {

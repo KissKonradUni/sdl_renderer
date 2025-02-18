@@ -27,11 +27,13 @@ Mesh::Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices) {
 
     // TODO: Add layout from here
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_TRUE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
 
     glBindVertexArray(0);
 
@@ -97,6 +99,18 @@ std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
+                Echo::warn("Mesh has no normals!");
+            }
+
+            if (mesh->HasTangentsAndBitangents()) {
+                vertices.push_back(mesh->mTangents[j].x);
+                vertices.push_back(mesh->mTangents[j].y);
+                vertices.push_back(mesh->mTangents[j].z);
+            } else {
+                vertices.push_back(0.0f);
+                vertices.push_back(0.0f);
+                vertices.push_back(0.0f);
+                Echo::warn("Mesh has no tangents!");
             }
 
             if (mesh->HasTextureCoords(0)) {
@@ -105,6 +119,7 @@ std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
             } else {
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
+                Echo::warn("Mesh has no texture coordinates!");
             }
         }
 

@@ -93,7 +93,7 @@ void Camera::cameraUIs() {
     int i = 1;
     for (auto& camera : m_cameras) {
         std::string name = "Camera " + std::to_string(i++);
-        ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoBackground);
+        ImGui::Begin(name.c_str(), nullptr);
         
         ImGui::Text("Position: ");
         ImGui::SameLine();

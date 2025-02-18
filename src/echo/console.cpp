@@ -39,7 +39,7 @@ Console::~Console() {
 }
 
 void Console::drawConsole() {
-    ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoBackground);
+    ImGui::Begin("Console", nullptr);
 
     ImGui::BeginChild("ConsoleOptions", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, false);
         if (ImGui::Button("Clear")) {
