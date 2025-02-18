@@ -22,6 +22,7 @@ SDL_AppResult UI::initUI() {
     // Set DPI scale to match the window
     auto displays = SDL_GetDisplays(NULL);
     auto dpi      = SDL_GetDisplayContentScale(displays[0]);
+    SDL_free(displays);
     //io.FontGlobalScale = dpi;
 
     // Load custom font
