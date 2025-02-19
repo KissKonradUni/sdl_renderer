@@ -4,9 +4,10 @@
 #include "codex/mesh.hpp"
 #include "echo/input.hpp"
 #include "hex/camera.hpp"
+#include "codex/assets.hpp"
+#include "echo/console.hpp"
 #include "codex/shader.hpp"
 #include "codex/texture.hpp"
-#include "echo/console.hpp"
 #include "hex/framebuffer.hpp"
 
 #include "imgui.h"
@@ -139,6 +140,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     if (result != SDL_APP_CONTINUE)
         return result;
 
+    Codex::Assets::instance().mapAssetsFolder();
+    Codex::Assets::instance().printAssets();
+
     initCamera();
     initShaders();
     initTextures();
@@ -154,7 +158,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     Echo::UI::instance().addUIFunction(renderWindow);
     Echo::UI::instance().addUIFunction(performanceWindow);
     Echo::UI::instance().addUIFunction([]() {
-        Echo::drawConsole();
+        Echo::consoleWindow();
+        Codex::assetsWindow();
     });
 
     return SDL_APP_CONTINUE;

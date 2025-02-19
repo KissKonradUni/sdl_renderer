@@ -35,7 +35,7 @@ void Console::error(const std::string& message) {
 }
 
 Console::~Console() {
-    messages.clear();
+    m_messages.clear();
 }
 
 void Console::drawConsole() {
@@ -43,17 +43,17 @@ void Console::drawConsole() {
 
     ImGui::BeginChild("ConsoleOptions", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, false);
         if (ImGui::Button("Clear")) {
-            messages.clear();
+            m_messages.clear();
         }
         ImGui::SameLine();    
-        ImGui::Checkbox("Scroll to bottom", &scrollToBottom);
+        ImGui::Checkbox("Scroll to bottom", &m_scrollToBottom);
     ImGui::EndChild();
 
     ImGui::Separator();
 
-    ImGui::BeginChild("ConsoleMessages", ImVec2(0, -46), false, false);
+    ImGui::BeginChild("Consolem_messages", ImVec2(0, -46), false, false);
     ImVec4 color;
-    for (const auto& message : messages) {
+    for (const auto& message : m_messages) {
         switch (message.level) {
             case MSG_INFO:
                 color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -72,25 +72,25 @@ void Console::drawConsole() {
             message.timestamp.minutes,
             message.timestamp.seconds,
             message.timestamp.milliseconds,
-            this->prefix.c_str(),
+            this->m_prefix.c_str(),
             message.message.c_str()
         );
 
     }
 
-    if (scrollToBottom)
+    if (m_scrollToBottom)
         ImGui::SetScrollHereY(1.0f);
     ImGui::EndChild();
     
     ImGui::BeginChild("ConsoleInput", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, false);
         ImGui::PushItemWidth(-96);
-        auto result = ImGui::InputText("##ConsoleInput", inputBuffer.data(), inputBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+        auto result = ImGui::InputText("##ConsoleInput", m_inputBuffer.data(), m_inputBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::SameLine();
         if (ImGui::Button("Send", ImVec2(90, 0)) || result) {
-            log(std::string("Command issued: ") + inputBuffer.data());
-            if (std::string_view(inputBuffer.data()).starts_with("exit"))
+            log(std::string("Command issued: ") + m_inputBuffer.data());
+            if (std::string_view(m_inputBuffer.data()).starts_with("exit"))
                 SDL_PushEvent(new SDL_Event{SDL_EVENT_QUIT});
-            inputBuffer[0] = '\0';
+            m_inputBuffer[0] = '\0';
             ImGui::SetKeyboardFocusHere(-1);
         }
     ImGui::EndChild();
@@ -99,7 +99,7 @@ void Console::drawConsole() {
 }
 
 void Console::newMessage(const Message& message) {
-    messages.push_back(message);
+    m_messages.push_back(message);
 
     std::string color = ANSI_RESET;
     if (message.level == MSG_WARN) {
@@ -115,7 +115,7 @@ void Console::newMessage(const Message& message) {
         message.timestamp.minutes,
         message.timestamp.seconds,
         message.timestamp.milliseconds,
-        this->prefix.c_str(),
+        this->m_prefix.c_str(),
         message.message.c_str(),
         ANSI_RESET
     );
@@ -137,7 +137,7 @@ void error(const std::string& message) {
     Console::instance().error(message);
 }
  
-void drawConsole() {
+void consoleWindow() {
     Console::instance().drawConsole();
 }
 

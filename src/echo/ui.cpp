@@ -27,6 +27,7 @@ SDL_AppResult UI::initUI() {
 
     // Load custom font
     io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 16.0f * dpi);
+    m_smallFont = io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 10.0f * dpi);
 
     ImGui_ImplSDL3_InitForOpenGL(Cinder::App::getWindowPtr(), Cinder::App::getGLContextPtr());
     ImGui_ImplOpenGL3_Init();
@@ -47,7 +48,7 @@ void UI::newFrame() {
 
     ImGui::DockSpaceOverViewport(0, NULL, ImGuiDockNodeFlags_PassthruCentralNode);
 
-    for (auto& uiFunction : uiFunctions) {
+    for (auto& uiFunction : m_uiFunctions) {
         uiFunction.second();
     }
 }
@@ -58,19 +59,24 @@ void UI::render() {
 }
 
 void UI::cleanup() {
+    m_uiFunctions.clear();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 }
 
 unsigned int UI::addUIFunction(UIFunction uiFunction) {
-    int id = uiFunctions.size();
-    uiFunctions[id] = uiFunction;
+    int id = m_uiFunctions.size();
+    m_uiFunctions[id] = uiFunction;
     return id;
 }
 
 void UI::removeUIFunction(unsigned int id) {
-    uiFunctions.erase(id);
+    m_uiFunctions.erase(id);
+}
+
+void UI::pushSmallFont() {
+    ImGui::PushFont(m_smallFont);
 }
 
 UI::~UI() {

@@ -31,12 +31,12 @@ SDL_AppResult App::initWindow() {
     }
     Echo::log("Window created successfully.");
 
-    this->window.reset(rawWindow, cinderDeleter);
+    this->m_window.reset(rawWindow, cinderDeleter);
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult App::initGLContext() {
-    SDL_GLContextState* rawGlContext = SDL_GL_CreateContext(this->window.get());
+    SDL_GLContextState* rawGlContext = SDL_GL_CreateContext(this->m_window.get());
 
     if (rawGlContext == NULL) {
         Echo::error("Couldn't create GL context.");
@@ -53,7 +53,7 @@ SDL_AppResult App::initGLContext() {
     gladLoadGL();
     Echo::log("OpenGL 4.6 functions loaded successfully.");
 
-    this->glContext.reset(rawGlContext, cinderDeleter);
+    this->m_glContext.reset(rawGlContext, cinderDeleter);
     return SDL_APP_CONTINUE;
 }
 
@@ -77,18 +77,18 @@ SDL_AppResult App::initApp(std::string appName, std::string appVersion, std::str
 }
 
 SDL_Window* App::getWindowPtr() {
-    return App::instance().window.get();
+    return App::instance().m_window.get();
 }
 
 SDL_GLContextState* App::getGLContextPtr() {
-    return App::instance().glContext.get();
+    return App::instance().m_glContext.get();
 }
 
 App::~App() {
     Echo::log("Window released from GPU device.");
 
-    this->window.reset();
-    this->glContext.reset();
+    this->m_window.reset();
+    this->m_glContext.reset();
 }
 
 } // namespace Cinder

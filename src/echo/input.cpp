@@ -4,10 +4,10 @@
 namespace Echo {
 
 SDL_AppResult Events::handleEvent(SDL_Event* event) {
-    if (!eventHandlers.contains(event->type))
+    if (!m_eventHandlers.contains(event->type))
         return SDL_APP_CONTINUE;
 
-    auto handlers = eventHandlers[event->type];
+    auto handlers = m_eventHandlers[event->type];
     SDL_AppResult result = SDL_APP_CONTINUE;
     for (auto handler : handlers) {
         SDL_AppResult subResult = handler(event);
@@ -21,21 +21,21 @@ SDL_AppResult Events::handle(SDL_Event* event) {
 }
 
 void Events::addEvent(Uint32 eventType, EventHandlerFunction* handler) {
-    if (!eventHandlers.contains(eventType)) {
-        eventHandlers[eventType] = std::vector<EventHandlerFunction*>();
+    if (!m_eventHandlers.contains(eventType)) {
+        m_eventHandlers[eventType] = std::vector<EventHandlerFunction*>();
     }
 
-    eventHandlers[eventType].push_back(handler);
+    m_eventHandlers[eventType].push_back(handler);
 }
 void Events::add(Uint32 eventType, EventHandlerFunction* handler) {
     Events::instance().addEvent(eventType, handler);
 }
 
 void Events::cancelEvent(Uint32 eventType, EventHandlerFunction* handler) {
-    if (!eventHandlers.contains(eventType))
+    if (!m_eventHandlers.contains(eventType))
         return;
 
-    auto handlers = eventHandlers[eventType];
+    auto handlers = m_eventHandlers[eventType];
     for (auto it = handlers.begin(); it != handlers.end(); it++) {
         if (*it == handler) {
             handlers.erase(it);
@@ -48,7 +48,7 @@ void Events::cancel(Uint32 eventType, EventHandlerFunction* handler) {
 }
 
 Events::Events() {
-    eventHandlers = std::map<Uint32, std::vector<EventHandlerFunction*>>();
+    m_eventHandlers = std::map<Uint32, std::vector<EventHandlerFunction*>>();
 }
 
 Events::~Events() {

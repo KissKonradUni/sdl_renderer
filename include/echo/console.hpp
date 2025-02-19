@@ -36,6 +36,9 @@ public:
         return instance;
     }
 
+    Console(const Console&) = delete;
+    Console& operator=(const Console&) = delete;
+
     void log(const std::string& message);
     void warn(const std::string& message);
     void error(const std::string& message);
@@ -46,33 +49,21 @@ protected:
     Console() = default;
     ~Console();
 
-    std::string prefix = "Cinder";
-    std::list<Message> messages = {};
+    std::string m_prefix = "Cinder";
+    std::list<Message> m_messages = {};
     
-    bool scrollToBottom = true;
-    std::array<char, 256> inputBuffer = {};
+    bool m_scrollToBottom = true;
+    std::array<char, 256> m_inputBuffer = {};
 
     void newMessage(const Message& message);
 
     unsigned int getMessageWidth(const std::string& message);
 };
 
-class ModuleConsole {
-public:
-    ModuleConsole(const std::string& module);
-    ~ModuleConsole();
-
-    void log(const std::string& message);
-    void warn(const std::string& message);
-    void error(const std::string& message);
-protected:
-    std::string prefix;
-};
-
 void log(const std::string& message);
 void warn(const std::string& message);
 void error(const std::string& message);
 
-void drawConsole();
+void consoleWindow();
 
 }; // namespace Echo

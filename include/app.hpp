@@ -16,8 +16,11 @@ public:
         return instance;
     }
 
-    std::shared_ptr<SDL_Window>            window;
-    std::shared_ptr<SDL_GLContextState> glContext;
+    App(const App&) = delete;
+    App& operator=(const App&) = delete;
+
+    std::shared_ptr<SDL_Window>            m_window;
+    std::shared_ptr<SDL_GLContextState> m_glContext;
 
     SDL_AppResult initSDL();
     SDL_AppResult initWindow();
@@ -32,7 +35,8 @@ protected:
     ~App();
 };
 
-struct CinderDeleter {
+class CinderDeleter {
+public: 
     void operator()(SDL_Window* window) {
         SDL_DestroyWindow(window);
         Echo::log("Window destroyed.");

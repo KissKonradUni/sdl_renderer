@@ -16,6 +16,9 @@ public:
         return instance;
     }
 
+    Events(const Events&) = delete;
+    Events& operator=(const Events&) = delete;
+
     /**
      * @brief Handle an incoming SDL event
      * @note If the event type is not found in the eventHandlers map, the event is ignored
@@ -48,7 +51,7 @@ public:
     void cancelEvent(Uint32 eventType, EventHandlerFunction* handler);
     static void cancel(Uint32 eventType, EventHandlerFunction* handler);
 protected:
-    std::map<Uint32, std::vector<EventHandlerFunction*>> eventHandlers;
+    std::map<Uint32, std::vector<EventHandlerFunction*>> m_eventHandlers;
 
     Events();
     ~Events();
