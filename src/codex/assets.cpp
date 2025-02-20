@@ -1,7 +1,6 @@
 #include "codex/assets.hpp"
 
 #include "echo/console.hpp"
-#include "echo/ui.hpp"
 #include "imgui.h"
 
 #include <SDL3/SDL.h>
@@ -65,6 +64,18 @@ AssetNode::~AssetNode() {
     m_children.clear();
 }
 
+void AssetNode::sortChildren() {
+    std::sort(this->m_children.begin(), this->m_children.end(), [](const auto& a, const auto& b) {
+        if (a->getType() == ASSET_FOLDER && b->getType() != ASSET_FOLDER) {
+            return true;
+        } else if (a->getType() != ASSET_FOLDER && b->getType() == ASSET_FOLDER) {
+            return false;
+        } else {
+            return a->getName() < b->getName();
+        }
+    });
+}
+
 Assets::~Assets() {
     Echo::log("Asset manager shutting down.");
     m_root.reset();
@@ -81,6 +92,7 @@ void Assets::mapAssetsFolder() {
     m_root = std::make_shared<AssetNode>(ASSETS_ROOT, ASSET_FOLDER);
     m_currentNode = m_root;
     recursiveMap(m_root);
+    recursiveSort(m_root);
 
     Echo::log("Assets folder mapped.");
     if (std::filesystem::exists(ASSET_ICONS)) {
@@ -106,7 +118,11 @@ void Assets::recursivePrint(std::shared_ptr<AssetNode> node, int depth) {
         indent += "  ";
     }
 
-    Echo::log(indent + node->getName());
+    if (node->getType() == ASSET_FOLDER) {
+        Echo::log(indent + "\\ " + node->getName());
+    } else {
+        Echo::log(indent + "| " + node->getName());
+    }
 
     for (const auto& child : node->getChildren()) {
         recursivePrint(child, depth + 1);
@@ -132,6 +148,16 @@ void Assets::recursiveMap(std::shared_ptr<AssetNode> node) {
                 Echo::warn(std::string("Unknown asset type for file: ") + path);
             }
         }
+    }
+}
+
+void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
+    if (node->getType() == ASSET_FOLDER) {
+        node->sortChildren();
+    }
+
+    for (const auto& child : node->getChildren()) {
+        recursiveSort(child);
     }
 }
 
@@ -175,13 +201,10 @@ void Assets::assetsWindow() {
         if (ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             
-            m_selectedNode = child;
-            if (m_selectedNode) {
-                ImGui::Text("Asset info: ");
-                ImGui::Text("- Name: %s", m_selectedNode->getName().c_str());
-                ImGui::Text("- Type: %s", assetTypeToString(m_selectedNode->getType()).c_str());    
-            }
-
+            ImGui::Text("Asset info: ");
+            ImGui::Text("- Name: %s", child->getName().c_str());
+            ImGui::Text("- Type: %s", assetTypeToString(child->getType()).c_str());    
+            
             ImGui::EndTooltip();
         }
     }

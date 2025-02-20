@@ -12,7 +12,7 @@ public:
     Texture(unsigned char* data, int width, int height, int channels);
     ~Texture();
 
-    static std::unique_ptr<Texture> loadTextureFromFile(const std::string& filename);
+    static std::shared_ptr<Texture> loadTextureFromFile(const std::string& filename);
     
     void bind(int slot);
     void resize(int width, int height);

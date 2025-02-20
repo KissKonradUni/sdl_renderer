@@ -68,7 +68,7 @@ matrix4x4f Mesh::getModelMatrix() const {
     return scaleMatrix * rotationMatrixZ * rotationMatrixY * rotationMatrixX * translationMatrix;
 }
 
-std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
+std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
     auto scene = aiImportFile(filename.c_str(), aiProcess_Triangulate);
 
     if (!scene) {
@@ -135,7 +135,7 @@ std::unique_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
     // Oops, was leaking quite a bit of memory here
     aiReleaseImport(scene);
 
-    return std::make_unique<Mesh>(vertices, indices);
+    return std::make_shared<Mesh>(vertices, indices);
 }
 
 }; // namespace Codex

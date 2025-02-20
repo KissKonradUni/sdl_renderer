@@ -34,7 +34,7 @@ public:
     void setUniform(const std::string& name, const vector4f& value);
     void setUniform(const std::string& name, const matrix4x4f& value);
 
-    static std::unique_ptr<Shader> load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
+    static std::shared_ptr<Shader> load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
 protected:
     unsigned int m_programHandle;
     std::unordered_map<std::string, unsigned int> m_uniformLocations;

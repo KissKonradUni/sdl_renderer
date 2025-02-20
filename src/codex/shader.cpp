@@ -120,14 +120,14 @@ void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
     glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
 }
 
-std::unique_ptr<Shader> Shader::load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
+std::shared_ptr<Shader> Shader::load(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
     std::ifstream vertexShaderFile(vertexShaderFilename);
     std::string vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
 
     std::ifstream fragmentShaderFile(fragmentShaderFilename);
     std::string fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
 
-    return std::make_unique<Shader>(vertexShaderSource, fragmentShaderSource);
+    return std::make_shared<Shader>(vertexShaderSource, fragmentShaderSource);
 }
 
 unsigned int Shader::getUniformLocation(const std::string& name) {

@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "texture.hpp"
+#include "scene.hpp"
 
 namespace Codex {
 
@@ -34,6 +35,8 @@ public:
 
     void setParent(std::shared_ptr<AssetNode> parent) { m_parent = parent; }
     std::shared_ptr<AssetNode> getParent() { return m_parent; }
+
+    void sortChildren();
 protected:
     std::string m_name;
     std::string m_path;
@@ -59,19 +62,25 @@ public:
     void mapAssetsFolder();
     void printAssets();
 
+    Scene& getCurrentScene() { return m_scene; }
+
     void assetsWindow();
 protected:
     Assets() = default;
     ~Assets();
 
-    std::unique_ptr<Texture> m_icons;
+    // TODO: Make it be able to hold multiple scenes, and make them dynamically loadable
+    Scene m_scene;
+
+    std::shared_ptr<Texture> m_icons;
 
     std::shared_ptr<AssetNode> m_root;
     std::shared_ptr<AssetNode> m_currentNode;
     std::shared_ptr<AssetNode> m_selectedNode;
 
-    void recursiveMap(std::shared_ptr<AssetNode> node);
     void recursivePrint(std::shared_ptr<AssetNode> node, int depth);
+    void recursiveMap(std::shared_ptr<AssetNode> node);
+    void recursiveSort(std::shared_ptr<AssetNode> node);
 };
 
 void assetsWindow();

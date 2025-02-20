@@ -22,7 +22,7 @@ public:
     void draw() const;
     matrix4x4f getModelMatrix() const;
 
-    static std::unique_ptr<Mesh> loadMeshFromFile(const std::string& filename);
+    static std::shared_ptr<Mesh> loadMeshFromFile(const std::string& filename);
 protected:
     unsigned int vertexBufferObjectHandle;
     unsigned int indexBufferObjectHandle;

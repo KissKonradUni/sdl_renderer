@@ -15,7 +15,7 @@ Texture::~Texture() {
     glDeleteTextures(1, &m_textureHandle);
 }
 
-std::unique_ptr<Texture> Texture::loadTextureFromFile(const std::string& filename) {
+std::shared_ptr<Texture> Texture::loadTextureFromFile(const std::string& filename) {
     int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
     auto data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
@@ -27,7 +27,7 @@ std::unique_ptr<Texture> Texture::loadTextureFromFile(const std::string& filenam
     Echo::log(std::string("Loaded texture from file: ") + filename);
 
     std::vector<unsigned char> textureData(data, data + width * height * 4);
-    auto result = std::make_unique<Texture>(textureData, width, height, 4);
+    auto result = std::make_shared<Texture>(textureData, width, height, 4);
     stbi_image_free(data);
 
     return result;

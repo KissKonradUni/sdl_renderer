@@ -28,15 +28,18 @@ static double lastTime  = 0.0;
 static double nowTime   = 0.0;
 static double deltaTime = 0.0;
 
-std::unique_ptr<Codex::Mesh> mesh                  = nullptr;
-std::unique_ptr<Codex::Mesh> floorMesh             = nullptr;
+std::shared_ptr<Codex::Mesh> mesh                  = nullptr;
+std::shared_ptr<Codex::Mesh> floorMesh             = nullptr;
 
-std::unique_ptr<Codex::Shader> shader              = nullptr;
+std::shared_ptr<Codex::Shader> shader              = nullptr;
 
-std::unique_ptr<Codex::Texture> meshTexture        = nullptr;
-std::unique_ptr<Codex::Texture> meshNormal         = nullptr;
-std::unique_ptr<Codex::Texture> floorTexture       = nullptr;
-std::unique_ptr<Codex::Texture> floorNormal        = nullptr;
+std::shared_ptr<Codex::Texture> meshTexture        = nullptr;
+std::shared_ptr<Codex::Texture> meshNormal         = nullptr;
+std::shared_ptr<Codex::Texture> meshCombined       = nullptr;
+
+std::shared_ptr<Codex::Texture> floorTexture       = nullptr;
+std::shared_ptr<Codex::Texture> floorNormal        = nullptr;
+std::shared_ptr<Codex::Texture> floorCombined      = nullptr;
 
 std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
 
@@ -45,6 +48,9 @@ Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
 std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
+
+std::shared_ptr<Codex::Drawable> model = nullptr;
+std::shared_ptr<Codex::Drawable> floor = nullptr;
 
 void performanceWindow();
 void renderWindow();
@@ -71,8 +77,11 @@ void initShaders() {
 void initTextures() {
     meshTexture  = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_diff_1k.jpg");
     meshNormal   = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_nor_gl_1k.jpg");
+    meshCombined = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_arm_1k.jpg");
+
     floorTexture = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_diff_4k.jpg");
     floorNormal  = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_nor_gl_4k.png");
+    floorCombined = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_disp_4k.png");
 }
 
 void initMeshes() {
@@ -82,6 +91,26 @@ void initMeshes() {
     mesh->position.y = -0.66f;
     mesh->rotation.y = SDL_PI_F / 6.0f;
     floorMesh->position.y = -1.0f;
+
+    std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>> textures;
+    textures[Codex::TextureType::DIFFUSE] = meshTexture;
+    textures[Codex::TextureType::NORMAL]  = meshNormal;
+
+    model = std::make_shared<Codex::Drawable>(mesh, shader, textures);
+
+    Codex::Assets::instance().getCurrentScene().addDrawable(
+        model
+    );
+
+    std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>> floorTextures;
+    floorTextures[Codex::TextureType::DIFFUSE] = floorTexture;
+    floorTextures[Codex::TextureType::NORMAL]  = floorNormal;
+
+    floor = std::make_shared<Codex::Drawable>(floorMesh, shader, floorTextures);
+
+    Codex::Assets::instance().getCurrentScene().addDrawable(
+        floor
+    );
 }
 
 void initEvents() {    
@@ -188,7 +217,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // ======================
     // Update "game" logic
 
-    //mesh->rotation.y += deltaTime * 0.314f;
+    mesh->rotation.y += deltaTime * 0.314f;
 
     // ======================
     // Render
@@ -198,25 +227,11 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     sceneFramebuffer->bind();
 
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
-    shader->bind();
-    cameraBuffer->updateData(camera->getShaderBufferPointer());
-
-    shader->setUniform(std::string("modelMatrix"), mesh->getModelMatrix());
-    meshTexture->bind(0);
-    shader->setUniform(std::string("textureDiffuse"), 0);
-    meshNormal->bind(1);
-    shader->setUniform(std::string("textureNormal"), 1);
-    mesh->draw();
-
-    shader->setUniform(std::string("modelMatrix"), floorMesh->getModelMatrix());
-    floorTexture->bind(0);
-    shader->setUniform(std::string("textureDiffuse"), 0);
-    floorNormal->bind(1);
-    shader->setUniform(std::string("textureNormal"), 1);
-    floorMesh->draw();
+        cameraBuffer->updateData(camera->getShaderBufferPointer());
+        Codex::Assets::instance().getCurrentScene().draw();
 
     sceneFramebuffer->unbind();
 
