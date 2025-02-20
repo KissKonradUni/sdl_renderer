@@ -76,6 +76,64 @@ void AssetNode::sortChildren() {
     });
 }
 
+LazyLoaderBase::LazyLoaderBase() : m_state(UNINITIALIZED) {}
+void LazyLoaderBase::update() {}
+
+std::list<LazyLoaderBase*> m_loaders;
+
+template <typename T>
+LazyLoader<T>::LazyLoader(
+    std::function<std::shared_ptr<T>(const std::string&)> loader,
+    std::function<void(std::shared_ptr<T>&)> callback
+) : m_loader(loader), m_callback(callback) {
+    Echo::log("New lazy loader thread created.");
+
+    m_loaders.push_back(this);
+}
+
+template <typename T>
+LazyLoader<T>::~LazyLoader() {
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+
+    m_loaders.erase(std::remove(m_loaders.begin(), m_loaders.end(), this), m_loaders.end());
+
+    Echo::log("Lazy loader finished.");
+}
+
+template <typename T>
+void LazyLoader<T>::load(const std::string& path) {
+    m_path = path;
+    m_state = LOADING;
+    m_thread = std::thread([this]() {
+        while (m_state != STOPPED) {
+            if (m_state == LOADING) {
+                m_data = m_loader(m_path);
+                m_state = DONE;
+            }
+        }
+    });
+}
+
+template <typename T>
+void LazyLoader<T>::update() {
+    if (m_state == DONE) {
+        if (m_thread.joinable()) {
+            m_state = STOPPED;
+            m_thread.join();
+            m_callback(m_data);
+            m_state = UNINITIALIZED;
+        }
+    }
+}
+
+void updateAllLoaders() {
+    for (const auto& loader : m_loaders) {
+        loader->update();
+    }
+}
+
 Assets::~Assets() {
     Echo::log("Asset manager shutting down.");
     m_root.reset();
@@ -161,7 +219,13 @@ void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
     }
 }
 
+// TODO: Remove this
+std::shared_ptr<Texture> lastLoadedTexture = nullptr;
+std::shared_ptr<LazyLoader<TextureData>> textureLoader = nullptr;
+
 void Assets::assetsWindow() {
+    updateAllLoaders();
+
     ImGui::Begin("Assets", nullptr);
 
     if (!m_currentNode) {
@@ -195,6 +259,15 @@ void Assets::assetsWindow() {
                 m_selectedNode = nullptr;
             } else {
                 m_selectedNode = child;
+
+                // Test, TODO: Expand upon
+                if (child->getType() == ASSET_TEXTURE) {
+                    textureLoader = std::make_shared<LazyLoader<TextureData>>(Texture::loadTextureDataFromFile, [](std::shared_ptr<TextureData>& texture) {
+                        Echo::log("Texture loaded.");
+                        lastLoadedTexture = std::make_shared<Texture>(texture->data, texture->width, texture->height, texture->channels);
+                    });
+                    textureLoader->load(child->getPath());
+                }
             }
         }
 
@@ -204,7 +277,7 @@ void Assets::assetsWindow() {
             ImGui::Text("Asset info: ");
             ImGui::Text("- Name: %s", child->getName().c_str());
             ImGui::Text("- Type: %s", assetTypeToString(child->getType()).c_str());    
-            
+
             ImGui::EndTooltip();
         }
     }
@@ -212,6 +285,40 @@ void Assets::assetsWindow() {
     ImGui::EndChild();
 
     baseSize = ImGui::GetContentRegionAvail();
+
+    ImGui::End();
+}
+
+void Assets::previewWindow() {
+    ImGui::Begin("Preview", nullptr);
+
+    if (textureLoader)
+        switch (textureLoader->getState()) {
+            case LOADING:
+                ImGui::Text("Loading texture...");
+                break;
+            default:
+                ImGui::Text("%dx%d:%d", lastLoadedTexture->getWidth(), lastLoadedTexture->getHeight(), lastLoadedTexture->getChannels());
+                break;
+        }
+
+    auto area = ImGui::GetContentRegionAvail();
+
+    if (lastLoadedTexture) {
+        float imageAspect = (float)lastLoadedTexture->getWidth() / (float)lastLoadedTexture->getHeight();
+        float windowAspect = area.x / area.y;
+        float width, height;
+        
+        if (imageAspect > windowAspect) {
+            width = area.x;
+            height = area.x / imageAspect;
+        } else {
+            width = area.y * imageAspect;
+            height = area.y;
+        }
+
+        ImGui::Image(lastLoadedTexture->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
+    }
 
     ImGui::End();
 }

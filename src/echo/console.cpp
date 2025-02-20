@@ -1,5 +1,6 @@
 #include "echo/console.hpp"
 
+#include <memory>
 #include <imgui.h>
 #include <SDL3/SDL.h>
 
@@ -88,8 +89,10 @@ void Console::drawConsole() {
         ImGui::SameLine();
         if (ImGui::Button("Send", ImVec2(90, 0)) || result) {
             log(std::string("Command issued: ") + m_inputBuffer.data());
-            if (std::string_view(m_inputBuffer.data()).starts_with("exit"))
-                SDL_PushEvent(new SDL_Event{SDL_EVENT_QUIT});
+            if (std::string_view(m_inputBuffer.data()).starts_with("exit")) {
+                std::unique_ptr<SDL_Event> event = std::make_unique<SDL_Event>(SDL_EVENT_QUIT);
+                SDL_PushEvent(event.get());
+            }
             m_inputBuffer[0] = '\0';
             ImGui::SetKeyboardFocusHere(-1);
         }

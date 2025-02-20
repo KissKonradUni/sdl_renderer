@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <array>
+#include <stdlib.h>
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL_main.h>
@@ -186,9 +187,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     Echo::UI::instance().initUI();
     Echo::UI::instance().addUIFunction(renderWindow);
     Echo::UI::instance().addUIFunction(performanceWindow);
+    Echo::UI::instance().addUIFunction(Echo::consoleWindow);
     Echo::UI::instance().addUIFunction([]() {
-        Echo::consoleWindow();
-        Codex::assetsWindow();
+        Codex::Assets::instance().assetsWindow();
+        Codex::Assets::instance().previewWindow();
     });
 
     return SDL_APP_CONTINUE;

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <functional>
 #include <string>
+#include <thread>
 #include <vector>
 #include <memory>
 
@@ -49,6 +51,41 @@ protected:
 #define ASSETS_ROOT "./assets"
 #define ASSET_ICONS "./assets/cinder/icons.png"
 
+enum LazyLoaderState : uint8_t {
+    UNINITIALIZED,
+    LOADING,
+    DONE,
+    STOPPED
+};
+
+class LazyLoaderBase {
+public:
+    LazyLoaderBase();
+    virtual ~LazyLoaderBase() = default;
+
+    virtual void update();
+    LazyLoaderState getState() const { return m_state; }
+protected:
+    LazyLoaderState m_state;
+};
+
+template <typename T>
+class LazyLoader : public LazyLoaderBase {
+public:
+    LazyLoader<T>(std::function<std::shared_ptr<T>(const std::string&)> loader, std::function<void(std::shared_ptr<T>&)> callback);
+    ~LazyLoader<T>();
+
+    void load(const std::string& path);
+    void update() override;
+protected:
+    std::string m_path;
+    std::function<std::shared_ptr<T>(const std::string&)> m_loader;
+    std::function<void(std::shared_ptr<T>&)> m_callback;
+    std::shared_ptr<T> m_data;
+
+    std::thread m_thread;
+};
+
 class Assets {
 public:
     static Assets& instance() {
@@ -65,6 +102,7 @@ public:
     Scene& getCurrentScene() { return m_scene; }
 
     void assetsWindow();
+    void previewWindow();
 protected:
     Assets() = default;
     ~Assets();

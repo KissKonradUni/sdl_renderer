@@ -1,21 +1,27 @@
 #include "codex/texture.hpp"
 #include "echo/console.hpp"
 
+#include "lib/glad/glad.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "lib/stb/stb_image.h"
 
-#include "lib/glad/glad.h"
-
 namespace Codex {
+
+TextureData::~TextureData() { 
+    stbi_image_free(data); 
+}
 
 Texture::Texture(std::vector<unsigned char>& data, int width, int height, int channels) 
     : Texture(data.data(), width, height, channels) {}
 
 Texture::~Texture() {
     glDeleteTextures(1, &m_textureHandle);
+
+    Echo::log("Texture destroyed.");
 }
 
-std::shared_ptr<Texture> Texture::loadTextureFromFile(const std::string& filename) {
+std::shared_ptr<TextureData> Texture::loadTextureDataFromFile(const std::string& filename) {
     int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
     auto data = stbi_load(filename.c_str(), &width, &height, &channels, 4);
@@ -26,10 +32,15 @@ std::shared_ptr<Texture> Texture::loadTextureFromFile(const std::string& filenam
     }
     Echo::log(std::string("Loaded texture from file: ") + filename);
 
-    std::vector<unsigned char> textureData(data, data + width * height * 4);
-    auto result = std::make_shared<Texture>(textureData, width, height, 4);
-    stbi_image_free(data);
+    return std::make_shared<TextureData>(data, width, height, 4);
+}
 
+std::shared_ptr<Texture> Texture::loadTextureFromFile(const std::string& filename) {
+    auto data = loadTextureDataFromFile(filename);
+    if (!data) {
+        return nullptr;
+    }
+    auto result = std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
     return result;
 }
 

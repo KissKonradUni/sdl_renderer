@@ -35,12 +35,21 @@ IMGUI_FLAGS = -I$(IMGUI_PATH) -I$(IMGUI_PATH)/backends
 CXX = clang++
 
 # Compiler and flags
-# TODO: Remove sanitizers for release builds
-# TODO: Add O3 optimization for release builds
-SANITIZERS = -O1 # -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
+BUILD_MODE ?= debug
+SANITIZE ?= address
 
-CXXFLAGS = -Wall -std=c++23 -g -msse4.2 -mavx $(SANITIZERS) $(SDLFLAGS) $(ASSIMPFLAGS) $(IMGUI_FLAGS)
-LDFLAGS = $(SANITIZERS) $(OPENGL) $(SDLLIBS) $(ASSIMPLIBS) $(GLAD)
+DEBUG_FLAGS = -O0 -g -fsanitize=$(SANITIZE) -fno-omit-frame-pointer -fno-optimize-sibling-calls \
+			  -Wall -Wextra
+RELEASE_FLAGS = -O3 -DNDEBUG -march=native -flto -fomit-frame-pointer
+
+ifeq ($(BUILD_MODE),debug)
+	BUILD_FLAGS = $(DEBUG_FLAGS)
+else
+	BUILD_FLAGS = $(RELEASE_FLAGS)
+endif
+
+CXXFLAGS = -Wall -std=c++23 -msse4.2 -mavx $(BUILD_FLAGS) $(SDLFLAGS) $(ASSIMPFLAGS) $(IMGUI_FLAGS)
+LDFLAGS = $(BUILD_FLAGS) $(OPENGL) $(SDLLIBS) $(ASSIMPLIBS) $(GLAD)
 
 # Project structure
 SRC_DIR = src
@@ -58,8 +67,8 @@ MAKEFLAGS += -j12
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
+	@echo "[MAKEFILE] Building target in $(BUILD_MODE) mode..."
 	@$(call MKDIR,$(BUILD_DIR))
-	@echo "[MAKEFILE] Building target..."
 	@$(CXX) -o $@ $^ $(LDFLAGS) -g
 	@echo "[MAKEFILE] Build complete."
 ifdef COPY_DLLS
