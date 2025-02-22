@@ -3,6 +3,7 @@ ifeq ($(OS),Windows_NT)
 	OPENGL = -lopengl32
 # Copy from ..\win_dlls to bin using unix commands
 	COPY_DLLS = cp -r ./win_dlls/* bin/
+	SKIP_ASAN = 1
 else
 	EXT = out
 	OPENGL = -lGL
@@ -37,9 +38,14 @@ CXX = clang++
 # Compiler and flags
 BUILD_MODE ?= debug
 SANITIZE ?= address
+ifeq ($(SKIP_ASAN),1)
+	DEBUG_FLAGS = -O0 -g -fno-omit-frame-pointer -fno-optimize-sibling-calls \
+			  	  -Wall -Wextra
+else
+	DEBUG_FLAGS = -O0 -g -fsanitize=$(SANITIZE) -fno-omit-frame-pointer -fno-optimize-sibling-calls \
+			  	  -Wall -Wextra
+endif
 
-DEBUG_FLAGS = -O0 -g -fsanitize=$(SANITIZE) -fno-omit-frame-pointer -fno-optimize-sibling-calls \
-			  -Wall -Wextra
 RELEASE_FLAGS = -O3 -DNDEBUG -march=native -flto -fomit-frame-pointer
 
 ifeq ($(BUILD_MODE),debug)
