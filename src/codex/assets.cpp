@@ -78,10 +78,10 @@ void AssetNode::sortChildren() {
 
 // TODO: Move this to a prettier place
 std::shared_ptr<Texture> lastLoadedTexture = nullptr;
-Offloader<TextureData> textureLoader([](std::shared_ptr<TextureData> data) {
-    lastLoadedTexture = std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
-    Echo::log("Loaded texture.");
-});
+//Offloader<TextureData> textureLoader([](std::shared_ptr<TextureData> data) {
+//    lastLoadedTexture = std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
+//    Echo::log("Loaded texture.");
+//});
 
 template<typename T>
 Offloader<T>::Offloader(std::function<void(std::shared_ptr<T>)> callback) {
@@ -110,6 +110,11 @@ void Offloader<T>::update() {
     if (m_resultBuffer) {
         m_callback(m_resultBuffer);
         m_resultBuffer = nullptr;
+        
+        if (!m_threadQueue.empty()) {
+            m_threadFunc = m_threadQueue.front();
+            m_threadQueue.pop_front();
+        }
     }
 }
 
@@ -117,7 +122,127 @@ template<typename T>
 void Offloader<T>::run(std::function<std::shared_ptr<T>()> threadFunc) {
     if (!m_threadFunc) {
         m_threadFunc = threadFunc;
+    } else {
+        m_threadQueue.push_back(threadFunc);
     }
+}
+
+template<typename T, typename U>
+AssetLibrary<T, U>::~AssetLibrary<T, U>() {
+    m_assets.clear();
+    m_loading.clear();
+}
+
+template<typename T, typename U>
+AssetLibrary<T, U>::AssetPtr AssetLibrary<T, U>::get(const std::string& path) {
+    auto it = m_assets.find(path);
+    if (it != m_assets.end()) {
+        return it->second;
+    }
+    
+    // Check if already loading
+    auto futureIt = m_loading.find(path);
+    if (futureIt != m_loading.end()) {
+        return futureIt->second.get(); // Will block if not ready
+    }
+
+    // Start loading if we have a loader
+    if (m_loader) {
+        auto future = std::async(std::launch::async, m_loader, path);
+        m_loading[path] = std::move(future);
+        auto asset = m_loading[path].get();
+        m_assets[path] = m_processor(asset);
+        m_loading.erase(path);
+        return asset;
+    }
+
+    return nullptr;
+}
+
+template<typename T, typename U>
+AssetLibrary<T, U>::AssetPtr AssetLibrary<T, U>::tryGet(const std::string& path) {
+    auto it = m_assets.find(path);
+    if (it != m_assets.end()) {
+        return it->second;
+    }
+    
+    // Start loading if not already loading
+    if (!isLoading(path) && m_loader) {
+        auto future = std::async(std::launch::async, m_loader, path);
+        m_loading[path] = std::move(future);
+    }
+    
+    return nullptr;
+}
+
+template<typename T, typename U>
+void AssetLibrary<T, U>::getAsync(const std::string& path, LoadCallback callback) {
+    auto asset = tryGet(path);
+    if (asset) {
+        callback(asset);
+        return;
+    }
+
+    m_callbacks[path].push_back(callback);
+}
+
+template<typename T, typename U>
+void AssetLibrary<T, U>::update() {
+    for (auto it = m_loading.begin(); it != m_loading.end();) {
+        auto& [path, future] = *it;
+        
+        if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            auto asset = m_processor(future.get());
+            m_assets[path] = asset;
+            
+            // Execute callbacks
+            auto callbackIt = m_callbacks.find(path);
+            if (callbackIt != m_callbacks.end()) {
+                for (auto& callback : callbackIt->second) {
+                    callback(asset);
+                }
+                m_callbacks.erase(callbackIt);
+            }
+            
+            it = m_loading.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+template<typename T, typename U>
+void AssetLibrary<T, U>::setFunctions(ProcessFunc processor, LoaderFunc loader) {
+    m_processor = processor;
+    m_loader = loader;
+}
+
+template<typename T, typename U>
+bool AssetLibrary<T, U>::isLoading(const std::string& path) const {
+    return m_loading.find(path) != m_loading.end();
+}
+
+template<typename T, typename U>
+void AssetLibrary<T, U>::preload(const std::string& path) const {
+    if (!isLoaded(path) && !isLoading(path) && m_loader) {
+        m_loading[path] = std::async(std::launch::async, m_loader, path);
+    }
+}
+
+template<typename T, typename U>
+bool AssetLibrary<T,U>::isLoaded(const std::string& path) const {
+    return m_assets.find(path) != m_assets.end();
+}
+
+Assets::Assets() {
+    Echo::log("Asset manager starting up.");
+    mapAssetsFolder();
+
+    m_textureLibrary.setFunctions([](std::shared_ptr<TextureData> data) {
+        return std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
+    }, [](const std::string& path) {
+        return Texture::loadTextureDataFromFile(path);
+    });
 }
 
 Assets::~Assets() {
@@ -209,7 +334,8 @@ void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
 void Assets::assetsWindow() {
     ImGui::Begin("Assets", nullptr);
 
-    textureLoader.update();
+    //textureLoader.update();
+    m_textureLibrary.update();
 
     if (!m_currentNode) {
         ImGui::Text("No assets have been mapped.");
@@ -244,9 +370,12 @@ void Assets::assetsWindow() {
                 m_selectedNode = child;
 
                 // Test, TODO: Expand upon
-                if (child->getType() == ASSET_TEXTURE && !textureLoader.isBusy()) {
-                    textureLoader.run([child]() {
-                        return Texture::loadTextureDataFromFile(child->getPath());
+                if (child->getType() == ASSET_TEXTURE) {
+                    //textureLoader.run([child]() {
+                    //    return Texture::loadTextureDataFromFile(child->getPath());
+                    //});
+                    m_textureLibrary.getAsync(child->getPath(), [](std::shared_ptr<Texture> texture) {
+                        lastLoadedTexture = texture;
                     });
                 }
             }

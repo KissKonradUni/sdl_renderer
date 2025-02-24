@@ -40,10 +40,10 @@ BUILD_MODE ?= debug
 SANITIZE ?= address
 ifeq ($(SKIP_ASAN),1)
 	DEBUG_FLAGS = -O0 -g -fno-omit-frame-pointer -fno-optimize-sibling-calls \
-			  	  -Wall -Wextra
+			  	  -Wall 
 else
 	DEBUG_FLAGS = -O0 -g -fsanitize=$(SANITIZE) -fno-omit-frame-pointer -fno-optimize-sibling-calls \
-			  	  -Wall -Wextra
+			  	  -Wall 
 endif
 
 RELEASE_FLAGS = -O3 -DNDEBUG -march=native -flto -fomit-frame-pointer
