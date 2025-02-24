@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include <memory>
+#include <list>
 
 #include "texture.hpp"
 #include "scene.hpp"
@@ -51,39 +52,23 @@ protected:
 #define ASSETS_ROOT "./assets"
 #define ASSET_ICONS "./assets/cinder/icons.png"
 
-enum LazyLoaderState : uint8_t {
-    UNINITIALIZED,
-    LOADING,
-    DONE,
-    STOPPED
-};
-
-class LazyLoaderBase {
-public:
-    LazyLoaderBase();
-    virtual ~LazyLoaderBase() = default;
-
-    virtual void update();
-    LazyLoaderState getState() const { return m_state; }
-protected:
-    LazyLoaderState m_state;
-};
-
 template <typename T>
-class LazyLoader : public LazyLoaderBase {
+class Offloader {
 public:
-    LazyLoader<T>(std::function<std::shared_ptr<T>(const std::string&)> loader, std::function<void(std::shared_ptr<T>&)> callback);
-    ~LazyLoader<T>();
+    Offloader(std::function<void(std::shared_ptr<T>)> callback);
+    ~Offloader();
 
-    void load(const std::string& path);
-    void update() override;
+    void update();
+    bool isBusy() { return m_threadFunc != nullptr; }
+    void run(std::function<std::shared_ptr<T>()> threadFunc);
 protected:
-    std::string m_path;
-    std::function<std::shared_ptr<T>(const std::string&)> m_loader;
-    std::function<void(std::shared_ptr<T>&)> m_callback;
-    std::shared_ptr<T> m_data;
+    std::function<void(std::shared_ptr<T>)> m_callback = nullptr;
 
+    std::function<std::shared_ptr<T>()> m_threadFunc = nullptr;
+    std::atomic<bool> m_threadRunning = true;
     std::thread m_thread;
+
+    std::shared_ptr<T> m_resultBuffer = nullptr;
 };
 
 class Assets {
@@ -120,7 +105,5 @@ protected:
     void recursiveMap(std::shared_ptr<AssetNode> node);
     void recursiveSort(std::shared_ptr<AssetNode> node);
 };
-
-void assetsWindow();
 
 }; // namespace Codex

@@ -76,61 +76,47 @@ void AssetNode::sortChildren() {
     });
 }
 
-LazyLoaderBase::LazyLoaderBase() : m_state(UNINITIALIZED) {}
-void LazyLoaderBase::update() {}
+// TODO: Move this to a prettier place
+std::shared_ptr<Texture> lastLoadedTexture = nullptr;
+Offloader<TextureData> textureLoader([](std::shared_ptr<TextureData> data) {
+    lastLoadedTexture = std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
+    Echo::log("Loaded texture.");
+});
 
-std::list<LazyLoaderBase*> m_loaders;
-
-template <typename T>
-LazyLoader<T>::LazyLoader(
-    std::function<std::shared_ptr<T>(const std::string&)> loader,
-    std::function<void(std::shared_ptr<T>&)> callback
-) : m_loader(loader), m_callback(callback) {
-    Echo::log("New lazy loader thread created.");
-
-    m_loaders.push_back(this);
-}
-
-template <typename T>
-LazyLoader<T>::~LazyLoader() {
-    if (m_thread.joinable()) {
-        m_thread.join();
-    }
-
-    m_loaders.erase(std::remove(m_loaders.begin(), m_loaders.end(), this), m_loaders.end());
-
-    Echo::log("Lazy loader finished.");
-}
-
-template <typename T>
-void LazyLoader<T>::load(const std::string& path) {
-    m_path = path;
-    m_state = LOADING;
+template<typename T>
+Offloader<T>::Offloader(std::function<void(std::shared_ptr<T>)> callback) {
+    m_callback = callback;
     m_thread = std::thread([this]() {
-        while (m_state != STOPPED) {
-            if (m_state == LOADING) {
-                m_data = m_loader(m_path);
-                m_state = DONE;
+        while (m_threadRunning) {
+            if (m_threadFunc) {
+                m_resultBuffer = m_threadFunc();
+                m_threadFunc = nullptr;
             }
+            SDL_Delay(100);
         }
     });
 }
 
-template <typename T>
-void LazyLoader<T>::update() {
-    if (m_state == DONE) {
-        if (m_thread.joinable()) {
-            m_state = STOPPED;
-            m_thread.join();
-            m_callback(m_data);
-            m_state = UNINITIALIZED;
-        }
+template<typename T>
+Offloader<T>::~Offloader() {
+    m_threadRunning = false;
+    if (m_thread.joinable()) {
+        m_thread.join();
     }
 }
 
-void updateAllLoaders() {
-    for (const auto& loader : m_loaders) {
-        loader->update();
+template<typename T>
+void Offloader<T>::update() {
+    if (m_resultBuffer) {
+        m_callback(m_resultBuffer);
+        m_resultBuffer = nullptr;
+    }
+}
+
+template<typename T>
+void Offloader<T>::run(std::function<std::shared_ptr<T>()> threadFunc) {
+    if (!m_threadFunc) {
+        m_threadFunc = threadFunc;
     }
 }
 
@@ -153,6 +139,7 @@ void Assets::mapAssetsFolder() {
     recursiveSort(m_root);
 
     Echo::log("Assets folder mapped.");
+    
     if (std::filesystem::exists(ASSET_ICONS)) {
         m_icons = Texture::loadTextureFromFile(ASSET_ICONS);
     } else {
@@ -219,14 +206,10 @@ void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
     }
 }
 
-// TODO: Remove this
-std::shared_ptr<Texture> lastLoadedTexture = nullptr;
-std::shared_ptr<LazyLoader<TextureData>> textureLoader = nullptr;
-
 void Assets::assetsWindow() {
-    updateAllLoaders();
-
     ImGui::Begin("Assets", nullptr);
+
+    textureLoader.update();
 
     if (!m_currentNode) {
         ImGui::Text("No assets have been mapped.");
@@ -242,7 +225,7 @@ void Assets::assetsWindow() {
     ImGui::SameLine();
     ImGui::Text("%s", m_currentNode->getPath().c_str());
 
-    auto baseSize  = ImGui::GetContentRegionAvail();
+    auto baseSize = ImGui::GetContentRegionAvail();
 
     ImGui::BeginChild("##assets", ImVec2(baseSize.x, baseSize.y), ImGuiChildFlags_Borders);
     
@@ -261,12 +244,10 @@ void Assets::assetsWindow() {
                 m_selectedNode = child;
 
                 // Test, TODO: Expand upon
-                if (child->getType() == ASSET_TEXTURE) {
-                    textureLoader = std::make_shared<LazyLoader<TextureData>>(Texture::loadTextureDataFromFile, [](std::shared_ptr<TextureData>& texture) {
-                        Echo::log("Texture loaded.");
-                        lastLoadedTexture = std::make_shared<Texture>(texture->data, texture->width, texture->height, texture->channels);
+                if (child->getType() == ASSET_TEXTURE && !textureLoader.isBusy()) {
+                    textureLoader.run([child]() {
+                        return Texture::loadTextureDataFromFile(child->getPath());
                     });
-                    textureLoader->load(child->getPath());
                 }
             }
         }
@@ -292,15 +273,11 @@ void Assets::assetsWindow() {
 void Assets::previewWindow() {
     ImGui::Begin("Preview", nullptr);
 
-    if (textureLoader)
-        switch (textureLoader->getState()) {
-            case LOADING:
-                ImGui::Text("Loading texture...");
-                break;
-            default:
-                ImGui::Text("%dx%d:%d", lastLoadedTexture->getWidth(), lastLoadedTexture->getHeight(), lastLoadedTexture->getChannels());
-                break;
-        }
+    if (lastLoadedTexture) {
+        ImGui::Text("%dx%d:%d", lastLoadedTexture->getWidth(), lastLoadedTexture->getHeight(), lastLoadedTexture->getChannels());
+    } else {
+        ImGui::Text("Loading texture...");
+    }
 
     auto area = ImGui::GetContentRegionAvail();
 
@@ -321,10 +298,6 @@ void Assets::previewWindow() {
     }
 
     ImGui::End();
-}
-
-void assetsWindow() {
-    Codex::Assets::instance().assetsWindow();
 }
 
 }; // namespace Codex
