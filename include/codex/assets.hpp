@@ -25,6 +25,9 @@ enum AssetType : uint8_t {
     ASSET_BINARY_DATA
 };
 
+/**
+ * @brief A node in the asset tree, holds the structure of the assets folder
+ */
 class AssetNode {
 public:
     AssetNode(const std::string& path, AssetType type);
@@ -64,6 +67,7 @@ public:
     AssetPtr get(const std::string& path);
     AssetPtr tryGet(const std::string& path);
     void getAsync(const std::string& path, LoadCallback callback);
+    void getAsync(const std::string& path, AssetPtr out);
     void update();
     void setFunctions(ProcessFunc processor, LoaderFunc loader);
 

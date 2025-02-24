@@ -32,18 +32,6 @@ static double deltaTime = 0.0;
 std::shared_ptr<Codex::Mesh> mesh                  = nullptr;
 std::shared_ptr<Codex::Mesh> floorMesh             = nullptr;
 
-std::shared_ptr<Codex::Shader> shader              = nullptr;
-
-/*
-std::shared_ptr<Codex::Texture> meshTexture        = nullptr;
-std::shared_ptr<Codex::Texture> meshNormal         = nullptr;
-std::shared_ptr<Codex::Texture> meshCombined       = nullptr;
-
-std::shared_ptr<Codex::Texture> floorTexture       = nullptr;
-std::shared_ptr<Codex::Texture> floorNormal        = nullptr;
-std::shared_ptr<Codex::Texture> floorCombined      = nullptr;
-*/
-
 std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
 
 std::unique_ptr<Hex::Camera> camera = nullptr;
@@ -51,9 +39,6 @@ Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
 std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
-
-std::shared_ptr<Codex::Drawable> model = nullptr;
-std::shared_ptr<Codex::Drawable> floor = nullptr;
 
 void performanceWindow();
 void renderWindow();
@@ -67,47 +52,43 @@ void initCamera() {
     );
 }
 
+void initGLParams() {
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
+}
+
 void initDrawables() {
-    shader = Codex::Shader::load("./assets/shaders/glsl/Basic.vert.glsl", "./assets/shaders/glsl/Basic.frag.glsl");
+    std::shared_ptr<Codex::Shader> shader = Codex::Shader::load("./assets/shaders/glsl/Basic.vert.glsl", "./assets/shaders/glsl/Basic.frag.glsl");
 
     auto modelTextures = std::make_shared<std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>>>();
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/cannon/cannon_01_diff_1k.jpg",
-        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*modelTextures)[Codex::TextureType::DIFFUSE] = texture;
-        }
+        (*modelTextures)[Codex::TextureType::DIFFUSE]
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/cannon/cannon_01_nor_gl_1k.jpg",
-        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*modelTextures)[Codex::TextureType::NORMAL] = texture;
-        }
+        (*modelTextures)[Codex::TextureType::NORMAL]
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/cannon/cannon_01_arm_1k.jpg",
-        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*modelTextures)[Codex::TextureType::AORM] = texture;
-        }
+        (*modelTextures)[Codex::TextureType::AORM]
     );
 
     auto floorTextures = std::make_shared<std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>>>();
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/pavement/herringbone_pavement_03_diff_4k.jpg",
-        [floorTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*floorTextures)[Codex::TextureType::DIFFUSE] = texture;
-        }
+        (*floorTextures)[Codex::TextureType::DIFFUSE]
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/pavement/herringbone_pavement_03_nor_gl_4k.png",
-        [floorTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*floorTextures)[Codex::TextureType::NORMAL] = texture;
-        }
+        (*floorTextures)[Codex::TextureType::NORMAL]
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/pavement/herringbone_pavement_03_disp_4k.png",
-        [floorTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*floorTextures)[Codex::TextureType::AORM] = texture;
-        }
+        (*floorTextures)[Codex::TextureType::AORM]
     );
 
     mesh      = Codex::Mesh::loadMeshFromFile("./assets/models/cannon.glb");
@@ -118,61 +99,11 @@ void initDrawables() {
 
     floorMesh->position.y = -1.0f;
 
-    model = std::make_shared<Codex::Drawable>(mesh, shader, modelTextures);
+    std::shared_ptr<Codex::Drawable> model = std::make_shared<Codex::Drawable>(mesh, shader, modelTextures);
     Codex::Assets::instance().getCurrentScene().addDrawable(model);
 
-    floor = std::make_shared<Codex::Drawable>(floorMesh, shader, floorTextures);
+    std::shared_ptr<Codex::Drawable> floor = std::make_shared<Codex::Drawable>(floorMesh, shader, floorTextures);
     Codex::Assets::instance().getCurrentScene().addDrawable(floor);
-}
-
-void initShaders() {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-
-    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
-
-    //shader = Codex::Shader::load("assets/shaders/glsl/Basic.vert.glsl", "assets/shaders/glsl/Basic.frag.glsl");
-}
-
-void initTextures() {
-    /*
-    meshTexture   = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_diff_1k.jpg");
-    meshNormal    = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_nor_gl_1k.jpg");
-    meshCombined  = Codex::Texture::loadTextureFromFile("assets/images/cannon/cannon_01_arm_1k.jpg");
-
-    floorTexture  = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_diff_4k.jpg");
-    floorNormal   = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_nor_gl_4k.png");
-    floorCombined = Codex::Texture::loadTextureFromFile("assets/images/pavement/herringbone_pavement_03_disp_4k.png");
-    */
-}
-
-void initMeshes() {
-    /*
-    mesh      = Codex::Mesh::loadMeshFromFile("assets/models/cannon.glb");
-    floorMesh = Codex::Mesh::loadMeshFromFile("assets/models/floor.glb");
-    
-
-    mesh->position.y = -0.66f;
-    mesh->rotation.y = SDL_PI_F / 6.0f;
-    floorMesh->position.y = -1.0f;
-
-    std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>> textures;
-    textures[Codex::TextureType::DIFFUSE] = meshTexture;
-    textures[Codex::TextureType::NORMAL]  = meshNormal;
-
-    model = std::make_shared<Codex::Drawable>(mesh, shader, textures);
-
-    Codex::Assets::instance().getCurrentScene().addDrawable(model);
-
-    std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>> floorTextures;
-    floorTextures[Codex::TextureType::DIFFUSE] = floorTexture;
-    floorTextures[Codex::TextureType::NORMAL]  = floorNormal;
-
-    floor = std::make_shared<Codex::Drawable>(floorMesh, shader, floorTextures);
-
-    Codex::Assets::instance().getCurrentScene().addDrawable(floor);
-    */
 }
 
 void initEvents() {    
@@ -233,11 +164,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     initCamera();
     initEvents();
+    initGLParams();
     initDrawables();
-
-    initShaders();
-    initTextures();
-    initMeshes();
 
     sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
 

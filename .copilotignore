@@ -1,0 +1,3 @@
+/src/glad/*.cpp
+/include/lib/**/*.h
+/include/lib/**/*.hpp

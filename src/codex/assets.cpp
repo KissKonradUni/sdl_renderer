@@ -187,6 +187,19 @@ void AssetLibrary<T, U>::getAsync(const std::string& path, LoadCallback callback
 }
 
 template<typename T, typename U>
+void AssetLibrary<T, U>::getAsync(const std::string& path, AssetPtr out) {
+    auto asset = tryGet(path);
+    if (asset) {
+        *out = asset;
+        return;
+    }
+
+    m_callbacks[path].push_back([out](AssetPtr asset) {
+        *out = asset;
+    });
+}
+
+template<typename T, typename U>
 void AssetLibrary<T, U>::update() {
     for (auto it = m_loading.begin(); it != m_loading.end();) {
         auto& [path, future] = *it;
