@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <assimp/scene.h>
 
 #include <vector>
 #include <memory>
@@ -8,6 +9,12 @@
 #include "floatmath.hpp"
 
 namespace Codex {
+
+struct MeshData {
+    const aiScene* scene;
+
+    ~MeshData();
+};
 
 class Mesh {
 public:
@@ -22,13 +29,15 @@ public:
     void draw() const;
     matrix4x4f getModelMatrix() const;
 
+    static std::shared_ptr<MeshData> loadMeshDataFromFile(const std::string& filename);
     static std::shared_ptr<Mesh> loadMeshFromFile(const std::string& filename);
+    static std::shared_ptr<Mesh> processMeshData(std::shared_ptr<MeshData> data);
 protected:
-    unsigned int vertexBufferObjectHandle;
-    unsigned int indexBufferObjectHandle;
-    unsigned int vertexArrayObjectHandle;
+    unsigned int m_vertexBufferObjectHandle;
+    unsigned int m_indexBufferObjectHandle;
+    unsigned int m_vertexArrayObjectHandle;
 
-    unsigned int indexCount;
+    unsigned int m_indexCount;
 
     void bind() const;
 };

@@ -78,10 +78,6 @@ void AssetNode::sortChildren() {
 
 // TODO: Move this to a prettier place
 std::shared_ptr<Texture> lastLoadedTexture = nullptr;
-//Offloader<TextureData> textureLoader([](std::shared_ptr<TextureData> data) {
-//    lastLoadedTexture = std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
-//    Echo::log("Loaded texture.");
-//});
 
 template<typename T>
 Offloader<T>::Offloader(std::function<void(std::shared_ptr<T>)> callback) {
@@ -127,6 +123,7 @@ void Offloader<T>::run(std::function<std::shared_ptr<T>()> threadFunc) {
     }
 }
 
+// AssetLibrary<T, U>
 template<typename T, typename U>
 AssetLibrary<T, U>::~AssetLibrary<T, U>() {
     m_assets.clear();
@@ -143,7 +140,7 @@ AssetLibrary<T, U>::AssetPtr AssetLibrary<T, U>::get(const std::string& path) {
     // Check if already loading
     auto futureIt = m_loading.find(path);
     if (futureIt != m_loading.end()) {
-        return futureIt->second.get(); // Will block if not ready
+        return m_processor(futureIt->second.get()); // Will block if not ready
     }
 
     // Start loading if we have a loader
@@ -153,7 +150,7 @@ AssetLibrary<T, U>::AssetPtr AssetLibrary<T, U>::get(const std::string& path) {
         auto asset = m_loading[path].get();
         m_assets[path] = m_processor(asset);
         m_loading.erase(path);
-        return asset;
+        return m_assets[path];
     }
 
     return nullptr;
@@ -184,19 +181,6 @@ void AssetLibrary<T, U>::getAsync(const std::string& path, LoadCallback callback
     }
 
     m_callbacks[path].push_back(callback);
-}
-
-template<typename T, typename U>
-void AssetLibrary<T, U>::getAsync(const std::string& path, AssetPtr out) {
-    auto asset = tryGet(path);
-    if (asset) {
-        *out = asset;
-        return;
-    }
-
-    m_callbacks[path].push_back([out](AssetPtr asset) {
-        *out = asset;
-    });
 }
 
 template<typename T, typename U>
@@ -236,7 +220,7 @@ bool AssetLibrary<T, U>::isLoading(const std::string& path) const {
 }
 
 template<typename T, typename U>
-void AssetLibrary<T, U>::preload(const std::string& path) const {
+void AssetLibrary<T, U>::preload(const std::string& path) {
     if (!isLoaded(path) && !isLoading(path) && m_loader) {
         m_loading[path] = std::async(std::launch::async, m_loader, path);
     }
@@ -247,14 +231,30 @@ bool AssetLibrary<T,U>::isLoaded(const std::string& path) const {
     return m_assets.find(path) != m_assets.end();
 }
 
+template<typename T, typename U>
+int AssetLibrary<T, U>::getAssetCount() const {
+    return m_assets.size();
+}
+
+template<typename T, typename U>
+int AssetLibrary<T, U>::getLoadingCount() const {
+    return m_loading.size();
+}
+
 Assets::Assets() {
     Echo::log("Asset manager starting up.");
     mapAssetsFolder();
 
     m_textureLibrary.setFunctions([](std::shared_ptr<TextureData> data) {
-        return std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
+        return std::make_shared<Texture>(data);
     }, [](const std::string& path) {
         return Texture::loadTextureDataFromFile(path);
+    });
+
+    m_meshLibrary.setFunctions([](std::shared_ptr<MeshData> data) {
+        return Mesh::processMeshData(data);
+    }, [](const std::string& path) {
+        return Mesh::loadMeshDataFromFile(path);
     });
 }
 
@@ -345,10 +345,10 @@ void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
 }
 
 void Assets::assetsWindow() {
-    ImGui::Begin("Assets", nullptr);
+    ImGui::Begin("Asset browser", nullptr);
 
-    //textureLoader.update();
     m_textureLibrary.update();
+    m_meshLibrary.update();
 
     if (!m_currentNode) {
         ImGui::Text("No assets have been mapped.");
@@ -384,10 +384,7 @@ void Assets::assetsWindow() {
 
                 // Test, TODO: Expand upon
                 if (child->getType() == ASSET_TEXTURE) {
-                    //textureLoader.run([child]() {
-                    //    return Texture::loadTextureDataFromFile(child->getPath());
-                    //});
-                    m_textureLibrary.getAsync(child->getPath(), [](std::shared_ptr<Texture> texture) {
+                    m_textureLibrary.getAsync(child->getPath(), [child](std::shared_ptr<Texture> texture) {
                         lastLoadedTexture = texture;
                     });
                 }
@@ -413,33 +410,60 @@ void Assets::assetsWindow() {
 }
 
 void Assets::previewWindow() {
-    ImGui::Begin("Preview", nullptr);
+    ImGui::Begin("Asset viewer", nullptr);
 
-    if (lastLoadedTexture) {
-        ImGui::Text("%dx%d:%d", lastLoadedTexture->getWidth(), lastLoadedTexture->getHeight(), lastLoadedTexture->getChannels());
-    } else {
-        ImGui::Text("Loading texture...");
+    static int activeTab = 0;
+    ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None);
+    if (ImGui::TabItemButton("Preview")) {
+        activeTab = 0;
+    }
+    if (ImGui::TabItemButton("Stats")) {
+        activeTab = 1;
     }
 
-    auto area = ImGui::GetContentRegionAvail();
-
-    if (lastLoadedTexture) {
-        float imageAspect = (float)lastLoadedTexture->getWidth() / (float)lastLoadedTexture->getHeight();
-        float windowAspect = area.x / area.y;
-        float width, height;
-        
-        if (imageAspect > windowAspect) {
-            width = area.x;
-            height = area.x / imageAspect;
+    if (activeTab == 0) {
+        if (lastLoadedTexture) {
+            ImGui::Text("%dx%d:%d", lastLoadedTexture->getWidth(), lastLoadedTexture->getHeight(), lastLoadedTexture->getChannels());
         } else {
-            width = area.y * imageAspect;
-            height = area.y;
+            ImGui::Text("No texture selected.");
         }
 
-        ImGui::Image(lastLoadedTexture->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
-    }
+        ImGui::Separator();
 
+        auto area = ImGui::GetContentRegionAvail();
+
+        if (lastLoadedTexture) {
+            float imageAspect = (float)lastLoadedTexture->getWidth() / (float)lastLoadedTexture->getHeight();
+            float windowAspect = area.x / area.y;
+            float width, height;
+            
+            if (imageAspect > windowAspect) {
+                width = area.x;
+                height = area.x / imageAspect;
+            } else {
+                width = area.y * imageAspect;
+                height = area.y;
+            }
+
+            ImGui::Image(lastLoadedTexture->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
+        }
+    } else if (activeTab == 1) {
+        ImGui::Text("Asset count: ");
+        ImGui::Text("- Textures: %d", m_textureLibrary.getAssetCount());
+        ImGui::Text("- Meshes: %d", m_meshLibrary.getAssetCount());
+
+        ImGui::Separator();
+
+        ImGui::Text("Currently loading: ");
+        ImGui::Text("- Textures: %d", m_textureLibrary.getLoadingCount());
+        ImGui::Text("- Meshes: %d", m_meshLibrary.getLoadingCount());
+    } 
+    ImGui::EndTabBar();
     ImGui::End();
 }
+
+// Explicit template instantiations
+template class AssetLibrary<Texture, TextureData>;
+template class AssetLibrary<Mesh, MeshData>;
 
 }; // namespace Codex

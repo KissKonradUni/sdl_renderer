@@ -15,6 +15,20 @@ TextureData::~TextureData() {
 Texture::Texture(std::vector<unsigned char>& data, int width, int height, int channels) 
     : Texture(data.data(), width, height, channels) {}
 
+Texture::Texture(const std::shared_ptr<TextureData> data) 
+    : Texture(data->data, data->width, data->height, data->channels) {}
+
+Texture::Texture(const vector4f& color)
+    : Texture(nullptr, 1, 1, 4) {
+    unsigned char data[4] = {
+        static_cast<unsigned char>(SDL_clamp(color.x, 0.0f, 1.0f) * 255.0f),
+        static_cast<unsigned char>(SDL_clamp(color.y, 0.0f, 1.0f) * 255.0f),
+        static_cast<unsigned char>(SDL_clamp(color.z, 0.0f, 1.0f) * 255.0f),
+        static_cast<unsigned char>(SDL_clamp(color.w, 0.0f, 1.0f) * 255.0f)
+    };
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+}
+
 Texture::~Texture() {
     glDeleteTextures(1, &m_textureHandle);
 

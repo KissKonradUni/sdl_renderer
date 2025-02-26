@@ -67,13 +67,15 @@ public:
     AssetPtr get(const std::string& path);
     AssetPtr tryGet(const std::string& path);
     void getAsync(const std::string& path, LoadCallback callback);
-    void getAsync(const std::string& path, AssetPtr out);
     void update();
     void setFunctions(ProcessFunc processor, LoaderFunc loader);
 
     bool isLoading(const std::string& path) const;
-    void preload(const std::string& path) const;
     bool isLoaded(const std::string& path) const;
+    void preload(const std::string& path);
+
+    int getAssetCount() const;
+    int getLoadingCount() const;
 private:
     std::unordered_map<std::string, AssetPtr> m_assets;
     std::unordered_map<std::string, std::future<DataPtr>> m_loading;
@@ -123,11 +125,13 @@ public:
     void previewWindow();
 
     AssetLibrary<Texture, TextureData>& getTextureLibrary() { return m_textureLibrary; }
+    AssetLibrary<Mesh, MeshData>& getMeshLibrary() { return m_meshLibrary; }
 protected:
     Assets();
     ~Assets();
 
     AssetLibrary<Texture, TextureData> m_textureLibrary;
+    AssetLibrary<Mesh, MeshData> m_meshLibrary;
 
     // TODO: Make it be able to hold multiple scenes, and make them dynamically loadable
     Scene m_scene;

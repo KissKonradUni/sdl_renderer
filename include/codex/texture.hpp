@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 
+#include "floatmath.hpp"
 #include "lib/stb/stb_image.h"
 
 namespace Codex {
@@ -19,6 +20,8 @@ class Texture {
 public:
     Texture(std::vector<unsigned char>& data, int width, int height, int channels);
     Texture(unsigned char* data, int width, int height, int channels);
+    Texture(const std::shared_ptr<TextureData> data);
+    Texture(const vector4f& color);
     ~Texture();
 
     /**

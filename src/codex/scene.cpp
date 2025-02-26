@@ -9,9 +9,9 @@ const std::array<std::string, TEXTURE_TYPE_COUNT> TextureTypeStrings = {
 };
 
 Drawable::Drawable(
-    std::shared_ptr<Mesh>& mesh,
-    std::shared_ptr<Shader>& shader,
-    std::shared_ptr<std::map<TextureType, std::shared_ptr<Texture>>>& textures
+    std::shared_ptr<Mesh> mesh,
+    std::shared_ptr<Shader> shader,
+    std::shared_ptr<std::map<TextureType, std::shared_ptr<Texture>>> textures
 ) : m_texture(textures), m_shader(shader), m_mesh(mesh) {}
 
 Drawable::~Drawable() {
@@ -41,10 +41,26 @@ void Drawable::draw() {
     m_mesh->draw();
 }
 
+void Drawable::setMesh(std::shared_ptr<Mesh>& mesh) {
+    m_mesh = mesh;
+}
+
+void Drawable::setShader(std::shared_ptr<Shader>& shader) {
+    m_shader = shader;
+}
+
+void Drawable::setTextures(std::shared_ptr<std::map<TextureType, std::shared_ptr<Texture>>>& textures) {
+    m_texture = textures;
+}
+
 void Scene::draw() {
     for (const auto& drawable : m_drawables) {
         drawable->draw();
     }
+}
+
+void Scene::addDrawable(std::shared_ptr<Drawable> drawable) {
+    m_drawables.push_back(drawable);
 }
 
 }; // namespace Codex

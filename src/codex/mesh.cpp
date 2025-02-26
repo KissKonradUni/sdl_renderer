@@ -3,7 +3,6 @@
 #include "codex/mesh.hpp"
 #include "echo/console.hpp"
 
-#include <assimp/scene.h>
 #include <assimp/cimport.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -11,18 +10,22 @@
 
 namespace Codex {
 
-Mesh::Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices) {
-    glGenVertexArrays(1, &vertexArrayObjectHandle);
-    glBindVertexArray(vertexArrayObjectHandle);
-    
-    glGenBuffers(1, &vertexBufferObjectHandle);
+MeshData::~MeshData() {
+    aiReleaseImport(scene);
+}
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObjectHandle);
+Mesh::Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices) {
+    glGenVertexArrays(1, &m_vertexArrayObjectHandle);
+    glBindVertexArray(m_vertexArrayObjectHandle);
+    
+    glGenBuffers(1, &m_vertexBufferObjectHandle);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferObjectHandle);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-    glGenBuffers(1, &indexBufferObjectHandle);
+    glGenBuffers(1, &m_indexBufferObjectHandle);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObjectHandle);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBufferObjectHandle);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
     // TODO: Add layout from here
@@ -37,25 +40,25 @@ Mesh::Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices) {
 
     glBindVertexArray(0);
 
-    indexCount = indices.size();
+    m_indexCount = indices.size();
 }
 
 Mesh::~Mesh() {
-    glDeleteBuffers(1, &vertexBufferObjectHandle);
-    glDeleteBuffers(1, &indexBufferObjectHandle);
-    glDeleteVertexArrays(1, &vertexArrayObjectHandle);
+    glDeleteBuffers(1, &m_vertexBufferObjectHandle);
+    glDeleteBuffers(1, &m_indexBufferObjectHandle);
+    glDeleteVertexArrays(1, &m_vertexArrayObjectHandle);
 
     Echo::log("Mesh destroyed.");
 }
 
 void Mesh::bind() const {
-    glBindVertexArray(vertexArrayObjectHandle);
+    glBindVertexArray(m_vertexArrayObjectHandle);
 }
 
 void Mesh::draw() const {
     bind();
 
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0);
 }
 
 matrix4x4f Mesh::getModelMatrix() const {
@@ -68,8 +71,10 @@ matrix4x4f Mesh::getModelMatrix() const {
     return scaleMatrix * rotationMatrixZ * rotationMatrixY * rotationMatrixX * translationMatrix;
 }
 
-std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
-    auto scene = aiImportFile(filename.c_str(), aiProcess_Triangulate);
+std::shared_ptr<MeshData> Mesh::loadMeshDataFromFile(const std::string& filename) {
+    auto scene = aiImportFile(filename.c_str(), 
+        aiProcess_Triangulate | aiProcess_CalcTangentSpace
+    );
 
     if (!scene) {
         std::string message = "Couldn't load mesh: " + filename;
@@ -80,11 +85,25 @@ std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
     std::string message = "Loaded mesh: " + filename;
     Echo::log(message);
 
+    return std::make_unique<MeshData>(scene);
+}
+
+std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
+    auto data = loadMeshDataFromFile(filename);
+    return processMeshData(data);
+}
+
+std::shared_ptr<Mesh> Mesh::processMeshData(std::shared_ptr<MeshData> data) {
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
+    int indexOffset = 0;
 
-    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
-        auto mesh = scene->mMeshes[i];
+    bool hasNormals  = true;
+    bool hasTangents = true;
+    bool hasUVs      = true;
+
+    for (unsigned int i = 0; i < data->scene->mNumMeshes; i++) {
+        auto mesh = data->scene->mMeshes[i];
 
         for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
             vertices.push_back(mesh->mVertices[j].x);
@@ -99,7 +118,7 @@ std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
-                Echo::warn("Mesh has no normals!");
+                hasNormals = false;
             }
 
             if (mesh->HasTangentsAndBitangents()) {
@@ -110,7 +129,7 @@ std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
-                Echo::warn("Mesh has no tangents!");
+                hasTangents = false;
             }
 
             if (mesh->HasTextureCoords(0)) {
@@ -119,7 +138,7 @@ std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
             } else {
                 vertices.push_back(0.0f);
                 vertices.push_back(0.0f);
-                Echo::warn("Mesh has no texture coordinates!");
+                hasUVs = false;
             }
         }
 
@@ -127,13 +146,22 @@ std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
             auto face = mesh->mFaces[j];
 
             for (unsigned int k = 0; k < face.mNumIndices; k++) {
-                indices.push_back(face.mIndices[k]);
+                indices.push_back(face.mIndices[k] + indexOffset);
             }
         }
+
+        indexOffset += mesh->mNumVertices;
     }
 
-    // Oops, was leaking quite a bit of memory here
-    aiReleaseImport(scene);
+    if (!hasNormals) {
+        Echo::warn(std::string("Mesh doesn't have normals."));
+    }
+    if (!hasTangents) {
+        Echo::warn(std::string("Mesh doesn't have tangents."));
+    }
+    if (!hasUVs) {
+        Echo::warn(std::string("Mesh doesn't have UVs."));
+    }
 
     return std::make_shared<Mesh>(vertices, indices);
 }

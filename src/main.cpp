@@ -29,9 +29,6 @@ static double lastTime  = 0.0;
 static double nowTime   = 0.0;
 static double deltaTime = 0.0;
 
-std::shared_ptr<Codex::Mesh> mesh                  = nullptr;
-std::shared_ptr<Codex::Mesh> floorMesh             = nullptr;
-
 std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
 
 std::unique_ptr<Hex::Camera> camera = nullptr;
@@ -61,49 +58,42 @@ void initGLParams() {
 }
 
 void initDrawables() {
+    std::shared_ptr<Codex::Drawable> model = std::make_shared<Codex::Drawable>(nullptr, nullptr, nullptr);
+    
     std::shared_ptr<Codex::Shader> shader = Codex::Shader::load("./assets/shaders/glsl/Basic.vert.glsl", "./assets/shaders/glsl/Basic.frag.glsl");
+    model->setShader(shader);
 
     auto modelTextures = std::make_shared<std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>>>();
     Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/cannon/cannon_01_diff_1k.jpg",
-        (*modelTextures)[Codex::TextureType::DIFFUSE]
-    );
-    Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/cannon/cannon_01_nor_gl_1k.jpg",
-        (*modelTextures)[Codex::TextureType::NORMAL]
-    );
-    Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/cannon/cannon_01_arm_1k.jpg",
-        (*modelTextures)[Codex::TextureType::AORM]
-    );
-
-    auto floorTextures = std::make_shared<std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>>>();
-    Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/pavement/herringbone_pavement_03_diff_4k.jpg",
-        (*floorTextures)[Codex::TextureType::DIFFUSE]
+        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
+            (*modelTextures)[Codex::TextureType::DIFFUSE] = texture;
+        }
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/pavement/herringbone_pavement_03_nor_gl_4k.png",
-        (*floorTextures)[Codex::TextureType::NORMAL]
+        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
+            (*modelTextures)[Codex::TextureType::NORMAL] = texture;
+        }
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
         "./assets/images/pavement/herringbone_pavement_03_disp_4k.png",
-        (*floorTextures)[Codex::TextureType::AORM]
+        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
+            (*modelTextures)[Codex::TextureType::AORM] = texture;
+        }
+    );
+    model->setTextures(modelTextures);
+
+    Codex::Assets::instance().getMeshLibrary().getAsync(
+        "./assets/models/sponza.glb",
+        [model](std::shared_ptr<Codex::Mesh> mesh) {
+            mesh->position.y = -0.66f;
+            mesh->rotation.y = SDL_PI_F / 6.0f;
+            model->setMesh(mesh);
+        }
     );
 
-    mesh      = Codex::Mesh::loadMeshFromFile("./assets/models/cannon.glb");
-    floorMesh = Codex::Mesh::loadMeshFromFile("./assets/models/floor.glb");
-    
-    mesh->position.y = -0.66f;
-    mesh->rotation.y = SDL_PI_F / 6.0f;
-
-    floorMesh->position.y = -1.0f;
-
-    std::shared_ptr<Codex::Drawable> model = std::make_shared<Codex::Drawable>(mesh, shader, modelTextures);
     Codex::Assets::instance().getCurrentScene().addDrawable(model);
-
-    std::shared_ptr<Codex::Drawable> floor = std::make_shared<Codex::Drawable>(floorMesh, shader, floorTextures);
-    Codex::Assets::instance().getCurrentScene().addDrawable(floor);
 }
 
 void initEvents() {    
@@ -207,8 +197,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // ======================
     // Update "game" logic
 
-    if (mesh)
-        mesh->rotation.y += deltaTime * 0.314f;
+    // if (mesh)
+    //     mesh->rotation.y += deltaTime * 0.314f;
 
     // ======================
     // Render
