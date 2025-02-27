@@ -251,10 +251,10 @@ Assets::Assets() {
         return Texture::loadTextureDataFromFile(path);
     });
 
-    m_meshLibrary.setFunctions([](std::shared_ptr<MeshData> data) {
-        return Mesh::processMeshData(data);
+    m_meshLibrary.setFunctions([](std::shared_ptr<SceneData> data) {
+        return Mesh::processCombinedSceneData(data);
     }, [](const std::string& path) {
-        return Mesh::loadMeshDataFromFile(path);
+        return Mesh::loadSceneDataFromFile(path);
     });
 }
 
@@ -464,6 +464,6 @@ void Assets::previewWindow() {
 
 // Explicit template instantiations
 template class AssetLibrary<Texture, TextureData>;
-template class AssetLibrary<Mesh, MeshData>;
+template class AssetLibrary<Mesh, SceneData>;
 
 }; // namespace Codex

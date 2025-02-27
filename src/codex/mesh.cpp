@@ -10,7 +10,7 @@
 
 namespace Codex {
 
-MeshData::~MeshData() {
+SceneData::~SceneData() {
     aiReleaseImport(scene);
 }
 
@@ -61,19 +61,9 @@ void Mesh::draw() const {
     glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0);
 }
 
-matrix4x4f Mesh::getModelMatrix() const {
-    matrix4x4f translationMatrix = matrix4x4f::translation(position);
-    matrix4x4f rotationMatrixX   = matrix4x4f::rotation(rotation.x, vector4f::right());
-    matrix4x4f rotationMatrixY   = matrix4x4f::rotation(rotation.y, vector4f::up());
-    matrix4x4f rotationMatrixZ   = matrix4x4f::rotation(rotation.z, vector4f::front());
-    matrix4x4f scaleMatrix       = matrix4x4f::scale(scale);
-
-    return scaleMatrix * rotationMatrixZ * rotationMatrixY * rotationMatrixX * translationMatrix;
-}
-
-std::shared_ptr<MeshData> Mesh::loadMeshDataFromFile(const std::string& filename) {
+std::shared_ptr<SceneData> Mesh::loadSceneDataFromFile(const std::string& filename) {
     auto scene = aiImportFile(filename.c_str(), 
-        aiProcess_Triangulate | aiProcess_CalcTangentSpace
+        aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenNormals | aiProcess_GenUVCoords
     );
 
     if (!scene) {
@@ -85,22 +75,19 @@ std::shared_ptr<MeshData> Mesh::loadMeshDataFromFile(const std::string& filename
     std::string message = "Loaded mesh: " + filename;
     Echo::log(message);
 
-    return std::make_unique<MeshData>(scene);
+    return std::make_unique<SceneData>(scene);
 }
 
-std::shared_ptr<Mesh> Mesh::loadMeshFromFile(const std::string& filename) {
-    auto data = loadMeshDataFromFile(filename);
-    return processMeshData(data);
+std::shared_ptr<Mesh> Mesh::loadSceneFromFile(const std::string& filename) {
+    auto data = loadSceneDataFromFile(filename);
+    return processCombinedSceneData(data);
 }
 
-std::shared_ptr<Mesh> Mesh::processMeshData(std::shared_ptr<MeshData> data) {
+std::shared_ptr<Mesh> Mesh::processCombinedSceneData(const std::shared_ptr<SceneData> data) {
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
-    int indexOffset = 0;
 
-    bool hasNormals  = true;
-    bool hasTangents = true;
-    bool hasUVs      = true;
+    int indexOffset = 0;
 
     for (unsigned int i = 0; i < data->scene->mNumMeshes; i++) {
         auto mesh = data->scene->mMeshes[i];
@@ -110,36 +97,16 @@ std::shared_ptr<Mesh> Mesh::processMeshData(std::shared_ptr<MeshData> data) {
             vertices.push_back(mesh->mVertices[j].y);
             vertices.push_back(mesh->mVertices[j].z);
 
-            if (mesh->HasNormals()) {
-                vertices.push_back(mesh->mNormals[j].x);
-                vertices.push_back(mesh->mNormals[j].y);
-                vertices.push_back(mesh->mNormals[j].z);
-            } else {
-                vertices.push_back(0.0f);
-                vertices.push_back(0.0f);
-                vertices.push_back(0.0f);
-                hasNormals = false;
-            }
+            vertices.push_back(mesh->mNormals[j].x);
+            vertices.push_back(mesh->mNormals[j].y);
+            vertices.push_back(mesh->mNormals[j].z);
 
-            if (mesh->HasTangentsAndBitangents()) {
-                vertices.push_back(mesh->mTangents[j].x);
-                vertices.push_back(mesh->mTangents[j].y);
-                vertices.push_back(mesh->mTangents[j].z);
-            } else {
-                vertices.push_back(0.0f);
-                vertices.push_back(0.0f);
-                vertices.push_back(0.0f);
-                hasTangents = false;
-            }
+            vertices.push_back(mesh->mTangents[j].x);
+            vertices.push_back(mesh->mTangents[j].y);
+            vertices.push_back(mesh->mTangents[j].z);
 
-            if (mesh->HasTextureCoords(0)) {
-                vertices.push_back(mesh->mTextureCoords[0][j].x);
-                vertices.push_back(mesh->mTextureCoords[0][j].y);
-            } else {
-                vertices.push_back(0.0f);
-                vertices.push_back(0.0f);
-                hasUVs = false;
-            }
+            vertices.push_back(mesh->mTextureCoords[0][j].x);
+            vertices.push_back(mesh->mTextureCoords[0][j].y);
         }
 
         for (unsigned int j = 0; j < mesh->mNumFaces; j++) {
@@ -153,14 +120,70 @@ std::shared_ptr<Mesh> Mesh::processMeshData(std::shared_ptr<MeshData> data) {
         indexOffset += mesh->mNumVertices;
     }
 
-    if (!hasNormals) {
-        Echo::warn(std::string("Mesh doesn't have normals."));
+    return std::make_shared<Mesh>(vertices, indices);
+}
+
+std::shared_ptr<std::vector<std::shared_ptr<Mesh>>> Mesh::processScene(const std::shared_ptr<SceneData> data, transformf& parentTransform) {
+    std::shared_ptr<std::vector<std::shared_ptr<Mesh>>> meshes = std::make_shared<std::vector<std::shared_ptr<Mesh>>>();
+    meshes->reserve(data->scene->mNumMeshes);
+    
+    auto rootNode = data->scene->mRootNode;
+    recursiveProcessScene(data->scene, rootNode, *meshes, parentTransform);
+
+    return meshes;
+}
+
+void Mesh::recursiveProcessScene(const aiScene* scene, const aiNode* node, std::vector<std::shared_ptr<Mesh>>& meshes, transformf& parentTransform) {
+    aiVector3f position, rotation, scale;
+    node->mTransformation.Decompose(scale, rotation, position);
+
+    transformf transform(parentTransform);
+
+    transform.setPosition(vector4f(position.x, position.y, position.z, 0.0f));
+    transform.setRotation(vector4f(rotation.x, rotation.y, rotation.z, 0.0f));
+    transform.setScale(vector4f(scale.x, scale.y, scale.z, 1.0f));
+    
+    for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+        auto mesh = scene->mMeshes[node->mMeshes[i]];
+
+        auto processedMesh = processMesh(mesh);
+        processedMesh->transform = transform;
+
+        meshes.push_back(processedMesh);
     }
-    if (!hasTangents) {
-        Echo::warn(std::string("Mesh doesn't have tangents."));
+
+    for (unsigned int i = 0; i < node->mNumChildren; i++) {
+        recursiveProcessScene(scene, node->mChildren[i], meshes, transform);
     }
-    if (!hasUVs) {
-        Echo::warn(std::string("Mesh doesn't have UVs."));
+}
+
+std::shared_ptr<Mesh> Mesh::processMesh(const aiMesh* mesh) {
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+
+    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+        vertices.push_back(mesh->mVertices[i].x);
+        vertices.push_back(mesh->mVertices[i].y);
+        vertices.push_back(mesh->mVertices[i].z);
+
+        vertices.push_back(mesh->mNormals[i].x);
+        vertices.push_back(mesh->mNormals[i].y);
+        vertices.push_back(mesh->mNormals[i].z);
+
+        vertices.push_back(mesh->mTangents[i].x);
+        vertices.push_back(mesh->mTangents[i].y);
+        vertices.push_back(mesh->mTangents[i].z);
+
+        vertices.push_back(mesh->mTextureCoords[0][i].x);
+        vertices.push_back(mesh->mTextureCoords[0][i].y);
+    }
+
+    for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+        auto face = mesh->mFaces[i];
+
+        for (unsigned int j = 0; j < face.mNumIndices; j++) {
+            indices.push_back(face.mIndices[j]);
+        }
     }
 
     return std::make_shared<Mesh>(vertices, indices);

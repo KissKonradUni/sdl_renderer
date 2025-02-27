@@ -65,19 +65,19 @@ void initDrawables() {
 
     auto modelTextures = std::make_shared<std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>>>();
     Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/pavement/herringbone_pavement_03_diff_4k.jpg",
+        "./assets/images/plaster/painted_plaster_wall_diff_2k.jpg",
         [modelTextures](std::shared_ptr<Codex::Texture> texture) {
             (*modelTextures)[Codex::TextureType::DIFFUSE] = texture;
         }
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/pavement/herringbone_pavement_03_nor_gl_4k.png",
+        "./assets/images/plaster/painted_plaster_wall_nor_gl_2k.jpg",
         [modelTextures](std::shared_ptr<Codex::Texture> texture) {
             (*modelTextures)[Codex::TextureType::NORMAL] = texture;
         }
     );
     Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/pavement/herringbone_pavement_03_disp_4k.png",
+        "./assets/images/plaster/painted_plaster_wall_arm_2k.jpg",
         [modelTextures](std::shared_ptr<Codex::Texture> texture) {
             (*modelTextures)[Codex::TextureType::AORM] = texture;
         }
@@ -87,11 +87,19 @@ void initDrawables() {
     Codex::Assets::instance().getMeshLibrary().getAsync(
         "./assets/models/sponza.glb",
         [model](std::shared_ptr<Codex::Mesh> mesh) {
-            mesh->position.y = -0.66f;
-            mesh->rotation.y = SDL_PI_F / 6.0f;
+            mesh->transform.moveBy(vector4f(0.0f, -0.66f, 0.0f, 0.0f));
+            mesh->transform.rotateBy(vector4f::up(), SDL_PI_F / 6.0f);
             model->setMesh(mesh);
         }
     );
+
+    //auto data = Codex::Mesh::loadSceneDataFromFile("./assets/models/NewSponza_Main_glTF_003.gltf");
+    //transformf baseTransform;
+    //auto meshes = Codex::Mesh::processScene(data, baseTransform);
+    //for (const auto& mesh : *meshes) {
+    //    std::shared_ptr<Codex::Drawable> model_ = std::make_shared<Codex::Drawable>(mesh, shader, modelTextures);
+    //    Codex::Assets::instance().getCurrentScene().addDrawable(model_);
+    //}
 
     Codex::Assets::instance().getCurrentScene().addDrawable(model);
 }

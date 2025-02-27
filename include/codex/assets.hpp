@@ -125,13 +125,13 @@ public:
     void previewWindow();
 
     AssetLibrary<Texture, TextureData>& getTextureLibrary() { return m_textureLibrary; }
-    AssetLibrary<Mesh, MeshData>& getMeshLibrary() { return m_meshLibrary; }
+    AssetLibrary<Mesh, SceneData>& getMeshLibrary() { return m_meshLibrary; }
 protected:
     Assets();
     ~Assets();
 
     AssetLibrary<Texture, TextureData> m_textureLibrary;
-    AssetLibrary<Mesh, MeshData> m_meshLibrary;
+    AssetLibrary<Mesh, SceneData> m_meshLibrary;
 
     // TODO: Make it be able to hold multiple scenes, and make them dynamically loadable
     Scene m_scene;

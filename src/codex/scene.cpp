@@ -31,7 +31,7 @@ void Drawable::draw() {
         return;
 
     m_shader->bind();
-    m_shader->setUniform(std::string("modelMatrix"), m_mesh->getModelMatrix());
+    m_shader->setUniform(std::string("modelMatrix"), m_mesh->transform.getModelMatrix());
 
     for (auto [type, texture] : *m_texture) {
         texture->bind(static_cast<int>(type));
