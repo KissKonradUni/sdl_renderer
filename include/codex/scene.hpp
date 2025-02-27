@@ -31,6 +31,10 @@ public:
     void setMesh(std::shared_ptr<Mesh>& mesh);
     void setShader(std::shared_ptr<Shader>& shader);
     void setTextures(std::shared_ptr<std::map<TextureType, std::shared_ptr<Texture>>>& textures);
+
+    std::shared_ptr<Mesh> getMesh() { return m_mesh; }
+    std::shared_ptr<Shader> getShader() { return m_shader; }
+    std::shared_ptr<std::map<TextureType, std::shared_ptr<Texture>>>& getTextures() { return m_texture; }
 protected:
     std::shared_ptr<std::map<TextureType, std::shared_ptr<Texture>>> m_texture;
     std::shared_ptr<Shader> m_shader;
@@ -45,8 +49,12 @@ public:
     void addDrawable(std::shared_ptr<Drawable> drawable);
     void draw();
 
+    void sceneExplorerWindow();
+    void inspectorWindow();
 protected:
     std::vector<std::shared_ptr<Drawable>> m_drawables;
+
+    std::shared_ptr<Drawable> m_selectedDrawable;
 };
 
 };

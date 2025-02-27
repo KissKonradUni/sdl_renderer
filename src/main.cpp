@@ -177,6 +177,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     Echo::UI::instance().addUIFunction([]() {
         Codex::Assets::instance().assetsWindow();
         Codex::Assets::instance().previewWindow();
+
+        Codex::Assets::instance().getCurrentScene().sceneExplorerWindow();
+        Codex::Assets::instance().getCurrentScene().inspectorWindow();
     });
 
     return SDL_APP_CONTINUE;

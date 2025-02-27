@@ -304,5 +304,8 @@ matrix4x4f transformf::getModelMatrix() {
     if (m_parent) {
         this->m_modelMatrix = m_parent->getModelMatrix() * this->m_modelMatrix;
     }
+
+    m_dirty = false;
+
     return this->m_modelMatrix;
 }
