@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <vector>
 #include <memory>
 
 #include "floatmath.hpp"
@@ -10,7 +9,7 @@
 namespace Codex {
 
 struct TextureData {
-    unsigned char* data;
+    unsigned char* pixels;
     int width, height, channels;
 
     ~TextureData();
@@ -18,9 +17,8 @@ struct TextureData {
 
 class Texture {
 public:
-    Texture(std::vector<unsigned char>& data, int width, int height, int channels);
-    Texture(unsigned char* data, int width, int height, int channels);
-    Texture(const std::shared_ptr<TextureData> data);
+    Texture(const unsigned char* pixels, int width, int height, int channels);
+    Texture(const TextureData* data);
     Texture(const vector4f& color);
     ~Texture();
 
@@ -41,7 +39,7 @@ public:
      * @attention This is used for internal purposes, please refrain from using it
      * @return unsigned int - The OpenGL texture handle
      */
-    unsigned int getHandle() const { return m_textureHandle; }
+    const unsigned int getHandle() const { return m_textureHandle; }
 
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }

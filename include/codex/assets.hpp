@@ -3,10 +3,8 @@
 #include <functional>
 #include <future>
 #include <string>
-#include <thread>
 #include <vector>
 #include <memory>
-#include <list>
 
 #include "texture.hpp"
 #include "scene.hpp"
@@ -84,25 +82,6 @@ private:
     LoaderFunc m_loader;
 };
 
-template <typename T>
-class Offloader {
-public:
-    Offloader(std::function<void(std::shared_ptr<T>)> callback);
-    ~Offloader();
-
-    void update();
-    void run(std::function<std::shared_ptr<T>()> threadFunc);
-protected:
-    std::function<void(std::shared_ptr<T>)> m_callback = nullptr;
-
-    std::list<std::function<std::shared_ptr<T>()>> m_threadQueue;
-    std::function<std::shared_ptr<T>()> m_threadFunc = nullptr;
-    std::atomic<bool> m_threadRunning = true;
-    std::thread m_thread;
-
-    std::shared_ptr<T> m_resultBuffer = nullptr;
-};
-
 #define ASSETS_ROOT "./assets"
 #define ASSET_ICONS "./assets/cinder/icons.png"
 
@@ -141,6 +120,8 @@ protected:
     std::shared_ptr<AssetNode> m_root;
     std::shared_ptr<AssetNode> m_currentNode;
     std::shared_ptr<AssetNode> m_selectedNode;
+
+    std::shared_ptr<Texture> m_texturePreview;
 
     void recursivePrint(std::shared_ptr<AssetNode> node, int depth);
     void recursiveMap(std::shared_ptr<AssetNode> node);

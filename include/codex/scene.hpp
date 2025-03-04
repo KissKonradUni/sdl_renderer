@@ -11,10 +11,9 @@ namespace Codex {
 
 #define TEXTURE_TYPE_COUNT 3
 enum TextureType : uint8_t {
-    DIFFUSE  = 0,
-    NORMAL   = 1,
-    // Ambient Occlusion, Roughness, Metallic
-    AORM     = 2
+    DIFFUSE  = 0, // [rgba] Diffuse / Albedo
+    NORMAL   = 1, // [rgb]  Normal map / Bump map
+    AORM     = 2  // [r]    Ambient Occlusion, [g] Roughness, [b] Metallic
 };
 
 class Drawable {

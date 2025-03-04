@@ -1,7 +1,6 @@
 #include "app.hpp"
 #include "echo/ui.hpp"
 #include "floatmath.hpp"
-#include "codex/mesh.hpp"
 #include "echo/input.hpp"
 #include "hex/camera.hpp"
 #include "codex/assets.hpp"
@@ -58,50 +57,7 @@ void initGLParams() {
 }
 
 void initDrawables() {
-    std::shared_ptr<Codex::Drawable> model = std::make_shared<Codex::Drawable>(nullptr, nullptr, nullptr);
-    
-    std::shared_ptr<Codex::Shader> shader = Codex::Shader::load("./assets/shaders/glsl/Basic.vert.glsl", "./assets/shaders/glsl/Basic.frag.glsl");
-    model->setShader(shader);
-
-    auto modelTextures = std::make_shared<std::map<Codex::TextureType, std::shared_ptr<Codex::Texture>>>();
-    Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/plaster/painted_plaster_wall_diff_2k.jpg",
-        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*modelTextures)[Codex::TextureType::DIFFUSE] = texture;
-        }
-    );
-    Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/plaster/painted_plaster_wall_nor_gl_2k.jpg",
-        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*modelTextures)[Codex::TextureType::NORMAL] = texture;
-        }
-    );
-    Codex::Assets::instance().getTextureLibrary().getAsync(
-        "./assets/images/plaster/painted_plaster_wall_arm_2k.jpg",
-        [modelTextures](std::shared_ptr<Codex::Texture> texture) {
-            (*modelTextures)[Codex::TextureType::AORM] = texture;
-        }
-    );
-    model->setTextures(modelTextures);
-
-    Codex::Assets::instance().getMeshLibrary().getAsync(
-        "./assets/models/sponza.glb",
-        [model](std::shared_ptr<Codex::Mesh> mesh) {
-            mesh->transform.moveBy(vector4f(0.0f, -0.66f, 0.0f, 0.0f));
-            mesh->transform.rotateBy(vector4f::up(), SDL_PI_F / 6.0f);
-            model->setMesh(mesh);
-        }
-    );
-
-    //auto data = Codex::Mesh::loadSceneDataFromFile("./assets/models/NewSponza_Main_glTF_003.gltf");
-    //transformf baseTransform;
-    //auto meshes = Codex::Mesh::processScene(data, baseTransform);
-    //for (const auto& mesh : *meshes) {
-    //    std::shared_ptr<Codex::Drawable> model_ = std::make_shared<Codex::Drawable>(mesh, shader, modelTextures);
-    //    Codex::Assets::instance().getCurrentScene().addDrawable(model_);
-    //}
-
-    Codex::Assets::instance().getCurrentScene().addDrawable(model);
+    // TODO: Implement new system
 }
 
 void initEvents() {    
@@ -242,9 +198,37 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     Echo::log(std::string("Application quit with result: ") + std::to_string(result));
 }
 
+size_t getCurrentMemoryUsage() {
+    // If not on Linux, return 0
+    // TODO: Implement for other platforms
+    #ifndef __linux__
+        return 0;
+    #endif
+
+    size_t memUsage = 0;
+    FILE* file = fopen("/proc/self/status", "r");
+    if (file) {
+        char line[128];
+        while (fgets(line, sizeof(line), file)) {
+            if (strncmp(line, "VmRSS:", 6) == 0) {
+                // Extract the resident memory size in KB
+                sscanf(line, "VmRSS: %zu", &memUsage);
+                break;
+            }
+        }
+        fclose(file);
+    }
+    return memUsage; // Returns memory usage in KB
+}
+
 std::array<float, 256> frameTimes = {};
 std::array<float, 10> frameTimesAvg = {};
+
 int frameTimeAvgIndex = 0, frameTimeIndex = 0;
+
+std::array<float, 256> memoryUsage = {};
+int memoryUsageIndex = 0;
+
 void performanceWindow() {
     ImGui::Begin("Performance", nullptr);
 
@@ -269,17 +253,20 @@ void performanceWindow() {
     float windowWidth = ImGui::GetWindowWidth();
 
     ImGui::BeginChild("AvgFpsGraph", ImVec2(windowWidth / 2, -1));
-        ImGui::Text("Average FPS graph: ");
-        ImGui::PlotLines("##fps", frameTimes.data(), frameTimes.size(), frameTimeIndex, nullptr, 30.0f, 200.0f, ImVec2(windowWidth / 2, -1));
+        ImGui::PlotLines("##fps", frameTimes.data(), frameTimes.size(), frameTimeIndex,
+                         "Avg frames per second", 30.0f, 200.0f,
+                         ImVec2(windowWidth / 2, -1));
     ImGui::EndChild();
 
     ImGui::SameLine();
 
     ImGui::BeginChild("PerfGraph", ImVec2(windowWidth / 2, -1));
-        // TODO: Extra performance metrics
-        ImGui::Text("Placeholder graph: ");
-        float test = 0.5f;
-        ImGui::PlotHistogram("##graph", &test, 1, 0, nullptr, 0.0f, 1.0f, ImVec2(windowWidth / 2, -1));
+        memoryUsage[memoryUsageIndex] = static_cast<float>(getCurrentMemoryUsage()) / 1024.0f; // Convert to MB
+        memoryUsageIndex = (memoryUsageIndex + 1) % memoryUsage.size();
+        
+        ImGui::PlotHistogram("##memgraph", memoryUsage.data(), memoryUsage.size(), memoryUsageIndex, 
+                             "Memory usage (MB)", 0, FLT_MAX,
+                             ImVec2(windowWidth / 2, -1));
     ImGui::EndChild();
 
     ImGui::End();

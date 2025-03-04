@@ -9,7 +9,8 @@
 
 namespace Codex {
 
-const std::string assetTypeToString(const AssetType type) {
+/* #region AssetNode */
+constexpr const std::string assetTypeToString(const AssetType type) {
     switch (type) {
         case ASSET_FOLDER: return "Folder";
         case ASSET_TEXTURE: return "Texture";
@@ -75,55 +76,9 @@ void AssetNode::sortChildren() {
         }
     });
 }
+/* #endregion */
 
-// TODO: Move this to a prettier place
-std::shared_ptr<Texture> lastLoadedTexture = nullptr;
-
-template<typename T>
-Offloader<T>::Offloader(std::function<void(std::shared_ptr<T>)> callback) {
-    m_callback = callback;
-    m_thread = std::thread([this]() {
-        while (m_threadRunning) {
-            if (m_threadFunc) {
-                m_resultBuffer = m_threadFunc();
-                m_threadFunc = nullptr;
-            }
-            SDL_Delay(100);
-        }
-    });
-}
-
-template<typename T>
-Offloader<T>::~Offloader() {
-    m_threadRunning = false;
-    if (m_thread.joinable()) {
-        m_thread.join();
-    }
-}
-
-template<typename T>
-void Offloader<T>::update() {
-    if (m_resultBuffer) {
-        m_callback(m_resultBuffer);
-        m_resultBuffer = nullptr;
-        
-        if (!m_threadQueue.empty()) {
-            m_threadFunc = m_threadQueue.front();
-            m_threadQueue.pop_front();
-        }
-    }
-}
-
-template<typename T>
-void Offloader<T>::run(std::function<std::shared_ptr<T>()> threadFunc) {
-    if (!m_threadFunc) {
-        m_threadFunc = threadFunc;
-    } else {
-        m_threadQueue.push_back(threadFunc);
-    }
-}
-
-// AssetLibrary<T, U>
+/* #region AssetLibrary<T,U> */
 template<typename T, typename U>
 AssetLibrary<T, U>::~AssetLibrary<T, U>() {
     m_assets.clear();
@@ -240,21 +195,26 @@ template<typename T, typename U>
 int AssetLibrary<T, U>::getLoadingCount() const {
     return m_loading.size();
 }
+/* #endregion */
 
+/* #region Assets */
 Assets::Assets() {
     Echo::log("Asset manager starting up.");
     mapAssetsFolder();
 
     m_textureLibrary.setFunctions([](std::shared_ptr<TextureData> data) {
-        return std::make_shared<Texture>(data);
+        return std::make_shared<Texture>(data.get());
     }, [](const std::string& path) {
         return Texture::loadTextureDataFromFile(path);
     });
 
+    // TODO: Reimplement when new system is in place
     m_meshLibrary.setFunctions([](std::shared_ptr<SceneData> data) {
-        return Mesh::processCombinedSceneData(data);
+        //return Mesh::processCombinedSceneData(data);
+        return nullptr;
     }, [](const std::string& path) {
-        return Mesh::loadSceneDataFromFile(path);
+        //return Mesh::loadSceneDataFromFile(path);
+        return nullptr;
     });
 }
 
@@ -384,8 +344,8 @@ void Assets::assetsWindow() {
 
                 // Test, TODO: Expand upon
                 if (child->getType() == ASSET_TEXTURE) {
-                    m_textureLibrary.getAsync(child->getPath(), [child](std::shared_ptr<Texture> texture) {
-                        lastLoadedTexture = texture;
+                    m_textureLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<Texture> texture) {
+                        m_texturePreview = texture;
                     });
                 }
             }
@@ -422,8 +382,8 @@ void Assets::previewWindow() {
     }
 
     if (activeTab == 0) {
-        if (lastLoadedTexture) {
-            ImGui::Text("%dx%d:%d", lastLoadedTexture->getWidth(), lastLoadedTexture->getHeight(), lastLoadedTexture->getChannels());
+        if (m_texturePreview) {
+            ImGui::Text("%dx%d:%d", m_texturePreview->getWidth(), m_texturePreview->getHeight(), m_texturePreview->getChannels());
         } else {
             ImGui::Text("No texture selected.");
         }
@@ -432,8 +392,8 @@ void Assets::previewWindow() {
 
         auto area = ImGui::GetContentRegionAvail();
 
-        if (lastLoadedTexture) {
-            float imageAspect = (float)lastLoadedTexture->getWidth() / (float)lastLoadedTexture->getHeight();
+        if (m_texturePreview) {
+            float imageAspect = (float)m_texturePreview->getWidth() / (float)m_texturePreview->getHeight();
             float windowAspect = area.x / area.y;
             float width, height;
             
@@ -445,7 +405,7 @@ void Assets::previewWindow() {
                 height = area.y;
             }
 
-            ImGui::Image(lastLoadedTexture->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image(m_texturePreview->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
         }
     } else if (activeTab == 1) {
         ImGui::Text("Asset count: ");
@@ -461,6 +421,8 @@ void Assets::previewWindow() {
     ImGui::EndTabBar();
     ImGui::End();
 }
+
+/* #endregion */
 
 // Explicit template instantiations
 template class AssetLibrary<Texture, TextureData>;
