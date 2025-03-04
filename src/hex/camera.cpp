@@ -47,7 +47,7 @@ void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity)
 }
 
 void Camera::updateViewMatrix() {
-    this->m_translation = matrix4x4f::translation(this->m_position);
+    this->m_translation = matrix4x4f::translation(this->m_position * -1.0f);
     this->m_lookAt      = matrix4x4f::lookAt(this->m_rotation);
     this->m_view        = this->m_translation * this->m_lookAt;
 }

@@ -1,5 +1,4 @@
 #include "codex/scene.hpp"
-#include "codex/assets.hpp"
 
 #include "imgui.h"
 

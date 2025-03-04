@@ -111,16 +111,16 @@ void initEvents() {
     Echo::Events::add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
-                cameraInput.movement.y = 1.0f;
-                break;
-            case SDL_SCANCODE_S:
                 cameraInput.movement.y = -1.0f;
                 break;
+            case SDL_SCANCODE_S:
+                cameraInput.movement.y = 1.0f;
+                break;
             case SDL_SCANCODE_A:
-                cameraInput.movement.x = 1.0f;
+                cameraInput.movement.x = -1.0f;
                 break;
             case SDL_SCANCODE_D:
-                cameraInput.movement.x = -1.0f;
+                cameraInput.movement.x = 1.0f;
                 break;
             case SDL_SCANCODE_ESCAPE:
                 cameraInput.lock = !cameraInput.lock;
