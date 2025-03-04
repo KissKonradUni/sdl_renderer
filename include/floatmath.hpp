@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <array>
+#include <memory>
 #include <xmmintrin.h>
 
 /*
@@ -15,7 +16,9 @@ typedef float radians;
 typedef float degrees;
 
 // Forward declaration
+struct vector4f;
 struct matrix4x4f;
+struct transformf;
 
 /**
  * @brief 4D vector of floats.
@@ -90,8 +93,14 @@ struct alignas(16) vector4f {
     vector4f operator+(const vector4f& other) const;
     vector4f operator-(const vector4f& other) const;
 
+    vector4f operator+=(const vector4f& other);
+    vector4f operator-=(const vector4f& other);
+
     vector4f operator*(float scalar) const;
     vector4f operator/(float scalar) const;
+
+    vector4f operator*=(float scalar);
+    vector4f operator/=(float scalar);
 
     vector4f operator-() const;
 
@@ -142,6 +151,15 @@ struct alignas(16) matrix4x4f {
     matrix4x4f(const std::array<std::array<float, 4>, 4>& array) : as_array_rows(array) {}
     matrix4x4f(const __m128 simd_rows[4]) : simd_rows{ simd_rows[0], simd_rows[1], simd_rows[2], simd_rows[3] } {}
     matrix4x4f(const matrix4x4f& other) : matrix4x4f(other.simd_rows) {}
+
+    // Copy assignment
+    matrix4x4f& operator=(const matrix4x4f& other) {
+        simd_rows[0] = other.simd_rows[0];
+        simd_rows[1] = other.simd_rows[1];
+        simd_rows[2] = other.simd_rows[2];
+        simd_rows[3] = other.simd_rows[3];
+        return *this;
+    }
 
     /**
      * @return matrix4x4f The identity matrix.
@@ -257,5 +275,86 @@ struct alignas(16) matrix4x4f {
     vector4f operator*(const vector4f& matrix) const;
 };
 
-void logMatrix(const matrix4x4f& matrix);
-void runFloatMathTests();
+/**
+ * @brief Represents a 3D transform.
+ * Used for representing the "space" of an object in 3D space.
+ */
+struct alignas(16) transformf {
+public:
+    // Create a base transform at the origin
+    transformf() {}
+    /**
+     * @brief Create a transform with a parent.
+     * 
+     * @param parent The parent transform.
+     */
+    transformf(const std::shared_ptr<transformf>& parent) : m_parent(parent) {}
+
+    /**
+     * @return vector4f The position of the object.
+     */
+    vector4f getPosition() const { return m_position; }
+    /**
+     * @param position The new position of the object.
+     */
+    void setPosition(const vector4f& position) { this->m_position = position; m_dirty = true; }
+
+    /**
+     * @return vector4f The rotation of the object.
+     */
+    vector4f getRotation() const { return m_rotation; }
+    /**
+     * @param rotation The new rotation of the object.
+     */
+    void setRotation(const vector4f& rotation) { this->m_rotation = rotation; m_dirty = true; }
+
+    /**
+     * @return vector4f The scale of the object.
+     */
+    vector4f getScale() const { return m_scale; }
+    /**
+     * @param scale The new scale of the object.
+     */
+    void setScale(const vector4f& scale) { this->m_scale = scale; m_dirty = true; }
+
+    /**
+     * @return const std::shared_ptr<transformf>& The parent transform of the object.
+     * @attention May return `nullptr` if the object has no parent.
+     */
+    const std::shared_ptr<transformf>& getParent() const { return m_parent; }
+    /**
+     * @brief Set the parent transform of the object.
+     * 
+     * @param parent The parent transform. If `nullptr`, the object will be parentless.
+     */
+    void setParent(const std::shared_ptr<transformf>& parent) { this->m_parent = parent; m_dirty = true; }
+
+    /**
+     * @param movement The vector to move the object by. (in local space)
+     */
+    void moveBy(const vector4f& movement);
+    /**
+     * @param rotationAxis The (local) axis to rotate around.
+     * @param angle The angle in radians.
+     */
+    void rotateBy(const vector4f& rotationAxis, radians angle);
+    /**
+     * @param scale The (local) scale to apply.
+     */
+    void scaleBy(const vector4f& scale);
+
+    /**
+     * @return matrix4x4f The model matrix of the object. (World -> Local)
+     */
+    matrix4x4f getModelMatrix();
+protected:
+    std::shared_ptr<transformf> m_parent = nullptr;
+
+    vector4f m_position = vector4f::zero();
+    vector4f m_rotation = vector4f::zero();
+    vector4f m_scale    = vector4f::one();
+
+    matrix4x4f m_modelMatrix;
+
+    bool m_dirty = true;
+};

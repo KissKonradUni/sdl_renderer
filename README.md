@@ -1,4 +1,4 @@
-# SDL3 Vulkan Renderer
+# SDL3 OpenGL Renderer
 
 # Building
 ## Dependencies

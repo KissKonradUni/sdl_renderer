@@ -1,10 +1,12 @@
 #pragma once
 
-#include <memory>
 #include <string>
+#include <array>
 #include <list>
 
 #include <SDL3/SDL.h>
+
+namespace Echo {
 
 enum MessageLevel {
     MSG_INFO = 0,
@@ -27,39 +29,41 @@ struct Message {
     MessageTimestamp timestamp;
 };
 
-class Imgui_Console {
+class Console {
 public:
+    static Console& instance() {
+        static Console instance;
+        return instance;
+    }
+
+    Console(const Console&) = delete;
+    Console& operator=(const Console&) = delete;
+
     void log(const std::string& message);
     void warn(const std::string& message);
     void error(const std::string& message);
 
     void drawConsole();
 
-    Imgui_Console() = default;
-    ~Imgui_Console();
-
 protected:
-    std::string prefix = "Sdl3App";
-    std::list<Message> messages = {};
+    Console() = default;
+    ~Console();
+
+    std::string m_prefix = "Cinder";
+    std::list<Message> m_messages = {};
     
-    bool scrollToBottom = true;
-    std::array<char, 256> inputBuffer = {};
+    bool m_scrollToBottom = true;
+    std::array<char, 256> m_inputBuffer = {};
 
     void newMessage(const Message& message);
 
     unsigned int getMessageWidth(const std::string& message);
 };
 
-class ModuleConsole {
-public:
-    ModuleConsole(const std::string& module);
-    ~ModuleConsole();
+void log(const std::string& message);
+void warn(const std::string& message);
+void error(const std::string& message);
 
-    void log(const std::string& message);
-    void warn(const std::string& message);
-    void error(const std::string& message);
-protected:
-    std::string prefix;
-};
+void consoleWindow();
 
-extern std::unique_ptr<Imgui_Console> console;
+}; // namespace Echo

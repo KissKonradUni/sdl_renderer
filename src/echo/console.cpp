@@ -1,5 +1,6 @@
-#include "console.hpp"
+#include "echo/console.hpp"
 
+#include <memory>
 #include <imgui.h>
 #include <SDL3/SDL.h>
 
@@ -7,7 +8,7 @@
 #define ANSI_YELLOW "\x1b[33m"
 #define ANSI_RESET "\x1b[0m"
 
-std::unique_ptr<Imgui_Console> console = std::make_unique<Imgui_Console>();
+namespace Echo {
 
 MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
     this->milliseconds = milliseconds % 1000;
@@ -16,45 +17,44 @@ MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
     this->hours        = (milliseconds / 3600000) % 24;
 }
 
-void Imgui_Console::log(const std::string& message) {
+void Console::log(const std::string& message) {
     newMessage(Message{ 
         message, MSG_INFO, MessageTimestamp(SDL_GetTicks())
     });
 }
 
-void Imgui_Console::warn(const std::string& message) {
+void Console::warn(const std::string& message) {
     newMessage(Message{ 
         message, MSG_WARN, MessageTimestamp(SDL_GetTicks())
     });
 }
 
-void Imgui_Console::error(const std::string& message) {
+void Console::error(const std::string& message) {
     newMessage(Message{ 
         message, MSG_ERROR, MessageTimestamp(SDL_GetTicks())
     });
 }
 
-Imgui_Console::~Imgui_Console() {
-    messages.clear();
-    SDL_Log("[*] Console destroyed");
+Console::~Console() {
+    m_messages.clear();
 }
 
-void Imgui_Console::drawConsole() {
-    ImGui::Begin("Console", nullptr, ImGuiWindowFlags_NoBackground);
+void Console::drawConsole() {
+    ImGui::Begin("Console", nullptr);
 
     ImGui::BeginChild("ConsoleOptions", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, false);
         if (ImGui::Button("Clear")) {
-            messages.clear();
+            m_messages.clear();
         }
         ImGui::SameLine();    
-        ImGui::Checkbox("Scroll to bottom", &scrollToBottom);
+        ImGui::Checkbox("Scroll to bottom", &m_scrollToBottom);
     ImGui::EndChild();
 
     ImGui::Separator();
 
-    ImGui::BeginChild("ConsoleMessages", ImVec2(0, -36), false, false);
+    ImGui::BeginChild("Consolem_messages", ImVec2(0, -46), false, false);
     ImVec4 color;
-    for (const auto& message : messages) {
+    for (const auto& message : m_messages) {
         switch (message.level) {
             case MSG_INFO:
                 color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -73,25 +73,27 @@ void Imgui_Console::drawConsole() {
             message.timestamp.minutes,
             message.timestamp.seconds,
             message.timestamp.milliseconds,
-            this->prefix.c_str(),
+            this->m_prefix.c_str(),
             message.message.c_str()
         );
 
     }
 
-    if (scrollToBottom)
+    if (m_scrollToBottom)
         ImGui::SetScrollHereY(1.0f);
     ImGui::EndChild();
     
     ImGui::BeginChild("ConsoleInput", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY, false);
         ImGui::PushItemWidth(-96);
-        auto result = ImGui::InputText("##ConsoleInput", inputBuffer.data(), inputBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+        auto result = ImGui::InputText("##ConsoleInput", m_inputBuffer.data(), m_inputBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::SameLine();
         if (ImGui::Button("Send", ImVec2(90, 0)) || result) {
-            log(std::string("Command issued: ") + inputBuffer.data());
-            if (std::string_view(inputBuffer.data()).starts_with("exit"))
-                SDL_PushEvent(new SDL_Event{SDL_EVENT_QUIT});
-            inputBuffer[0] = '\0';
+            log(std::string("Command issued: ") + m_inputBuffer.data());
+            if (std::string_view(m_inputBuffer.data()).starts_with("exit")) {
+                std::unique_ptr<SDL_Event> event = std::make_unique<SDL_Event>(SDL_EVENT_QUIT);
+                SDL_PushEvent(event.get());
+            }
+            m_inputBuffer[0] = '\0';
             ImGui::SetKeyboardFocusHere(-1);
         }
     ImGui::EndChild();
@@ -99,8 +101,8 @@ void Imgui_Console::drawConsole() {
     ImGui::End();
 }
 
-void Imgui_Console::newMessage(const Message& message) {
-    messages.push_back(message);
+void Console::newMessage(const Message& message) {
+    m_messages.push_back(message);
 
     std::string color = ANSI_RESET;
     if (message.level == MSG_WARN) {
@@ -116,12 +118,30 @@ void Imgui_Console::newMessage(const Message& message) {
         message.timestamp.minutes,
         message.timestamp.seconds,
         message.timestamp.milliseconds,
-        this->prefix.c_str(),
+        this->m_prefix.c_str(),
         message.message.c_str(),
         ANSI_RESET
     );
 }
 
-unsigned int Imgui_Console::getMessageWidth(const std::string& message) {
+unsigned int Console::getMessageWidth(const std::string& message) {
     return ImGui::CalcTextSize(message.c_str()).x;
 }
+
+void log(const std::string& message) {
+    Console::instance().log(message);
+}
+
+void warn(const std::string& message) {
+    Console::instance().warn(message);
+}
+
+void error(const std::string& message) {
+    Console::instance().error(message);
+}
+ 
+void consoleWindow() {
+    Console::instance().drawConsole();
+}
+
+} // namespace Echo

@@ -7,7 +7,13 @@
 /bin/*.txt
 
 /obj/*.o
+/obj/*/*.o
 
 /win_dlls/*.dll
 
 imgui.ini
+
+/assets/models/*.*
+/assets/models/*/*.*
+/assets/images/*.*
+/assets/images/*/*.*

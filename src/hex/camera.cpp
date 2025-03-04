@@ -1,9 +1,11 @@
-#include "camera.hpp"
+#include "hex/camera.hpp"
 
 #include "imgui.h"
-#include "ui.hpp"
+#include "echo/ui.hpp"
 
 #include <vector>
+
+namespace Hex {
 
 std::vector<Camera*> m_cameras = {};
 bool m_uiRegistered = false;
@@ -19,7 +21,7 @@ Camera::Camera(CameraViewport viewport, float fieldOfView, vector4f position, ve
 
     m_cameras.push_back(this);
     if (!m_uiRegistered) {
-        UIManager->addUIFunction(cameraUIs);
+        Echo::UI::instance().addUIFunction(cameraUIs);
         m_uiRegistered = true;
     }
 }
@@ -45,7 +47,7 @@ void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity)
 }
 
 void Camera::updateViewMatrix() {
-    this->m_translation = matrix4x4f::translation(this->m_position);
+    this->m_translation = matrix4x4f::translation(this->m_position * -1.0f);
     this->m_lookAt      = matrix4x4f::lookAt(this->m_rotation);
     this->m_view        = this->m_translation * this->m_lookAt;
 }
@@ -91,7 +93,7 @@ void Camera::cameraUIs() {
     int i = 1;
     for (auto& camera : m_cameras) {
         std::string name = "Camera " + std::to_string(i++);
-        ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_NoBackground);
+        ImGui::Begin(name.c_str(), nullptr);
         
         ImGui::Text("Position: ");
         ImGui::SameLine();
@@ -115,3 +117,5 @@ void Camera::cameraUIs() {
         ImGui::End();
     }
 }
+
+}; // namespace Hex

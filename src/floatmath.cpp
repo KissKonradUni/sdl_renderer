@@ -83,12 +83,32 @@ vector4f vector4f::operator-(const vector4f& other) const {
     return vector4f(_mm_sub_ps(simd, other.simd));
 }
 
+vector4f vector4f::operator+=(const vector4f& other) {
+    simd = _mm_add_ps(simd, other.simd);
+    return *this;
+}
+
+vector4f vector4f::operator-=(const vector4f& other) {
+    simd = _mm_sub_ps(simd, other.simd);
+    return *this;
+}
+
 vector4f vector4f::operator*(float scalar) const {
     return vector4f(_mm_mul_ps(simd, _mm_set1_ps(scalar)));
 }
 
 vector4f vector4f::operator/(float scalar) const {
     return vector4f(_mm_div_ps(simd, _mm_set1_ps(scalar)));
+}
+
+vector4f vector4f::operator*=(float scalar) {
+    simd = _mm_mul_ps(simd, _mm_set1_ps(scalar));
+    return *this;
+}
+
+vector4f vector4f::operator/=(float scalar) {
+    simd = _mm_div_ps(simd, _mm_set1_ps(scalar));
+    return *this;
 }
 
 vector4f vector4f::operator-() const {
@@ -249,105 +269,43 @@ vector4f matrix4x4f::operator*(const vector4f& vector) const {
     return result;
 }
 
-// Tests
+// Transformf
 
-void logMatrix(const matrix4x4f &matrix) {
-    SDL_Log("Matrix4x4f:");
-    for (int i = 0; i < 4; i++) {
-        SDL_Log("> Row %d: %f, %f, %f, %f", i, matrix.as_array_rows[i][0], matrix.as_array_rows[i][1], matrix.as_array_rows[i][2], matrix.as_array_rows[i][3]);
-    }
+void transformf::moveBy(const vector4f& movement) {
+    m_position += movement;
+    m_dirty = true;
 }
 
-void runFloatMathTests() {
-    // Vector4f tests
-    SDL_Log("\nVector4f tests:");
+void transformf::rotateBy(const vector4f& rotationAxis, radians angle) {
+    m_rotation += rotationAxis * angle;
+    m_dirty = true;
+}
 
-    vector4f a(1.0f, 2.0f, 3.0f, 4.0f);
-    vector4f b(5.0f, 6.0f, 7.0f, 8.0f);
+void transformf::scaleBy(const vector4f& scale) {
+    m_scale.x *= scale.x;
+    m_scale.y *= scale.y;
+    m_scale.z *= scale.z;
+    m_dirty = true;
+}
 
-    SDL_Log("a = (%f, %f, %f, %f)", a.x, a.y, a.z, a.w);
-    SDL_Log("b = (%f, %f, %f, %f)", b.x, b.y, b.z, b.w);
+matrix4x4f transformf::getModelMatrix() {
+    if (!m_dirty) {
+        return m_modelMatrix;
+    }
 
-    vector4f c = a + b;
-    SDL_Log("a + b = (%f, %f, %f, %f)", c.x, c.y, c.z, c.w);
+    matrix4x4f translationMatrix = matrix4x4f::translation(m_position);
+    matrix4x4f rotationMatrixX   = matrix4x4f::rotation(m_rotation.x, vector4f::right());
+    matrix4x4f rotationMatrixY   = matrix4x4f::rotation(m_rotation.y, vector4f::up());
+    matrix4x4f rotationMatrixZ   = matrix4x4f::rotation(m_rotation.z, vector4f::front());
+    matrix4x4f scaleMatrix       = matrix4x4f::scale(m_scale);
 
-    c = a - b;
-    SDL_Log("a - b = (%f, %f, %f, %f)", c.x, c.y, c.z, c.w);
+    this->m_modelMatrix = (scaleMatrix * rotationMatrixZ * rotationMatrixY * rotationMatrixX * translationMatrix);
 
-    c = a * 2.0f;
-    SDL_Log("a * 2 = (%f, %f, %f, %f)", c.x, c.y, c.z, c.w);
+    if (m_parent) {
+        this->m_modelMatrix = m_parent->getModelMatrix() * this->m_modelMatrix;
+    }
 
-    c = a / 2.0f;
-    SDL_Log("a / 2 = (%f, %f, %f, %f)", c.x, c.y, c.z, c.w);
+    m_dirty = false;
 
-    c = -a;
-    SDL_Log("-a = (%f, %f, %f, %f)", c.x, c.y, c.z, c.w);
-
-    float len = a.length3d();
-    SDL_Log("\n3D Length of a = %f", len);
-    c = a.normalize3d();
-    SDL_Log("3D Normalized a = (%f, %f, %f, %f)", c.x, c.y, c.z, c.w);
-
-    float dot = a.dot4d(b) / (a.length4d() * b.length4d());
-    SDL_Log("\n3D Dot product of a and b = %f", dot);
-    SDL_Log("Should be: ~0.969");
-
-    vector4f cross = a.cross3d(b);
-    SDL_Log("\n3D Cross product of a and b = (%f, %f, %f, %f)", cross.x, cross.y, cross.z, cross.w);
-    SDL_Log("Should be: (-4, 8, -4, 0)");
-
-    // Quaternionf tests
-
-    // Matrix4x4f tests
-    vector4f one = vector4f::one();
-
-    SDL_Log("\nMatrix4x4f tests:");
-    SDL_Log("\nIdentity matrix:");
-    matrix4x4f i = matrix4x4f::identity();
-    logMatrix(i);
-
-    vector4f result = one * i;
-    SDL_Log("Result of multiplying (1, 1, 1, 1) by the matrix:");
-    SDL_Log("(%f, %f, %f, %f)", result.x, result.y, result.z, result.w);
-
-    SDL_Log("\nTranslation matrix:");
-    matrix4x4f t = matrix4x4f::translation(1.0f, 0.0f, 0.0f);
-    logMatrix(t);
-
-    result = one * t;
-    SDL_Log("Result of multiplying (1, 1, 1, 1) by the matrix:");
-    SDL_Log("(%f, %f, %f, %f)", result.x, result.y, result.z, result.w);
-
-    SDL_Log("\nRotation matrix:");
-    matrix4x4f r = matrix4x4f::rotation(SDL_PI_F / 2.0f, 0.0f, 0.0f, 1.0f);
-    logMatrix(r);
-
-    result = one * r;
-    SDL_Log("Result of multiplying (1, 1, 1, 1) by the matrix:");
-    SDL_Log("(%f, %f, %f, %f)", result.x, result.y, result.z, result.w);
-
-    SDL_Log("\nScale matrix:");
-    matrix4x4f s = matrix4x4f::scale(2.0f, 2.0f, 2.0f);
-    logMatrix(s);
-
-    result = one * s;
-    SDL_Log("Result of multiplying (1, 1, 1, 1) by the matrix:");
-    SDL_Log("(%f, %f, %f, %f)", result.x, result.y, result.z, result.w);
-
-    SDL_Log("\nMatrix multiplication:");
-    SDL_Log("Rotate in place, scale in place, then translate:");
-    matrix4x4f m = r * s * t;
-    logMatrix(m);
-
-    result = one * m;
-    SDL_Log("Result of multiplying (1, 1, 1, 1) by the matrix:");
-    SDL_Log("(%f, %f, %f, %f)", result.x, result.y, result.z, result.w);
-
-    SDL_Log("\nOrthographic matrix:");
-    matrix4x4f o = matrix4x4f::orthographic(0.0f, 1280.0f, 0.0f, 720.0f, 0.01f, 100.0f);
-    logMatrix(o);
-
-    SDL_Log("\nPerspective matrix (90deg):");
-    matrix4x4f p = matrix4x4f::perspective(SDL_PI_F / 2.0f, 16.0f / 9.0f, 0.01f, 100.0f);
-    logMatrix(p);
+    return this->m_modelMatrix;
 }
