@@ -9,74 +9,16 @@
 
 namespace Codex {
 
-/* #region AssetNode */
-constexpr const std::string assetTypeToString(const AssetType type) {
-    switch (type) {
-        case ASSET_FOLDER: return "Folder";
-        case ASSET_TEXTURE: return "Texture";
-        case ASSET_SHADER: return "Shader";
-        case ASSET_MODEL: return "Model";
-        case ASSET_SOUND: return "Sound";
-        case ASSET_FONT: return "Font";
-        case ASSET_TEXT_DATA: return "Text Data";
-        case ASSET_BINARY_DATA: return "Binary Data";
-        default: return "Unknown";
-    }
-}
-
-const std::unordered_map<std::string, AssetType> EXTENSION_MAP = {
-    {".png", ASSET_TEXTURE},
-    {".jpg", ASSET_TEXTURE},
-    {".jpeg", ASSET_TEXTURE},
-    {".bmp", ASSET_TEXTURE},
-
-    {".wav", ASSET_SOUND},
-    {".mp3", ASSET_SOUND},
-    {".ogg", ASSET_SOUND},
-    
-    {".ttf", ASSET_FONT},
-    
-    {".json", ASSET_TEXT_DATA},
-    {".xml", ASSET_TEXT_DATA},
-    {".txt", ASSET_TEXT_DATA},
-    {".csv", ASSET_TEXT_DATA},
-    {".md", ASSET_TEXT_DATA},
-
-    {".bin", ASSET_BINARY_DATA},
-
-    {".vert", ASSET_SHADER},
-    {".frag", ASSET_SHADER},
-    {".geom", ASSET_SHADER},
-    {".glsl", ASSET_SHADER},
-
-    {".glb", ASSET_MODEL},
-    {".gltf", ASSET_MODEL},
-    {".fbx", ASSET_MODEL},
-    {".obj", ASSET_MODEL}
+const std::array<std::string, ASSET_TYPE_COUNT> ASSET_TYPE_STRINGS = {
+    "Folder",
+    "Texture",
+    "Shader",
+    "Model",
+    "Sound",
+    "Font",
+    "Text Data",
+    "Binary Data"
 };
-
-AssetNode::AssetNode(const std::string& path, AssetType type) 
-    : m_path(path), m_type(type) 
-{
-    m_name = std::filesystem::path(path).filename().string();
-}
-
-AssetNode::~AssetNode() {
-    m_children.clear();
-}
-
-void AssetNode::sortChildren() {
-    std::sort(this->m_children.begin(), this->m_children.end(), [](const auto& a, const auto& b) {
-        if (a->getType() == ASSET_FOLDER && b->getType() != ASSET_FOLDER) {
-            return true;
-        } else if (a->getType() != ASSET_FOLDER && b->getType() == ASSET_FOLDER) {
-            return false;
-        } else {
-            return a->getName() < b->getName();
-        }
-    });
-}
-/* #endregion */
 
 /* #region AssetLibrary<T,U> */
 template<typename T, typename U>
@@ -356,7 +298,7 @@ void Assets::assetsWindow() {
             
             ImGui::Text("Asset info: ");
             ImGui::Text("- Name: %s", child->getName().c_str());
-            ImGui::Text("- Type: %s", assetTypeToString(child->getType()).c_str());    
+            ImGui::Text("- Type: %s", ASSET_TYPE_STRINGS[child->getType()].c_str());    
 
             ImGui::EndTooltip();
         }
