@@ -27,8 +27,8 @@ public:
     AssetPtr get(const std::string& path);
     AssetPtr tryGet(const std::string& path);
     void getAsync(const std::string& path, LoadCallback callback);
-    void update();
     void setFunctions(ProcessFunc processor, LoaderFunc loader);
+    void update();
 
     bool isLoading(const std::string& path) const;
     bool isLoaded(const std::string& path) const;

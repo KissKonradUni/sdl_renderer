@@ -10,7 +10,6 @@ namespace Codex {
 
 TextureData::~TextureData() { 
     stbi_image_free(pixels); 
-    Echo::log("Texture data freed.");
 }
 
 Texture::Texture(const unsigned char* pixels, int width, int height, int channels) {

@@ -288,6 +288,7 @@ void Assets::assetsWindow() {
                 if (child->getType() == ASSET_TEXTURE) {
                     m_textureLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<Texture> texture) {
                         m_texturePreview = texture;
+                        texture->setAssetNode(child.get());
                     });
                 }
             }

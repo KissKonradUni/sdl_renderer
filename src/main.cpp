@@ -265,7 +265,7 @@ void performanceWindow() {
         memoryUsageIndex = (memoryUsageIndex + 1) % memoryUsage.size();
         
         ImGui::PlotHistogram("##memgraph", memoryUsage.data(), memoryUsage.size(), memoryUsageIndex, 
-                             "Memory usage (MB)", 0, FLT_MAX,
+                             "Memory usage (MB)", 0, 512.0f,
                              ImVec2(windowWidth / 2, -1));
     ImGui::EndChild();
 
