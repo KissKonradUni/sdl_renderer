@@ -2,16 +2,7 @@
 
 #include "imgui.h"
 
-#include <string>
-#include <array>
-
 namespace Codex {
-
-const std::array<std::string, TEXTURE_TYPE_COUNT> TextureTypeStrings = {
-    "textureDiffuse",
-    "textureNormal",
-    "textureAORoughnessMetallic"
-};
 
 void Scene::draw() {
     

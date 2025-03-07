@@ -24,6 +24,8 @@ struct TextureData {
  * Handles loading and uploading textures to the GPU
  */
 class Texture : public IResource {
+friend class Assets;
+friend class Material;
 public:
     Texture(const unsigned char* pixels, int width, int height, int channels);
     Texture(const TextureData* data);

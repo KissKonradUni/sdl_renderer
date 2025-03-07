@@ -144,12 +144,6 @@ Assets::Assets() {
     Echo::log("Asset manager starting up.");
     mapAssetsFolder();
 
-    m_textureLibrary.setFunctions([](std::shared_ptr<TextureData> data) {
-        return std::make_shared<Texture>(data.get());
-    }, [](const std::string& path) {
-        return Texture::loadTextureDataFromFile(path);
-    });
-
     m_shaderLibrary.setFunctions([](std::shared_ptr<ShaderData> data) {
         auto shader = std::make_unique<Shader>(data->vertexShaderSource, data->fragmentShaderSource);
         data->resource->m_program = std::move(shader);
@@ -159,6 +153,18 @@ Assets::Assets() {
         auto data = Shader::loadShaderDataFromFile(resource->m_vertexShaderFilename, resource->m_fragmentShaderFilename);
         data->resource = resource;
         return data;
+    });
+
+    m_materialLibrary.setFunctions([](std::shared_ptr<MaterialData> data) {
+        return std::make_shared<Material>(data.get()->path);
+    }, [](const std::string& path) {
+        return std::make_shared<MaterialData>(MaterialData{path});
+    });
+
+    m_textureLibrary.setFunctions([](std::shared_ptr<TextureData> data) {
+        return std::make_shared<Texture>(data.get());
+    }, [](const std::string& path) {
+        return Texture::loadTextureDataFromFile(path);
     });
 
     // TODO: Reimplement when new system is in place
@@ -251,6 +257,37 @@ void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
     }
 }
 
+AssetNode* Assets::findAsset(const std::string& path) {
+    if (!m_root) {
+        return nullptr;
+    }
+
+    auto current = m_root.get();
+    for (const auto& children : current->getChildren()) {
+        auto result = recursiveFindAsset(path, children.get());
+        if (result) {
+            return result;
+        }
+    }
+
+    return current;
+};
+
+AssetNode* Assets::recursiveFindAsset(const std::string& path, AssetNode* node) {
+    if (node->getPath() == path) {
+        return node;
+    }
+
+    for (const auto& children : node->getChildren()) {
+        auto result = recursiveFindAsset(path, children.get());
+        if (result) {
+            return result;
+        }
+    }
+
+    return nullptr;
+}
+
 void Assets::assetsWindow() {
     ImGui::Begin("Asset browser", nullptr);
 
@@ -263,6 +300,7 @@ void Assets::assetsWindow() {
         m_iconsAvailable = false;
     }
 
+    m_materialLibrary.update();
     m_textureLibrary.update();
     m_shaderLibrary.update();
     m_meshLibrary.update();
@@ -315,6 +353,12 @@ void Assets::assetsWindow() {
                             m_preview = shader;
                             m_previewType = ASSET_SHADER;
                             shader->m_node = child.get();
+                        });
+                    } else if (child->getName().ends_with(".material")) {
+                        m_materialLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<Material> material) {
+                            m_preview = material;
+                            m_previewType = ASSET_TEXT_DATA;
+                            material->m_node = child.get();
                         });
                     }
                     break;
@@ -384,6 +428,58 @@ void Assets::previewWindow() {
             ImGui::Text("- Fragment: %s", shaderPreview->m_fragmentShaderFilename.c_str());
         } else {
             ImGui::Text("No shader selected.");
+        }
+        break;
+    }
+    case ASSET_TEXT_DATA: {
+        auto materialPreview = static_cast<Material*>(m_preview.get());
+        if (materialPreview) {
+            ImGui::Text("Material: %s", materialPreview->m_name.c_str());
+            if (!materialPreview->m_diffuse || !materialPreview->m_normal || !materialPreview->m_aorm) {
+                ImGui::Text("Loading textures...");
+                break;
+            }
+            
+            auto diffuseAsset = materialPreview->m_diffuse->getAssetNode();
+            if (diffuseAsset) {
+                ImGui::Button(diffuseAsset->getName().c_str(), ImVec2(-1, 48));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Diffuse texture");
+                    ImGui::Image(materialPreview->m_diffuse->getHandle(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::EndTooltip();
+                }
+            } else {
+                ImGui::Text("- Diffuse: %s", materialPreview->m_diffusePath.c_str());
+            }
+            
+            auto normalAsset = materialPreview->m_normal->getAssetNode();
+            if (normalAsset) {
+                ImGui::Button(normalAsset->getName().c_str(), ImVec2(-1, 48));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Normal texture");
+                    ImGui::Image(materialPreview->m_normal->getHandle(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::EndTooltip();
+                }
+            } else {
+                ImGui::Text("- Normal: %s", materialPreview->m_normalPath.c_str());
+            }
+
+            auto aormAsset = materialPreview->m_aorm->getAssetNode();
+            if (aormAsset) {
+                ImGui::Button(aormAsset->getName().c_str(), ImVec2(-1, 48));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("AORM texture");
+                    ImGui::Image(materialPreview->m_aorm->getHandle(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::EndTooltip();
+                }
+            } else {
+                ImGui::Text("- AORM: %s", materialPreview->m_aormPath.c_str());
+            }
+        } else {
+            ImGui::Text("No material selected.");
         }
         break;
     }

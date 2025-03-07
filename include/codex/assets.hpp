@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "assetnode.hpp"
+#include "material.hpp"
 #include "texture.hpp"
 #include "shader.hpp"
 #include "scene.hpp"
@@ -59,6 +60,7 @@ public:
     Assets& operator=(const Assets&) = delete;
 
     void mapAssetsFolder();
+    AssetNode* findAsset(const std::string& path);
     void printAssets();
 
     Scene& getCurrentScene() { return m_scene; }
@@ -67,13 +69,17 @@ public:
     void previewWindow();
 
     AssetLibrary<ShaderResource, ShaderData>& getShaderLibrary() { return m_shaderLibrary; }
+    AssetLibrary<Material, MaterialData>& getMaterialLibrary() { return m_materialLibrary; }
     AssetLibrary<Texture, TextureData>& getTextureLibrary() { return m_textureLibrary; }
     AssetLibrary<Mesh, SceneData>& getMeshLibrary() { return m_meshLibrary; }
 protected:
     Assets();
     ~Assets();
 
+    AssetNode* recursiveFindAsset(const std::string& path, AssetNode* node);
+
     AssetLibrary<ShaderResource, ShaderData> m_shaderLibrary;
+    AssetLibrary<Material, MaterialData> m_materialLibrary;
     AssetLibrary<Texture, TextureData> m_textureLibrary;
     AssetLibrary<Mesh, SceneData> m_meshLibrary;
 

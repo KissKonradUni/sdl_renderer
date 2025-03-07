@@ -26,6 +26,8 @@ const std::unordered_map<std::string, AssetType> EXTENSION_MAP = {
     {".jpeg", ASSET_TEXTURE},
     {".bmp", ASSET_TEXTURE},
 
+    {".material", ASSET_TEXT_DATA},
+
     {".wav", ASSET_SOUND},
     {".mp3", ASSET_SOUND},
     {".ogg", ASSET_SOUND},
