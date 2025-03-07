@@ -150,6 +150,17 @@ Assets::Assets() {
         return Texture::loadTextureDataFromFile(path);
     });
 
+    m_shaderLibrary.setFunctions([](std::shared_ptr<ShaderData> data) {
+        auto shader = std::make_unique<Shader>(data->vertexShaderSource, data->fragmentShaderSource);
+        data->resource->m_program = std::move(shader);
+        return data->resource;
+    }, [](const std::string& path) {
+        auto resource = std::make_shared<ShaderResource>(path);
+        auto data = Shader::loadShaderDataFromFile(resource->m_vertexShaderFilename, resource->m_fragmentShaderFilename);
+        data->resource = resource;
+        return data;
+    });
+
     // TODO: Reimplement when new system is in place
     m_meshLibrary.setFunctions([](std::shared_ptr<SceneData> data) {
         //return Mesh::processCombinedSceneData(data);
@@ -179,12 +190,6 @@ void Assets::mapAssetsFolder() {
     recursiveSort(m_root);
 
     Echo::log("Assets folder mapped.");
-    
-    if (std::filesystem::exists(ASSET_ICONS)) {
-        m_icons = Texture::loadTextureFromFile(ASSET_ICONS);
-    } else {
-        Echo::warn("Icons texture not found.");
-    }
 }
 
 void Assets::printAssets() {
@@ -249,7 +254,17 @@ void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
 void Assets::assetsWindow() {
     ImGui::Begin("Asset browser", nullptr);
 
+    if (std::filesystem::exists(ASSET_ICONS) && m_iconsAvailable) {
+        m_textureLibrary.getAsync(ASSET_ICONS, [this](std::shared_ptr<Texture> texture) {
+            m_icons = texture;
+        });
+    } else {
+        Echo::warn("Icons texture not found.");
+        m_iconsAvailable = false;
+    }
+
     m_textureLibrary.update();
+    m_shaderLibrary.update();
     m_meshLibrary.update();
 
     if (!m_currentNode) {
@@ -277,7 +292,7 @@ void Assets::assetsWindow() {
             ImGui::Image(m_icons->getHandle(), ImVec2(48, 48), ImVec2(iconIndex / ASSET_TYPE_COUNT, 1), ImVec2((iconIndex + 1) / ASSET_TYPE_COUNT, 0));
             ImGui::SameLine();
         }
-        if (ImGui::Button(child->getName().c_str(), ImVec2(baseSize.x - 56, 48))) {
+        if (ImGui::Button(child->getName().c_str(), ImVec2(-1, 48))) {
             if (child->getType() == ASSET_FOLDER) {
                 m_currentNode = child;
                 m_selectedNode = nullptr;
@@ -285,11 +300,26 @@ void Assets::assetsWindow() {
                 m_selectedNode = child;
 
                 // Test, TODO: Expand upon
-                if (child->getType() == ASSET_TEXTURE) {
+                switch (child->getType()) 
+                {
+                case ASSET_TEXTURE:
                     m_textureLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<Texture> texture) {
-                        m_texturePreview = texture;
-                        texture->setAssetNode(child.get());
+                        m_preview = texture;
+                        m_previewType = ASSET_TEXTURE;
+                        texture->m_node = child.get();
                     });
+                    break;
+                case ASSET_TEXT_DATA:
+                    if (child->getName().ends_with(".shader")) {
+                        m_shaderLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<ShaderResource> shader) {
+                            m_preview = shader;
+                            m_previewType = ASSET_SHADER;
+                            shader->m_node = child.get();
+                        });
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
         }
@@ -315,18 +345,12 @@ void Assets::assetsWindow() {
 void Assets::previewWindow() {
     ImGui::Begin("Asset viewer", nullptr);
 
-    static int activeTab = 0;
-    ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None);
-    if (ImGui::TabItemButton("Preview")) {
-        activeTab = 0;
-    }
-    if (ImGui::TabItemButton("Stats")) {
-        activeTab = 1;
-    }
-
-    if (activeTab == 0) {
-        if (m_texturePreview) {
-            ImGui::Text("%dx%d:%d", m_texturePreview->getWidth(), m_texturePreview->getHeight(), m_texturePreview->getChannels());
+    switch (m_previewType) 
+    {
+    case ASSET_TEXTURE: {
+        auto imgPreview = static_cast<Texture*>(m_preview.get());
+        if (imgPreview) {
+            ImGui::Text("%dx%d:%d", imgPreview->getWidth(), imgPreview->getHeight(), imgPreview->getChannels());
         } else {
             ImGui::Text("No texture selected.");
         }
@@ -335,8 +359,8 @@ void Assets::previewWindow() {
 
         auto area = ImGui::GetContentRegionAvail();
 
-        if (m_texturePreview) {
-            float imageAspect = (float)m_texturePreview->getWidth() / (float)m_texturePreview->getHeight();
+        if (imgPreview) {
+            float imageAspect = (float)imgPreview->getWidth() / (float)imgPreview->getHeight();
             float windowAspect = area.x / area.y;
             float width, height;
             
@@ -348,20 +372,39 @@ void Assets::previewWindow() {
                 height = area.y;
             }
 
-            ImGui::Image(m_texturePreview->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image(imgPreview->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
         }
-    } else if (activeTab == 1) {
-        ImGui::Text("Asset count: ");
-        ImGui::Text("- Textures: %d", m_textureLibrary.getAssetCount());
-        ImGui::Text("- Meshes: %d", m_meshLibrary.getAssetCount());
+        break;
+    }
+    case ASSET_SHADER: {
+        auto shaderPreview = static_cast<ShaderResource*>(m_preview.get());
+        if (shaderPreview) {
+            ImGui::Text("Shader: %s", shaderPreview->m_name.c_str());
+            ImGui::Text("- Vertex: %s", shaderPreview->m_vertexShaderFilename.c_str());
+            ImGui::Text("- Fragment: %s", shaderPreview->m_fragmentShaderFilename.c_str());
+        } else {
+            ImGui::Text("No shader selected.");
+        }
+        break;
+    }
+    default:
+        break;
+    }
 
-        ImGui::Separator();
+    ImGui::Separator();
 
-        ImGui::Text("Currently loading: ");
-        ImGui::Text("- Textures: %d", m_textureLibrary.getLoadingCount());
-        ImGui::Text("- Meshes: %d", m_meshLibrary.getLoadingCount());
-    } 
-    ImGui::EndTabBar();
+    ImGui::Text("Asset count: ");
+    ImGui::Text("- Textures: %d", m_textureLibrary.getAssetCount());
+    ImGui::Text("- Shaders: %d", m_shaderLibrary.getAssetCount());
+    ImGui::Text("- Meshes: %d", m_meshLibrary.getAssetCount());
+
+    ImGui::Separator();
+
+    ImGui::Text("Currently loading: ");
+    ImGui::Text("- Textures: %d", m_textureLibrary.getLoadingCount());
+    ImGui::Text("- Shaders: %d", m_shaderLibrary.getLoadingCount());
+    ImGui::Text("- Meshes: %d", m_meshLibrary.getLoadingCount());
+
     ImGui::End();
 }
 

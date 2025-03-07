@@ -8,6 +8,7 @@
 
 #include "assetnode.hpp"
 #include "texture.hpp"
+#include "shader.hpp"
 #include "scene.hpp"
 #include "mesh.hpp"
 
@@ -65,25 +66,29 @@ public:
     void assetsWindow();
     void previewWindow();
 
+    AssetLibrary<ShaderResource, ShaderData>& getShaderLibrary() { return m_shaderLibrary; }
     AssetLibrary<Texture, TextureData>& getTextureLibrary() { return m_textureLibrary; }
     AssetLibrary<Mesh, SceneData>& getMeshLibrary() { return m_meshLibrary; }
 protected:
     Assets();
     ~Assets();
 
+    AssetLibrary<ShaderResource, ShaderData> m_shaderLibrary;
     AssetLibrary<Texture, TextureData> m_textureLibrary;
     AssetLibrary<Mesh, SceneData> m_meshLibrary;
 
     // TODO: Make it be able to hold multiple scenes, and make them dynamically loadable
     Scene m_scene;
 
+    bool m_iconsAvailable = true;
     std::shared_ptr<Texture> m_icons;
 
     std::shared_ptr<AssetNode> m_root;
     std::shared_ptr<AssetNode> m_currentNode;
     std::shared_ptr<AssetNode> m_selectedNode;
 
-    std::shared_ptr<Texture> m_texturePreview;
+    std::shared_ptr<IResource> m_preview;
+    AssetType m_previewType;
 
     void recursivePrint(std::shared_ptr<AssetNode> node, int depth);
     void recursiveMap(std::shared_ptr<AssetNode> node);

@@ -1,8 +1,10 @@
 #include "codex/shader.hpp"
 #include "echo/console.hpp"
 
+#include "lib/json/json.hpp"
 #include "lib/glad/glad.h"
 
+#include <filesystem>
 #include <fstream>
 
 namespace Codex {
@@ -34,6 +36,28 @@ void UniformBuffer::updateData(const UniformBufferData* data) {
         SDL_memcpy(dataPointer, data, m_size);
     }
     glUnmapBuffer(GL_UNIFORM_BUFFER);
+}
+
+ShaderResource::ShaderResource(const std::string& path) {
+    if (!std::filesystem::exists(path)) {
+        Echo::error(std::string("Shader file not found: ") + path);
+        return;
+    }
+
+    using nlohmann::json;
+
+    std::ifstream file(path);
+    json data = json::parse(file);
+
+    m_name                   = data["name"].template get<std::string>();
+    m_vertexShaderFilename   = data["vert"].template get<std::string>();
+    m_fragmentShaderFilename = data["frag"].template get<std::string>();
+
+    Echo::log(std::string("Shader resource created: ") + m_name);
+}
+
+ShaderResource::~ShaderResource() {
+    Echo::log(std::string("Shader resource destroyed: ") + m_name);
 }
 
 Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource) {
@@ -120,14 +144,29 @@ void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
     glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
 }
 
-std::shared_ptr<Shader> Shader::loadShaderFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
+std::shared_ptr<ShaderData> Shader::loadShaderDataFromFile(const std::string &vertexShaderFilename, const std::string &fragmentShaderFilename) {
+    if (!std::filesystem::exists(vertexShaderFilename)) {
+        Echo::error(std::string("Vertex shader file not found: ") + vertexShaderFilename);
+        return nullptr;
+    }
+
+    if (!std::filesystem::exists(fragmentShaderFilename)) {
+        Echo::error(std::string("Fragment shader file not found: ") + fragmentShaderFilename);
+        return nullptr;
+    }
+    
     std::ifstream vertexShaderFile(vertexShaderFilename);
     std::string vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
 
     std::ifstream fragmentShaderFile(fragmentShaderFilename);
     std::string fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
 
-    return std::make_shared<Shader>(vertexShaderSource, fragmentShaderSource);
+    return std::make_shared<ShaderData>(ShaderData{vertexShaderSource, fragmentShaderSource});
+}
+
+std::shared_ptr<Shader> Shader::loadShaderFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
+    auto sources = loadShaderDataFromFile(vertexShaderFilename, fragmentShaderFilename);    
+    return std::make_shared<Shader>(sources->vertexShaderSource, sources->fragmentShaderSource);
 }
 
 unsigned int Shader::getUniformLocation(const std::string& name) {

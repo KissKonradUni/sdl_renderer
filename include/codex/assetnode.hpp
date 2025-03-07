@@ -38,6 +38,8 @@ const std::unordered_map<std::string, AssetType> EXTENSION_MAP = {
     {".csv", ASSET_TEXT_DATA},
     {".md", ASSET_TEXT_DATA},
 
+    {".shader", ASSET_TEXT_DATA},
+
     {".bin", ASSET_BINARY_DATA},
 
     {".vert", ASSET_SHADER},
