@@ -275,6 +275,8 @@ void performanceWindow() {
 void renderWindow() {
     ImGui::Begin("Render", nullptr);
 
+    int startPos = ImGui::GetCursorPos().y;
+
     int width  = ImGui::GetContentRegionAvail().x;
     int height = ImGui::GetContentRegionAvail().y;
 
@@ -298,6 +300,9 @@ void renderWindow() {
         ImVec2(0, 1),
         ImVec2(1, 0)
     );
+
+    ImGui::SetCursorPos(ImVec2(0, startPos));
+    ImGui::Text("Input: %s", cameraInput.lock ? "Locked" : "Captured");
 
     ImGui::End();
 }
