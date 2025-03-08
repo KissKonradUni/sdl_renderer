@@ -1,6 +1,5 @@
 # SDL3 OpenGL Renderer
 
-# Building
 ## Dependencies
 ### Linux
 - From the package manager (Arch):
