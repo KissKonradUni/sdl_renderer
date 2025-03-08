@@ -9,17 +9,35 @@
 namespace Codex {
 
 TextureData::~TextureData() { 
-    stbi_image_free(data); 
+    stbi_image_free(pixels); 
 }
 
-Texture::Texture(std::vector<unsigned char>& data, int width, int height, int channels) 
-    : Texture(data.data(), width, height, channels) {}
+Texture::Texture(const unsigned char* pixels, int width, int height, int channels) {
+    glGenTextures(1, &m_textureHandle);
+    glBindTexture(GL_TEXTURE_2D, m_textureHandle);
 
-Texture::Texture(const std::shared_ptr<TextureData> data) 
-    : Texture(data->data, data->width, data->height, data->channels) {}
+    m_width    = width;
+    m_height   = height;
+    m_channels = channels;
 
-Texture::Texture(const vector4f& color)
-    : Texture(nullptr, 1, 1, 4) {
+    bool empty = pixels == nullptr;
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, empty ? NULL : pixels);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, empty ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    if (!empty)
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+Texture::Texture(const TextureData* data) : Texture(data->pixels, data->width, data->height, data->channels) {}
+
+Texture::Texture(const vector4f& color) : Texture(nullptr, 1, 1, 4) {
     unsigned char data[4] = {
         static_cast<unsigned char>(SDL_clamp(color.x, 0.0f, 1.0f) * 255.0f),
         static_cast<unsigned char>(SDL_clamp(color.y, 0.0f, 1.0f) * 255.0f),
@@ -54,7 +72,7 @@ std::shared_ptr<Texture> Texture::loadTextureFromFile(const std::string& filenam
     if (!data) {
         return nullptr;
     }
-    auto result = std::make_shared<Texture>(data->data, data->width, data->height, data->channels);
+    auto result = std::make_shared<Texture>(data->pixels, data->width, data->height, data->channels);
     return result;
 }
 
@@ -71,29 +89,6 @@ void Texture::resize(int width, int height) {
 
 void Texture::attachToFramebuffer(int attachment) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, m_textureHandle, 0);
-}
-
-Texture::Texture(unsigned char* data, int width, int height, int channels) {
-    glGenTextures(1, &m_textureHandle);
-    glBindTexture(GL_TEXTURE_2D, m_textureHandle);
-
-    m_width = width;
-    m_height = height;
-    m_channels = channels;
-
-    bool empty = data == nullptr;
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, empty ? NULL : data);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, empty ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    if (!empty)
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 } // namespace Codex

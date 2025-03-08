@@ -3,55 +3,17 @@
 #include <functional>
 #include <future>
 #include <string>
-#include <thread>
 #include <vector>
 #include <memory>
-#include <list>
 
+#include "assetnode.hpp"
+#include "material.hpp"
 #include "texture.hpp"
+#include "shader.hpp"
 #include "scene.hpp"
+#include "mesh.hpp"
 
 namespace Codex {
-
-#define ASSET_TYPE_COUNT 8
-enum AssetType : uint8_t {
-    ASSET_FOLDER,
-    ASSET_TEXTURE,
-    ASSET_SHADER,
-    ASSET_MODEL,
-    ASSET_SOUND,
-    ASSET_FONT,
-    ASSET_TEXT_DATA,
-    ASSET_BINARY_DATA
-};
-
-/**
- * @brief A node in the asset tree, holds the structure of the assets folder
- */
-class AssetNode {
-public:
-    AssetNode(const std::string& path, AssetType type);
-    ~AssetNode();
-
-    const std::string& getName() const { return m_name; }
-    const std::string& getPath() const { return m_path; }
-    const AssetType getType() const { return m_type; }
-    
-    void addChild(std::shared_ptr<AssetNode> child) { m_children.push_back(child); }
-    const std::vector<std::shared_ptr<AssetNode>>& getChildren() const { return m_children; }
-
-    void setParent(std::shared_ptr<AssetNode> parent) { m_parent = parent; }
-    std::shared_ptr<AssetNode> getParent() { return m_parent; }
-
-    void sortChildren();
-protected:
-    std::string m_name;
-    std::string m_path;
-    AssetType m_type;
-
-    std::vector<std::shared_ptr<AssetNode>> m_children;
-    std::shared_ptr<AssetNode> m_parent;
-};
 
 template<typename T, typename U>
 class AssetLibrary {
@@ -67,8 +29,8 @@ public:
     AssetPtr get(const std::string& path);
     AssetPtr tryGet(const std::string& path);
     void getAsync(const std::string& path, LoadCallback callback);
-    void update();
     void setFunctions(ProcessFunc processor, LoaderFunc loader);
+    void update();
 
     bool isLoading(const std::string& path) const;
     bool isLoaded(const std::string& path) const;
@@ -82,25 +44,6 @@ private:
     std::unordered_map<std::string, std::vector<LoadCallback>> m_callbacks;
     ProcessFunc m_processor;
     LoaderFunc m_loader;
-};
-
-template <typename T>
-class Offloader {
-public:
-    Offloader(std::function<void(std::shared_ptr<T>)> callback);
-    ~Offloader();
-
-    void update();
-    void run(std::function<std::shared_ptr<T>()> threadFunc);
-protected:
-    std::function<void(std::shared_ptr<T>)> m_callback = nullptr;
-
-    std::list<std::function<std::shared_ptr<T>()>> m_threadQueue;
-    std::function<std::shared_ptr<T>()> m_threadFunc = nullptr;
-    std::atomic<bool> m_threadRunning = true;
-    std::thread m_thread;
-
-    std::shared_ptr<T> m_resultBuffer = nullptr;
 };
 
 #define ASSETS_ROOT "./assets"
@@ -117,6 +60,7 @@ public:
     Assets& operator=(const Assets&) = delete;
 
     void mapAssetsFolder();
+    AssetNode* findAsset(const std::string& path);
     void printAssets();
 
     Scene& getCurrentScene() { return m_scene; }
@@ -124,23 +68,33 @@ public:
     void assetsWindow();
     void previewWindow();
 
+    AssetLibrary<ShaderResource, ShaderData>& getShaderLibrary() { return m_shaderLibrary; }
+    AssetLibrary<Material, MaterialData>& getMaterialLibrary() { return m_materialLibrary; }
     AssetLibrary<Texture, TextureData>& getTextureLibrary() { return m_textureLibrary; }
     AssetLibrary<Mesh, SceneData>& getMeshLibrary() { return m_meshLibrary; }
 protected:
     Assets();
     ~Assets();
 
+    AssetNode* recursiveFindAsset(const std::string& path, AssetNode* node);
+
+    AssetLibrary<ShaderResource, ShaderData> m_shaderLibrary;
+    AssetLibrary<Material, MaterialData> m_materialLibrary;
     AssetLibrary<Texture, TextureData> m_textureLibrary;
     AssetLibrary<Mesh, SceneData> m_meshLibrary;
 
     // TODO: Make it be able to hold multiple scenes, and make them dynamically loadable
     Scene m_scene;
 
+    bool m_iconsAvailable = true;
     std::shared_ptr<Texture> m_icons;
 
     std::shared_ptr<AssetNode> m_root;
     std::shared_ptr<AssetNode> m_currentNode;
     std::shared_ptr<AssetNode> m_selectedNode;
+
+    std::shared_ptr<IResource> m_preview;
+    AssetType m_previewType;
 
     void recursivePrint(std::shared_ptr<AssetNode> node, int depth);
     void recursiveMap(std::shared_ptr<AssetNode> node);

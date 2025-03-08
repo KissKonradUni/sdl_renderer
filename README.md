@@ -26,12 +26,14 @@
 > The `win_dlls/dll_list.txt` contains the necessary .dll files' names.
 
 ## Licenses
+> Of used 3rd party extras
 - SDL3: [zlib license](https://www.libsdl.org/license.php)
 - Assimp: [BSD 3-Clause license](https://github.com/assimp/assimp/blob/master/LICENSE)
 - Glad: [Public Domain, WTFPL or CC0](https://github.com/Dav1dde/glad)
 - Dear Imgui: [MIT license](https://github.com/ocornut/imgui?tab=MIT-1-ov-file)
 - stb_image: [Public Domain](https://github.com/nothings/stb/tree/master?tab=License-1-ov-file)
 - FiraCode font: [SIL Open Font License](https://github.com/tonsky/FiraCode?tab=OFL-1.1-1-ov-file)
+- Nholmann JSON: [MIT license](https://github.com/nlohmann/json?tab=MIT-1-ov-file)
 
 ## Compiling
 ```sh

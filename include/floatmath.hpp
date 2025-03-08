@@ -3,7 +3,6 @@
 #include <SDL3/SDL.h>
 
 #include <array>
-#include <memory>
 #include <xmmintrin.h>
 
 /*
@@ -38,15 +37,15 @@ struct alignas(16) vector4f {
     vector4f(const __m128 simd) : simd(simd) {}
     vector4f(const vector4f& other) : simd(other.simd) {}
 
-    static constexpr vector4f zero()  { return vector4f( 0.0f,  0.0f,  0.0f,  0.0f); }
-    static constexpr vector4f one()   { return vector4f( 1.0f,  1.0f,  1.0f,  1.0f); }
+    static constexpr const vector4f zero()  { return vector4f( 0.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr const vector4f one()   { return vector4f( 1.0f,  1.0f,  1.0f,  1.0f); }
 
-    static constexpr vector4f up()    { return vector4f( 0.0f,  1.0f,  0.0f,  0.0f); }
-    static constexpr vector4f down()  { return vector4f( 0.0f, -1.0f,  0.0f,  0.0f); }
-    static constexpr vector4f right() { return vector4f( 1.0f,  0.0f,  0.0f,  0.0f); }
-    static constexpr vector4f left()  { return vector4f(-1.0f,  0.0f,  0.0f,  0.0f); }
-    static constexpr vector4f back()  { return vector4f( 0.0f,  0.0f,  1.0f,  0.0f); }
-    static constexpr vector4f front() { return vector4f( 0.0f,  0.0f, -1.0f,  0.0f); }
+    static constexpr const vector4f up()    { return vector4f( 0.0f,  1.0f,  0.0f,  0.0f); }
+    static constexpr const vector4f down()  { return vector4f( 0.0f, -1.0f,  0.0f,  0.0f); }
+    static constexpr const vector4f right() { return vector4f( 1.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr const vector4f left()  { return vector4f(-1.0f,  0.0f,  0.0f,  0.0f); }
+    static constexpr const vector4f back()  { return vector4f( 0.0f,  0.0f,  1.0f,  0.0f); }
+    static constexpr const vector4f front() { return vector4f( 0.0f,  0.0f, -1.0f,  0.0f); }
 
     /**
      * @return float The length of the vector.
@@ -164,7 +163,7 @@ struct alignas(16) matrix4x4f {
     /**
      * @return matrix4x4f The identity matrix.
      */
-    static constexpr matrix4x4f identity() {
+    static constexpr const matrix4x4f identity() {
         return matrix4x4f(std::array<float, 16> {
             1.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 1.0f, 0.0f, 0.0f,
@@ -175,7 +174,7 @@ struct alignas(16) matrix4x4f {
     /**
      * @return matrix4x4f The null matrix.
      */
-    static constexpr matrix4x4f null() {
+    static constexpr const matrix4x4f null() {
         return matrix4x4f(std::array<float, 16> {});
     }
 
@@ -288,7 +287,7 @@ public:
      * 
      * @param parent The parent transform.
      */
-    transformf(const std::shared_ptr<transformf>& parent) : m_parent(parent) {}
+    transformf(transformf* parent) : m_parent(parent) {}
 
     /**
      * @return vector4f The position of the object.
@@ -321,13 +320,13 @@ public:
      * @return const std::shared_ptr<transformf>& The parent transform of the object.
      * @attention May return `nullptr` if the object has no parent.
      */
-    const std::shared_ptr<transformf>& getParent() const { return m_parent; }
+    const transformf* getParent() const { return m_parent; }
     /**
      * @brief Set the parent transform of the object.
      * 
      * @param parent The parent transform. If `nullptr`, the object will be parentless.
      */
-    void setParent(const std::shared_ptr<transformf>& parent) { this->m_parent = parent; m_dirty = true; }
+    void setParent(transformf* parent) { this->m_parent = parent; m_dirty = true; }
 
     /**
      * @param movement The vector to move the object by. (in local space)
@@ -348,7 +347,7 @@ public:
      */
     matrix4x4f getModelMatrix();
 protected:
-    std::shared_ptr<transformf> m_parent = nullptr;
+    transformf* m_parent = nullptr;
 
     vector4f m_position = vector4f::zero();
     vector4f m_rotation = vector4f::zero();

@@ -9,121 +9,18 @@
 
 namespace Codex {
 
-const std::string assetTypeToString(const AssetType type) {
-    switch (type) {
-        case ASSET_FOLDER: return "Folder";
-        case ASSET_TEXTURE: return "Texture";
-        case ASSET_SHADER: return "Shader";
-        case ASSET_MODEL: return "Model";
-        case ASSET_SOUND: return "Sound";
-        case ASSET_FONT: return "Font";
-        case ASSET_TEXT_DATA: return "Text Data";
-        case ASSET_BINARY_DATA: return "Binary Data";
-        default: return "Unknown";
-    }
-}
-
-const std::unordered_map<std::string, AssetType> EXTENSION_MAP = {
-    {".png", ASSET_TEXTURE},
-    {".jpg", ASSET_TEXTURE},
-    {".jpeg", ASSET_TEXTURE},
-    {".bmp", ASSET_TEXTURE},
-
-    {".wav", ASSET_SOUND},
-    {".mp3", ASSET_SOUND},
-    {".ogg", ASSET_SOUND},
-    
-    {".ttf", ASSET_FONT},
-    
-    {".json", ASSET_TEXT_DATA},
-    {".xml", ASSET_TEXT_DATA},
-    {".txt", ASSET_TEXT_DATA},
-    {".csv", ASSET_TEXT_DATA},
-    {".md", ASSET_TEXT_DATA},
-
-    {".bin", ASSET_BINARY_DATA},
-
-    {".vert", ASSET_SHADER},
-    {".frag", ASSET_SHADER},
-    {".geom", ASSET_SHADER},
-    {".glsl", ASSET_SHADER},
-
-    {".glb", ASSET_MODEL},
-    {".gltf", ASSET_MODEL},
-    {".fbx", ASSET_MODEL},
-    {".obj", ASSET_MODEL}
+const std::array<std::string, ASSET_TYPE_COUNT> ASSET_TYPE_STRINGS = {
+    "Folder",
+    "Texture",
+    "Shader",
+    "Model",
+    "Sound",
+    "Font",
+    "Text Data",
+    "Binary Data"
 };
 
-AssetNode::AssetNode(const std::string& path, AssetType type) 
-    : m_path(path), m_type(type) 
-{
-    m_name = std::filesystem::path(path).filename().string();
-}
-
-AssetNode::~AssetNode() {
-    m_children.clear();
-}
-
-void AssetNode::sortChildren() {
-    std::sort(this->m_children.begin(), this->m_children.end(), [](const auto& a, const auto& b) {
-        if (a->getType() == ASSET_FOLDER && b->getType() != ASSET_FOLDER) {
-            return true;
-        } else if (a->getType() != ASSET_FOLDER && b->getType() == ASSET_FOLDER) {
-            return false;
-        } else {
-            return a->getName() < b->getName();
-        }
-    });
-}
-
-// TODO: Move this to a prettier place
-std::shared_ptr<Texture> lastLoadedTexture = nullptr;
-
-template<typename T>
-Offloader<T>::Offloader(std::function<void(std::shared_ptr<T>)> callback) {
-    m_callback = callback;
-    m_thread = std::thread([this]() {
-        while (m_threadRunning) {
-            if (m_threadFunc) {
-                m_resultBuffer = m_threadFunc();
-                m_threadFunc = nullptr;
-            }
-            SDL_Delay(100);
-        }
-    });
-}
-
-template<typename T>
-Offloader<T>::~Offloader() {
-    m_threadRunning = false;
-    if (m_thread.joinable()) {
-        m_thread.join();
-    }
-}
-
-template<typename T>
-void Offloader<T>::update() {
-    if (m_resultBuffer) {
-        m_callback(m_resultBuffer);
-        m_resultBuffer = nullptr;
-        
-        if (!m_threadQueue.empty()) {
-            m_threadFunc = m_threadQueue.front();
-            m_threadQueue.pop_front();
-        }
-    }
-}
-
-template<typename T>
-void Offloader<T>::run(std::function<std::shared_ptr<T>()> threadFunc) {
-    if (!m_threadFunc) {
-        m_threadFunc = threadFunc;
-    } else {
-        m_threadQueue.push_back(threadFunc);
-    }
-}
-
-// AssetLibrary<T, U>
+/* #region AssetLibrary<T,U> */
 template<typename T, typename U>
 AssetLibrary<T, U>::~AssetLibrary<T, U>() {
     m_assets.clear();
@@ -240,21 +137,43 @@ template<typename T, typename U>
 int AssetLibrary<T, U>::getLoadingCount() const {
     return m_loading.size();
 }
+/* #endregion */
 
+/* #region Assets */
 Assets::Assets() {
     Echo::log("Asset manager starting up.");
     mapAssetsFolder();
 
+    m_shaderLibrary.setFunctions([](std::shared_ptr<ShaderData> data) {
+        auto shader = std::make_unique<Shader>(data->vertexShaderSource, data->fragmentShaderSource);
+        data->resource->m_program = std::move(shader);
+        return data->resource;
+    }, [](const std::string& path) {
+        auto resource = std::make_shared<ShaderResource>(path);
+        auto data = Shader::loadShaderDataFromFile(resource->m_vertexShaderFilename, resource->m_fragmentShaderFilename);
+        data->resource = resource;
+        return data;
+    });
+
+    m_materialLibrary.setFunctions([](std::shared_ptr<MaterialData> data) {
+        return std::make_shared<Material>(data.get()->path);
+    }, [](const std::string& path) {
+        return std::make_shared<MaterialData>(MaterialData{path});
+    });
+
     m_textureLibrary.setFunctions([](std::shared_ptr<TextureData> data) {
-        return std::make_shared<Texture>(data);
+        return std::make_shared<Texture>(data.get());
     }, [](const std::string& path) {
         return Texture::loadTextureDataFromFile(path);
     });
 
+    // TODO: Reimplement when new system is in place
     m_meshLibrary.setFunctions([](std::shared_ptr<SceneData> data) {
-        return Mesh::processCombinedSceneData(data);
+        //return Mesh::processCombinedSceneData(data);
+        return nullptr;
     }, [](const std::string& path) {
-        return Mesh::loadSceneDataFromFile(path);
+        //return Mesh::loadSceneDataFromFile(path);
+        return nullptr;
     });
 }
 
@@ -277,12 +196,6 @@ void Assets::mapAssetsFolder() {
     recursiveSort(m_root);
 
     Echo::log("Assets folder mapped.");
-    
-    if (std::filesystem::exists(ASSET_ICONS)) {
-        m_icons = Texture::loadTextureFromFile(ASSET_ICONS);
-    } else {
-        Echo::warn("Icons texture not found.");
-    }
 }
 
 void Assets::printAssets() {
@@ -344,10 +257,52 @@ void Assets::recursiveSort(std::shared_ptr<AssetNode> node) {
     }
 }
 
+AssetNode* Assets::findAsset(const std::string& path) {
+    if (!m_root) {
+        return nullptr;
+    }
+
+    auto current = m_root.get();
+    for (const auto& children : current->getChildren()) {
+        auto result = recursiveFindAsset(path, children.get());
+        if (result) {
+            return result;
+        }
+    }
+
+    return current;
+};
+
+AssetNode* Assets::recursiveFindAsset(const std::string& path, AssetNode* node) {
+    if (node->getPath() == path) {
+        return node;
+    }
+
+    for (const auto& children : node->getChildren()) {
+        auto result = recursiveFindAsset(path, children.get());
+        if (result) {
+            return result;
+        }
+    }
+
+    return nullptr;
+}
+
 void Assets::assetsWindow() {
     ImGui::Begin("Asset browser", nullptr);
 
+    if (std::filesystem::exists(ASSET_ICONS) && m_iconsAvailable) {
+        m_textureLibrary.getAsync(ASSET_ICONS, [this](std::shared_ptr<Texture> texture) {
+            m_icons = texture;
+        });
+    } else {
+        Echo::warn("Icons texture not found.");
+        m_iconsAvailable = false;
+    }
+
+    m_materialLibrary.update();
     m_textureLibrary.update();
+    m_shaderLibrary.update();
     m_meshLibrary.update();
 
     if (!m_currentNode) {
@@ -375,7 +330,7 @@ void Assets::assetsWindow() {
             ImGui::Image(m_icons->getHandle(), ImVec2(48, 48), ImVec2(iconIndex / ASSET_TYPE_COUNT, 1), ImVec2((iconIndex + 1) / ASSET_TYPE_COUNT, 0));
             ImGui::SameLine();
         }
-        if (ImGui::Button(child->getName().c_str(), ImVec2(baseSize.x - 56, 48))) {
+        if (ImGui::Button(child->getName().c_str(), ImVec2(-1, 48))) {
             if (child->getType() == ASSET_FOLDER) {
                 m_currentNode = child;
                 m_selectedNode = nullptr;
@@ -383,10 +338,32 @@ void Assets::assetsWindow() {
                 m_selectedNode = child;
 
                 // Test, TODO: Expand upon
-                if (child->getType() == ASSET_TEXTURE) {
-                    m_textureLibrary.getAsync(child->getPath(), [child](std::shared_ptr<Texture> texture) {
-                        lastLoadedTexture = texture;
+                switch (child->getType()) 
+                {
+                case ASSET_TEXTURE:
+                    m_textureLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<Texture> texture) {
+                        m_preview = texture;
+                        m_previewType = ASSET_TEXTURE;
+                        texture->m_node = child.get();
                     });
+                    break;
+                case ASSET_TEXT_DATA:
+                    if (child->getName().ends_with(".shader")) {
+                        m_shaderLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<ShaderResource> shader) {
+                            m_preview = shader;
+                            m_previewType = ASSET_SHADER;
+                            shader->m_node = child.get();
+                        });
+                    } else if (child->getName().ends_with(".material")) {
+                        m_materialLibrary.getAsync(child->getPath(), [this, child](std::shared_ptr<Material> material) {
+                            m_preview = material;
+                            m_previewType = ASSET_TEXT_DATA;
+                            material->m_node = child.get();
+                        });
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
         }
@@ -396,7 +373,7 @@ void Assets::assetsWindow() {
             
             ImGui::Text("Asset info: ");
             ImGui::Text("- Name: %s", child->getName().c_str());
-            ImGui::Text("- Type: %s", assetTypeToString(child->getType()).c_str());    
+            ImGui::Text("- Type: %s", ASSET_TYPE_STRINGS[child->getType()].c_str());    
 
             ImGui::EndTooltip();
         }
@@ -412,18 +389,12 @@ void Assets::assetsWindow() {
 void Assets::previewWindow() {
     ImGui::Begin("Asset viewer", nullptr);
 
-    static int activeTab = 0;
-    ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None);
-    if (ImGui::TabItemButton("Preview")) {
-        activeTab = 0;
-    }
-    if (ImGui::TabItemButton("Stats")) {
-        activeTab = 1;
-    }
-
-    if (activeTab == 0) {
-        if (lastLoadedTexture) {
-            ImGui::Text("%dx%d:%d", lastLoadedTexture->getWidth(), lastLoadedTexture->getHeight(), lastLoadedTexture->getChannels());
+    switch (m_previewType) 
+    {
+    case ASSET_TEXTURE: {
+        auto imgPreview = static_cast<Texture*>(m_preview.get());
+        if (imgPreview) {
+            ImGui::Text("%dx%d:%d", imgPreview->getWidth(), imgPreview->getHeight(), imgPreview->getChannels());
         } else {
             ImGui::Text("No texture selected.");
         }
@@ -432,8 +403,8 @@ void Assets::previewWindow() {
 
         auto area = ImGui::GetContentRegionAvail();
 
-        if (lastLoadedTexture) {
-            float imageAspect = (float)lastLoadedTexture->getWidth() / (float)lastLoadedTexture->getHeight();
+        if (imgPreview) {
+            float imageAspect = (float)imgPreview->getWidth() / (float)imgPreview->getHeight();
             float windowAspect = area.x / area.y;
             float width, height;
             
@@ -445,22 +416,95 @@ void Assets::previewWindow() {
                 height = area.y;
             }
 
-            ImGui::Image(lastLoadedTexture->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image(imgPreview->getHandle(), ImVec2(width, height), ImVec2(0, 1), ImVec2(1, 0));
         }
-    } else if (activeTab == 1) {
-        ImGui::Text("Asset count: ");
-        ImGui::Text("- Textures: %d", m_textureLibrary.getAssetCount());
-        ImGui::Text("- Meshes: %d", m_meshLibrary.getAssetCount());
+        break;
+    }
+    case ASSET_SHADER: {
+        auto shaderPreview = static_cast<ShaderResource*>(m_preview.get());
+        if (shaderPreview) {
+            ImGui::Text("Shader: %s", shaderPreview->m_name.c_str());
+            ImGui::Text("- Vertex: %s", shaderPreview->m_vertexShaderFilename.c_str());
+            ImGui::Text("- Fragment: %s", shaderPreview->m_fragmentShaderFilename.c_str());
+        } else {
+            ImGui::Text("No shader selected.");
+        }
+        break;
+    }
+    case ASSET_TEXT_DATA: {
+        auto materialPreview = static_cast<Material*>(m_preview.get());
+        if (materialPreview) {
+            ImGui::Text("Material: %s", materialPreview->m_name.c_str());
+            if (!materialPreview->m_diffuse || !materialPreview->m_normal || !materialPreview->m_aorm) {
+                ImGui::Text("Loading textures...");
+                break;
+            }
+            
+            auto diffuseAsset = materialPreview->m_diffuse->getAssetNode();
+            if (diffuseAsset) {
+                ImGui::Button(diffuseAsset->getName().c_str(), ImVec2(-1, 48));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Diffuse texture");
+                    ImGui::Image(materialPreview->m_diffuse->getHandle(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::EndTooltip();
+                }
+            } else {
+                ImGui::Text("- Diffuse: %s", materialPreview->m_diffusePath.c_str());
+            }
+            
+            auto normalAsset = materialPreview->m_normal->getAssetNode();
+            if (normalAsset) {
+                ImGui::Button(normalAsset->getName().c_str(), ImVec2(-1, 48));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Normal texture");
+                    ImGui::Image(materialPreview->m_normal->getHandle(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::EndTooltip();
+                }
+            } else {
+                ImGui::Text("- Normal: %s", materialPreview->m_normalPath.c_str());
+            }
 
-        ImGui::Separator();
+            auto aormAsset = materialPreview->m_aorm->getAssetNode();
+            if (aormAsset) {
+                ImGui::Button(aormAsset->getName().c_str(), ImVec2(-1, 48));
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("AORM texture");
+                    ImGui::Image(materialPreview->m_aorm->getHandle(), ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                    ImGui::EndTooltip();
+                }
+            } else {
+                ImGui::Text("- AORM: %s", materialPreview->m_aormPath.c_str());
+            }
+        } else {
+            ImGui::Text("No material selected.");
+        }
+        break;
+    }
+    default:
+        break;
+    }
 
-        ImGui::Text("Currently loading: ");
-        ImGui::Text("- Textures: %d", m_textureLibrary.getLoadingCount());
-        ImGui::Text("- Meshes: %d", m_meshLibrary.getLoadingCount());
-    } 
-    ImGui::EndTabBar();
+    ImGui::Separator();
+
+    ImGui::Text("Asset count: ");
+    ImGui::Text("- Textures: %d", m_textureLibrary.getAssetCount());
+    ImGui::Text("- Shaders: %d", m_shaderLibrary.getAssetCount());
+    ImGui::Text("- Meshes: %d", m_meshLibrary.getAssetCount());
+
+    ImGui::Separator();
+
+    ImGui::Text("Currently loading: ");
+    ImGui::Text("- Textures: %d", m_textureLibrary.getLoadingCount());
+    ImGui::Text("- Shaders: %d", m_shaderLibrary.getLoadingCount());
+    ImGui::Text("- Meshes: %d", m_meshLibrary.getLoadingCount());
+
     ImGui::End();
 }
+
+/* #endregion */
 
 // Explicit template instantiations
 template class AssetLibrary<Texture, TextureData>;
