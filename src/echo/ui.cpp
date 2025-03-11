@@ -55,7 +55,10 @@ void UI::newFrame() {
 
 void UI::render() {
     ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    auto data = ImGui::GetDrawData();
+    if (data) {
+        ImGui_ImplOpenGL3_RenderDrawData(data);
+    }
 }
 
 void UI::cleanup() {

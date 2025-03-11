@@ -6,7 +6,6 @@
 #include <assimp/cimport.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-#include <assimp/postprocess.h>
 
 namespace Codex {
 

@@ -8,6 +8,7 @@
 #include "codex/shader.hpp"
 #include "codex/texture.hpp"
 #include "hex/framebuffer.hpp"
+#include "codex/packedmesh.hpp"
 
 #include "imgui.h"
 
@@ -36,6 +37,12 @@ Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
 std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
 
+std::shared_ptr<Codex::PackedMesh> packedMesh;
+std::shared_ptr<Codex::Mesh> mesh = nullptr;
+std::shared_ptr<Codex::Material> material = nullptr;
+std::shared_ptr<Codex::ShaderResource> shader = nullptr;
+transformf rootTransform;
+
 void performanceWindow();
 void renderWindow();
 
@@ -57,7 +64,25 @@ void initGLParams() {
 }
 
 void initDrawables() {
-    // TODO: Implement new system
+    packedMesh = std::make_shared<Codex::PackedMesh>();
+
+    Codex::PackedMeshData data;
+    Codex::PackedMesh::loadMeshDataFromFile("./assets/models/sphere.glb", &data);
+    packedMesh->addMesh(data);
+
+    packedMesh->addInstance(&rootTransform, 0);
+
+    Codex::Assets::instance().getShaderLibrary().getAsync("./assets/shaders/glsl/Basic.shader", [](std::shared_ptr<Codex::ShaderResource> _s) {
+        shader = _s;
+    });
+
+    Codex::Assets::instance().getMaterialLibrary().getAsync("./assets/materials/Pavement.material", [](std::shared_ptr<Codex::Material> _m) {
+        material = _m;
+    });
+
+    Codex::Assets::instance().getMeshLibrary().getAsync("./assets/models/sphere.glb", [](std::shared_ptr<Codex::Mesh> _m) {
+        mesh = _m;
+    });
 }
 
 void initEvents() {    
@@ -178,8 +203,16 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
-        cameraBuffer->updateData(camera->getShaderBufferPointer());
-        Codex::Assets::instance().getCurrentScene().draw();
+        //cameraBuffer->updateData(camera->getShaderBufferPointer());
+        //Codex::Assets::instance().getCurrentScene().draw();
+
+        if (shader->getShader() && mesh) {
+            shader->getShader()->bind();
+            material->bindTextures();
+            cameraBuffer->updateData(camera->getShaderBufferPointer());
+            //packedMesh->draw();
+            mesh->draw();
+        }
 
     sceneFramebuffer->unbind();
 

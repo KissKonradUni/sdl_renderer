@@ -169,11 +169,9 @@ Assets::Assets() {
 
     // TODO: Reimplement when new system is in place
     m_meshLibrary.setFunctions([](std::shared_ptr<SceneData> data) {
-        //return Mesh::processCombinedSceneData(data);
-        return nullptr;
+        return Mesh::processCombinedSceneData(data);
     }, [](const std::string& path) {
-        //return Mesh::loadSceneDataFromFile(path);
-        return nullptr;
+        return Mesh::loadSceneDataFromFile(path);
     });
 }
 
