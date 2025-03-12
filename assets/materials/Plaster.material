@@ -1,0 +1,8 @@
+{
+    "name": "Plaster material",
+    "textures": {
+        "textureDiffuse":             "./assets/images/plaster/painted_plaster_wall_diff_2k.jpg",
+        "textureNormal":              "./assets/images/plaster/painted_plaster_wall_nor_gl_2k.jpg",
+        "textureAORoughnessMetallic": "./assets/images/plaster/painted_plaster_wall_arm_2k.jpg"
+    }
+}
