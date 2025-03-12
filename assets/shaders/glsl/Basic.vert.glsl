@@ -31,8 +31,13 @@ void main()
     fragmentTangent = (vec4(vertexTangent, 1.0) * transpose(inverse(modelMatrix))).xyz;
     fragmentUV = vertexUV;
 
-    vec3 bitangent = cross(fragmentNormal, fragmentTangent);
-    tangentSpaceMatrix = mat3(fragmentTangent, bitangent, fragmentNormal);
+    vec3 bitangent = normalize(cross(fragmentNormal, fragmentTangent));
+    fragmentTangent = normalize(cross(bitangent, fragmentNormal));
+    tangentSpaceMatrix = mat3(
+        fragmentTangent, 
+        bitangent, 
+        fragmentNormal
+    );
 
     cameraPosition = camPosition;
     cameraDirection = camDirection;

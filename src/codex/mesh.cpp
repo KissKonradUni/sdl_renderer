@@ -62,7 +62,7 @@ void Mesh::draw() const {
 
 std::shared_ptr<SceneData> Mesh::loadSceneDataFromFile(const std::string& filename) {
     auto scene = aiImportFile(filename.c_str(), 
-        aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenNormals | aiProcess_GenUVCoords
+        aiProcess_Triangulate
     );
 
     if (!scene) {

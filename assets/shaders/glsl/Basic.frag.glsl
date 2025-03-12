@@ -19,9 +19,9 @@ vec3 normalWithMap()
 {
     vec3 tangentNormal = texture(textureNormal, fragmentUV).rgb;
     tangentNormal = tangentNormal * 2.0 - 1.0;
-    tangentNormal = normalize(tangentSpaceMatrix * tangentNormal);
     
-    return normalize(tangentNormal);
+    vec3 worldNormal = tangentSpaceMatrix * tangentNormal;
+    return normalize(worldNormal);
 }
 
 void main()
@@ -35,7 +35,7 @@ void main()
 
     vec3 normal = normalWithMap();
 
-    vec3 lightPos   = vec3(0.0, -2.0, 0.0);
+    vec3 lightPos   = vec3(-2.5, 3.0, -0.5);
 
     vec3 lightDir   = normalize(lightPos - fragmentPosition);
     vec3 viewDir    = normalize(cameraPosition - fragmentPosition);

@@ -9,6 +9,7 @@ struct CameraInput {
     struct {
         float x;
         float y;
+        float z;
     } movement;
     struct {
         float pitch;

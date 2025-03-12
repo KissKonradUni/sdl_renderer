@@ -34,7 +34,8 @@ void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity)
 
     const auto forward = vector4f(input.movement.x, 0.0f, input.movement.y, 0.0f).normalize3d();
     const auto rotate  = matrix4x4f::rotation(this->m_rotation.y, vector4f::up());
-    const auto move    = (rotate * (forward * deltaTime * 2.0f)).normalize3d() * 10.0f * deltaTime;
+          auto move    = (rotate * (forward * deltaTime * 2.0f)).normalize3d() * 10.0f * deltaTime;
+               move.y  = input.movement.z * deltaTime * 2.0f * 10.0f;
 
     this->m_position   = this->m_position + move;
     this->m_rotation.x = SDL_clamp(this->m_rotation.x - input.rotation.yaw * deltaTime * 0.314f, -SDL_PI_F / 2.0f, SDL_PI_F / 2.0f);

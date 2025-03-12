@@ -50,7 +50,7 @@ void initCamera() {
     camera = std::make_unique<Hex::Camera>(
         Hex::CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
         80.0f,
-        vector4f(0.0f, 0.0f, -4.0f, 0.0f),
+        vector4f(0.0f, 0.0f, 4.0f, 0.0f),
         vector4f::zero()
     );
 }
@@ -76,11 +76,11 @@ void initDrawables() {
         shader = _s;
     });
 
-    Codex::Assets::instance().getMaterialLibrary().getAsync("./assets/materials/Pavement.material", [](std::shared_ptr<Codex::Material> _m) {
+    Codex::Assets::instance().getMaterialLibrary().getAsync("./assets/materials/Plaster.material", [](std::shared_ptr<Codex::Material> _m) {
         material = _m;
     });
 
-    Codex::Assets::instance().getMeshLibrary().getAsync("./assets/models/sphere.glb", [](std::shared_ptr<Codex::Mesh> _m) {
+    Codex::Assets::instance().getMeshLibrary().getAsync("./assets/models/sponza.glb", [](std::shared_ptr<Codex::Mesh> _m) {
         mesh = _m;
     });
 }
@@ -103,6 +103,12 @@ void initEvents() {
             case SDL_SCANCODE_D:
                 cameraInput.movement.x = 1.0f;
                 break;
+            case SDL_SCANCODE_SPACE:
+                cameraInput.movement.z = 1.0f;
+                break;
+            case SDL_SCANCODE_LSHIFT:
+                cameraInput.movement.z = -1.0f;
+                break;
             case SDL_SCANCODE_ESCAPE:
                 cameraInput.lock = !cameraInput.lock;
                 cameraInput.rotation = {0.0f, 0.0f};
@@ -121,6 +127,10 @@ void initEvents() {
             case SDL_SCANCODE_A:
             case SDL_SCANCODE_D:
                 cameraInput.movement.x = 0.0f;
+                break;
+            case SDL_SCANCODE_SPACE:
+            case SDL_SCANCODE_LSHIFT:
+                cameraInput.movement.z = 0.0f;
                 break;
             default:
                 break;
@@ -206,10 +216,14 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         //cameraBuffer->updateData(camera->getShaderBufferPointer());
         //Codex::Assets::instance().getCurrentScene().draw();
 
-        if (shader->getShader() && mesh) {
+        if (shader && material && mesh) {
             shader->getShader()->bind();
             material->bindTextures();
             cameraBuffer->updateData(camera->getShaderBufferPointer());
+            shader->getShader()->setUniform("modelMatrix", mesh->transform.getModelMatrix());
+            shader->getShader()->setUniform("textureDiffuse", 0);
+            shader->getShader()->setUniform("textureNormal", 1);
+            shader->getShader()->setUniform("textureAORoughnessMetallic", 2);
             //packedMesh->draw();
             mesh->draw();
         }
