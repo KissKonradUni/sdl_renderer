@@ -1,14 +1,8 @@
 #include "hex/camera.hpp"
 
 #include "imgui.h"
-#include "echo/ui.hpp"
-
-#include <vector>
 
 namespace Hex {
-
-std::vector<Camera*> m_cameras = {};
-bool m_uiRegistered = false;
 
 Camera::Camera(CameraViewport viewport, float fieldOfView, vector4f position, vector4f rotation) {
     this->m_viewport = viewport;
@@ -18,12 +12,6 @@ Camera::Camera(CameraViewport viewport, float fieldOfView, vector4f position, ve
     this->m_rotation = rotation;
     
     this->updateProjectionMatrix();
-
-    m_cameras.push_back(this);
-    if (!m_uiRegistered) {
-        Echo::UI::instance().addUIFunction(cameraUIs);
-        m_uiRegistered = true;
-    }
 }
 
 Camera::Camera(CameraViewport viewport): Camera(viewport, 80.0f, vector4f::zero(), vector4f::zero()) {}
@@ -90,33 +78,30 @@ CameraUniformBufferData* Camera::getShaderBufferPointer() {
     return reinterpret_cast<CameraUniformBufferData*>(&m_view);
 }
 
-void Camera::cameraUIs() {
-    int i = 1;
-    for (auto& camera : m_cameras) {
-        std::string name = "Camera " + std::to_string(i++);
-        ImGui::Begin(name.c_str(), nullptr);
-        
-        ImGui::Text("Position: ");
-        ImGui::SameLine();
-        ImGui::InputFloat3("##cam_pos", &camera->m_position.x);
+void Camera::cameraWindow() {
+    std::string name = "Camera";
+    ImGui::Begin(name.c_str(), nullptr);
+    
+    ImGui::Text("Position: ");
+    ImGui::SameLine();
+    ImGui::InputFloat3("##cam_pos", &this->m_position.x);
 
-        ImGui::Text("Rotation: ");
-        ImGui::SameLine();
-        ImGui::InputFloat2("##cam_rot", &camera->m_rotation.x);
+    ImGui::Text("Rotation: ");
+    ImGui::SameLine();
+    ImGui::InputFloat2("##cam_rot", &this->m_rotation.x);
 
-        ImGui::Text("Fov:      ");
-        ImGui::SameLine();
-        if (ImGui::InputFloat("##cam_fov", &camera->m_fieldOfView, 0.0f, 0.0f)) {
-            camera->m_fieldOfView = SDL_clamp(camera->m_fieldOfView, 1.0f, 179.0f);
-            camera->updateProjectionMatrix();
-        }
-
-        ImGui::Text("Viewport: ");
-        ImGui::SameLine();
-        ImGui::InputFloat2("##cam_viewport", &camera->m_viewport.w);
-
-        ImGui::End();
+    ImGui::Text("Fov:      ");
+    ImGui::SameLine();
+    if (ImGui::InputFloat("##cam_fov", &this->m_fieldOfView, 0.0f, 0.0f)) {
+        this->m_fieldOfView = SDL_clamp(this->m_fieldOfView, 1.0f, 179.0f);
+        this->updateProjectionMatrix();
     }
+
+    ImGui::Text("Viewport: ");
+    ImGui::SameLine();
+    ImGui::InputFloat2("##cam_viewport", &this->m_viewport.w);
+
+    ImGui::End();
 }
 
 }; // namespace Hex

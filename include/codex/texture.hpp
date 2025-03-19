@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "floatmath.hpp"
-#include "codex/resource.hpp"
 #include "lib/stb/stb_image.h"
 
 namespace Codex {
@@ -23,7 +22,7 @@ struct TextureData {
  * @brief A texture resource
  * Handles loading and uploading textures to the GPU
  */
-class Texture : public IResource {
+class Texture {
 friend class Assets;
 friend class Material;
 public:

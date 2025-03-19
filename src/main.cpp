@@ -3,12 +3,10 @@
 #include "floatmath.hpp"
 #include "echo/input.hpp"
 #include "hex/camera.hpp"
-#include "codex/assets.hpp"
 #include "echo/console.hpp"
 #include "codex/shader.hpp"
 #include "codex/texture.hpp"
 #include "hex/framebuffer.hpp"
-#include "codex/packedmesh.hpp"
 
 #include "imgui.h"
 
@@ -37,9 +35,6 @@ Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
 std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
 
-std::shared_ptr<Codex::PackedMesh> packedMesh;
-std::shared_ptr<Codex::Mesh> mesh = nullptr;
-std::shared_ptr<Codex::Material> material = nullptr;
 std::shared_ptr<Codex::ShaderResource> shader = nullptr;
 transformf rootTransform;
 
@@ -64,25 +59,7 @@ void initGLParams() {
 }
 
 void initDrawables() {
-    packedMesh = std::make_shared<Codex::PackedMesh>();
 
-    Codex::PackedMeshData data;
-    Codex::PackedMesh::loadMeshDataFromFile("./assets/models/sphere.glb", &data);
-    packedMesh->addMesh(data);
-
-    packedMesh->addInstance(&rootTransform, 0);
-
-    Codex::Assets::instance().getShaderLibrary().getAsync("./assets/shaders/glsl/Basic.shader", [](std::shared_ptr<Codex::ShaderResource> _s) {
-        shader = _s;
-    });
-
-    Codex::Assets::instance().getMaterialLibrary().getAsync("./assets/materials/Plaster.material", [](std::shared_ptr<Codex::Material> _m) {
-        material = _m;
-    });
-
-    Codex::Assets::instance().getMeshLibrary().getAsync("./assets/models/sponza.glb", [](std::shared_ptr<Codex::Mesh> _m) {
-        mesh = _m;
-    });
 }
 
 void initEvents() {    
@@ -166,11 +143,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     Echo::UI::instance().addUIFunction(performanceWindow);
     Echo::UI::instance().addUIFunction(Echo::consoleWindow);
     Echo::UI::instance().addUIFunction([]() {
-        Codex::Assets::instance().assetsWindow();
-        Codex::Assets::instance().previewWindow();
-
-        Codex::Assets::instance().getCurrentScene().sceneExplorerWindow();
-        Codex::Assets::instance().getCurrentScene().inspectorWindow();
+        camera->cameraWindow();
     });
 
     return SDL_APP_CONTINUE;
@@ -216,6 +189,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         //cameraBuffer->updateData(camera->getShaderBufferPointer());
         //Codex::Assets::instance().getCurrentScene().draw();
 
+        /*
         if (shader && material && mesh) {
             shader->getShader()->bind();
             material->bindTextures();
@@ -227,6 +201,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
             //packedMesh->draw();
             mesh->draw();
         }
+        */
 
     sceneFramebuffer->unbind();
 

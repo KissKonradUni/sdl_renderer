@@ -1,6 +1,5 @@
 #pragma once
 
-#include "codex/resource.hpp"
 #include "floatmath.hpp"
 
 #include <SDL3/SDL.h>
@@ -53,7 +52,7 @@ class Shader;
  * @attention This class does not create the shader, it only holds it.
  * @ref Assets
  */
-class ShaderResource : public IResource {
+class ShaderResource {
 friend class Assets;
 public:
     ShaderResource(const std::string& path);
@@ -88,7 +87,7 @@ public:
  * Allows for easy shader creation and management.
  * Manages and caches uniform locations.
  */
-class Shader : public IResource {
+class Shader {
 public:
     Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource);
     ~Shader();
