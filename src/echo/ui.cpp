@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
+#include "lib/icons/IconsMaterialSymbols.h"
 
 #include "app.hpp"
 
@@ -26,8 +27,18 @@ SDL_AppResult UI::initUI() {
     //io.FontGlobalScale = dpi;
 
     // Load custom font
-    io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 16.0f * dpi);
-    m_smallFont = io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", 10.0f * dpi);
+    auto fontSize = 16.0f * dpi;
+    io.Fonts->AddFontFromFileTTF("assets/fonts/FiraCode-Regular.ttf", fontSize);
+
+    // Load icons
+    auto iconSize = fontSize * 1.25f;
+    ImFontConfig iconsConfig;
+    iconsConfig.MergeMode = true;
+    iconsConfig.PixelSnapH = true;
+    iconsConfig.GlyphMinAdvanceX = iconSize;
+    iconsConfig.GlyphOffset = ImVec2(0, 0.2f * iconSize);
+    static const ImWchar iconsRanges[] = { ICON_MIN_MS, ICON_MAX_MS, 0 };
+    io.Fonts->AddFontFromFileTTF("assets/fonts/" FONT_ICON_FILE_NAME_MSR, iconSize, &iconsConfig, iconsRanges);
 
     ImGui_ImplSDL3_InitForOpenGL(Cinder::App::getWindowPtr(), Cinder::App::getGLContextPtr());
     ImGui_ImplOpenGL3_Init();
@@ -76,10 +87,6 @@ unsigned int UI::addUIFunction(UIFunction uiFunction) {
 
 void UI::removeUIFunction(unsigned int id) {
     m_uiFunctions.erase(id);
-}
-
-void UI::pushSmallFont() {
-    ImGui::PushFont(m_smallFont);
 }
 
 UI::~UI() {

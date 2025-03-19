@@ -79,8 +79,7 @@ CameraUniformBufferData* Camera::getShaderBufferPointer() {
 }
 
 void Camera::cameraWindow() {
-    std::string name = "Camera";
-    ImGui::Begin(name.c_str(), nullptr);
+    ImGui::Begin("Camera", nullptr);
     
     ImGui::Text("Position: ");
     ImGui::SameLine();

@@ -27,13 +27,15 @@
 
 ## Licenses
 > Of used 3rd party extras
-- SDL3: [zlib license](https://www.libsdl.org/license.php)
+- SDL3: [ZLib license](https://www.libsdl.org/license.php)
 - Assimp: [BSD 3-Clause license](https://github.com/assimp/assimp/blob/master/LICENSE)
 - Glad: [Public Domain, WTFPL or CC0](https://github.com/Dav1dde/glad)
 - Dear Imgui: [MIT license](https://github.com/ocornut/imgui?tab=MIT-1-ov-file)
 - stb_image: [Public Domain](https://github.com/nothings/stb/tree/master?tab=License-1-ov-file)
 - FiraCode font: [SIL Open Font License](https://github.com/tonsky/FiraCode?tab=OFL-1.1-1-ov-file)
 - Nholmann JSON: [MIT license](https://github.com/nlohmann/json?tab=MIT-1-ov-file)
+- IconFontCPPHeaders: [ZLib license](https://github.com/juliettef/IconFontCppHeaders?tab=Zlib-1-ov-file)
+- Material Symbols Font: [Apache 2.0](https://developers.google.com/fonts/docs/material_symbols#licensing)
 
 ## Compiling
 ```sh

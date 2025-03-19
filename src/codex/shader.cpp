@@ -1,7 +1,6 @@
 #include "codex/shader.hpp"
 #include "echo/console.hpp"
 
-#include "lib/json/json.hpp"
 #include "lib/glad/glad.h"
 
 #include <filesystem>
@@ -36,28 +35,6 @@ void UniformBuffer::updateData(const UniformBufferData* data) {
         SDL_memcpy(dataPointer, data, m_size);
     }
     glUnmapBuffer(GL_UNIFORM_BUFFER);
-}
-
-ShaderResource::ShaderResource(const std::string& path) {
-    if (!std::filesystem::exists(path)) {
-        Echo::error(std::string("Shader file not found: ") + path);
-        return;
-    }
-
-    using nlohmann::json;
-
-    std::ifstream file(path);
-    json data = json::parse(file);
-
-    m_name                   = data["name"].template get<std::string>();
-    m_vertexShaderFilename   = data["vert"].template get<std::string>();
-    m_fragmentShaderFilename = data["frag"].template get<std::string>();
-
-    Echo::log(std::string("Shader resource created: ") + m_name);
-}
-
-ShaderResource::~ShaderResource() {
-    Echo::log(std::string("Shader resource destroyed: ") + m_name);
 }
 
 Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource) {

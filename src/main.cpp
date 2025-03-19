@@ -5,7 +5,7 @@
 #include "hex/camera.hpp"
 #include "echo/console.hpp"
 #include "codex/shader.hpp"
-#include "codex/texture.hpp"
+#include "codex/library.hpp"
 #include "hex/framebuffer.hpp"
 
 #include "imgui.h"
@@ -35,9 +35,6 @@ Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
 std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
 
-std::shared_ptr<Codex::ShaderResource> shader = nullptr;
-transformf rootTransform;
-
 void performanceWindow();
 void renderWindow();
 
@@ -59,7 +56,7 @@ void initGLParams() {
 }
 
 void initDrawables() {
-
+    Codex::Library::instance().init();
 }
 
 void initEvents() {    
@@ -142,6 +139,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     Echo::UI::instance().addUIFunction(renderWindow);
     Echo::UI::instance().addUIFunction(performanceWindow);
     Echo::UI::instance().addUIFunction(Echo::consoleWindow);
+    Echo::UI::instance().addUIFunction(Codex::Library::assetsWindow);
     Echo::UI::instance().addUIFunction([]() {
         camera->cameraWindow();
     });

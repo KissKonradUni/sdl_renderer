@@ -42,35 +42,6 @@ protected:
     size_t m_size;
 };
 
-// Forward declaration
-class Shader;
-
-/**
- * @brief A wrapper to hold the shader in a resource managed way.
- * This allows the usage of additional metadata and also allows better querying.
- * @attention This class is not meant to be used directly.
- * @attention This class does not create the shader, it only holds it.
- * @ref Assets
- */
-class ShaderResource {
-friend class Assets;
-public:
-    ShaderResource(const std::string& path);
-    ~ShaderResource();
-
-    /**
-     * @brief Gets the shader program of the resource.
-     * @return Shader* - The shader program.
-     */
-    Shader* getShader() { return m_program.get(); }
-protected:
-    std::unique_ptr<Shader> m_program;
-
-    std::string m_name;
-    std::string m_vertexShaderFilename;
-    std::string m_fragmentShaderFilename;
-};
-
 /**
  * @brief Struct for holding raw shader source code.
  */
@@ -78,8 +49,6 @@ struct ShaderData {
 public:
     std::string vertexShaderSource;
     std::string fragmentShaderSource;
-
-    std::shared_ptr<ShaderResource> resource;
 };
 
 /**
