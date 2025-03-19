@@ -106,6 +106,7 @@ void Texture::loadResource() {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     this->m_initialized = true;
+    this->m_data.reset(); // We don't need the data anymore
 }
 
 void Texture::bind(int slot) {

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "codex/resource.hpp"
 #include "floatmath.hpp"
 
 #include <SDL3/SDL.h>
 
-#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -56,10 +56,10 @@ public:
  * Allows for easy shader creation and management.
  * Manages and caches uniform locations.
  */
-class Shader {
+class Shader : public IResource<ShaderData> {
 public:
-    Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource);
-    ~Shader();
+    Shader();
+    virtual ~Shader();
 
     void bind();
     
@@ -67,8 +67,10 @@ public:
     void setUniform(const std::string& name, const vector4f& value);
     void setUniform(const std::string& name, const matrix4x4f& value);
 
-    static std::shared_ptr<ShaderData> loadShaderDataFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
-    static std::shared_ptr<Shader> loadShaderFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
+    //static std::shared_ptr<ShaderData> loadShaderDataFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
+    void loadData(const FileNode* file);
+    //static std::shared_ptr<Shader> loadShaderFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
+    void loadResource();
 protected:
     unsigned int m_programHandle;
     std::unordered_map<std::string, unsigned int> m_uniformLocations;

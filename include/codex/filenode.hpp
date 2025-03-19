@@ -14,6 +14,9 @@ enum class FileType {
     IMAGE_FILE,
     AUDIO_FILE,
     MESH_FILE,
+    
+    SHADER_FILE,
+    RAW_SHADER_FILE
 };
 
 struct FileNode {

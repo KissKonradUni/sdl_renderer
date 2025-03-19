@@ -1,6 +1,7 @@
 #pragma once
 
 #include "codex/texture.hpp"
+#include "codex/shader.hpp"
 #include "filenode.hpp"
 
 #include <filesystem>
@@ -68,6 +69,21 @@ public:
             return nullptr;
         }
     }
+
+    /**
+     * @brief Gets a shader from the asset library
+     * @attention Excepts formatted paths
+
+     * @param node The node to get the shader from
+     * @return Shader* The shader (nullptr if not found)
+     */
+    inline Shader* tryGetLoadedShader(FileNode* node) const {
+        try {
+            return m_shaderLookupTable.at(node).get();
+        } catch (const std::out_of_range& e) {
+            return nullptr;
+        }
+    }
     
     /**
      * @brief Formats a path to be relative to the assets root.
@@ -98,6 +114,7 @@ protected:
     // Lookup tables for quick access
     std::map<std::filesystem::path, std::unique_ptr<FileNode>> m_fileLookupTable;
     std::map<FileNode*, std::unique_ptr<Texture>> m_textureLookupTable;
+    std::map<FileNode*, std::unique_ptr<Shader>> m_shaderLookupTable;
 
     // Async loading
     IResourceBase* asnycLoadResource(FileNode* node);
@@ -119,7 +136,8 @@ protected:
     FileNode* m_selectedNode = nullptr;
     char m_nameBuffer[64];
 
-    Texture* m_selectedTexture = nullptr;
+    FileType m_selectedType = FileType::DIRECTORY;
+    IResourceBase* m_selectedAsset = nullptr;
 };
 
 }; // namespace Codex

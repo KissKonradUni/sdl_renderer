@@ -1,7 +1,9 @@
+#include "codex/library.hpp"
 #include "codex/shader.hpp"
 #include "echo/console.hpp"
 
 #include "lib/glad/glad.h"
+#include "lib/json/json.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -37,9 +39,120 @@ void UniformBuffer::updateData(const UniformBufferData* data) {
     glUnmapBuffer(GL_UNIFORM_BUFFER);
 }
 
-Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmentShaderSource) {
+Shader::Shader() {
+    m_programHandle = -1;
+
+    m_data = nullptr;
+    m_node = nullptr;
+    m_runtimeResource = true;
+    m_initialized = false;
+
+    Echo::log("Shader program placeholder created.");
+}
+
+Shader::~Shader() {
+    glDeleteProgram(m_programHandle);
+
+    Echo::log("Shader program destroyed.");
+}
+
+void Shader::bind() {
+    glUseProgram(m_programHandle);
+}
+
+void Shader::setUniform(const std::string& name, const int& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        Echo::warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    glUniform1i(location, value);
+}
+
+void Shader::setUniform(const std::string& name, const vector4f& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        Echo::warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    glUniform4fv(location, 1, value.as_array.data());
+}
+
+void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        Echo::warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
+}
+
+void Shader::loadData(const FileNode* file) {
+    m_node = file;
+
+    if (m_initialized) {
+        Echo::warn("Shader program already initialized.");
+        return;
+    }
+
+    if (file == nullptr) {
+        Echo::error("No file to load shader from.");
+        return;
+    }
+    
+    using namespace nlohmann;
+    auto& library = Codex::Library::instance();
+
+    std::ifstream metaFile(library.getAssetsRoot() / file->path);
+    json meta = json::parse(metaFile);
+
+    std::filesystem::path vertexShaderFilename   = meta["vert"];
+    std::filesystem::path fragmentShaderFilename = meta["frag"];
+    library.formatPath(&vertexShaderFilename);
+    library.formatPath(&fragmentShaderFilename);
+
+    if (!std::filesystem::exists(library.getAssetsRoot() / vertexShaderFilename)) {
+        Echo::error("Vertex shader file not found: " + vertexShaderFilename.string());
+        return;
+    }
+    if (!std::filesystem::exists(library.getAssetsRoot() / fragmentShaderFilename)) {
+        Echo::error("Fragment shader file not found: " + fragmentShaderFilename.string());
+        return;
+    }
+
+    std::ifstream vertexShaderFile(library.getAssetsRoot() / vertexShaderFilename);
+    std::ifstream fragmentShaderFile(library.getAssetsRoot() / fragmentShaderFilename);
+
+    m_data = std::make_unique<ShaderData>();
+    m_data->vertexShaderSource = std::string(
+        (std::istreambuf_iterator<char>(vertexShaderFile)),
+        std::istreambuf_iterator<char>()
+    );
+    m_data->fragmentShaderSource = std::string(
+        (std::istreambuf_iterator<char>(fragmentShaderFile)),
+        std::istreambuf_iterator<char>()
+    );
+
+    m_runtimeResource = false;
+    Echo::log("Shader data loaded.");
+}
+
+void Shader::loadResource() {
     int success;
     char infoLog[512];
+
+    if (m_initialized) {
+        Echo::warn("Shader program already initialized.");
+        return;
+    }
+
+    if (m_data == nullptr) {
+        Echo::error("Shader data is null.");
+        return;
+    }
+
+    auto vertexShaderSource = m_data->vertexShaderSource;
+    auto fragmentShaderSource = m_data->fragmentShaderSource;
     
     auto vertexShaderHandle = glCreateShader(GL_VERTEX_SHADER);
     const char* vertexSource = vertexShaderSource.c_str();
@@ -82,68 +195,8 @@ Shader::Shader(const std::string& vertexShaderSource, const std::string& fragmen
     glDeleteShader(fragmentShaderHandle);
 
     Echo::log("Shader program created.");
-}
-
-Shader::~Shader() {
-    glDeleteProgram(m_programHandle);
-
-    Echo::log("Shader program destroyed.");
-}
-
-void Shader::bind() {
-    glUseProgram(m_programHandle);
-}
-
-void Shader::setUniform(const std::string& name, const int& value) {
-    const GLint location = getUniformLocation(name);
-    if (location == -1) {
-        Echo::warn(std::string("Couldn't find uniform: ") + name);
-        return;
-    }
-    glUniform1i(location, value);
-}
-
-void Shader::setUniform(const std::string& name, const vector4f& value) {
-    const GLint location = getUniformLocation(name);
-    if (location == -1) {
-        Echo::warn(std::string("Couldn't find uniform: ") + name);
-        return;
-    }
-    glUniform4fv(location, 1, value.as_array.data());
-}
-
-void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
-    const GLint location = getUniformLocation(name);
-    if (location == -1) {
-        Echo::warn(std::string("Couldn't find uniform: ") + name);
-        return;
-    }
-    glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
-}
-
-std::shared_ptr<ShaderData> Shader::loadShaderDataFromFile(const std::string &vertexShaderFilename, const std::string &fragmentShaderFilename) {
-    if (!std::filesystem::exists(vertexShaderFilename)) {
-        Echo::error(std::string("Vertex shader file not found: ") + vertexShaderFilename);
-        return nullptr;
-    }
-
-    if (!std::filesystem::exists(fragmentShaderFilename)) {
-        Echo::error(std::string("Fragment shader file not found: ") + fragmentShaderFilename);
-        return nullptr;
-    }
-    
-    std::ifstream vertexShaderFile(vertexShaderFilename);
-    std::string vertexShaderSource((std::istreambuf_iterator<char>(vertexShaderFile)), std::istreambuf_iterator<char>());
-
-    std::ifstream fragmentShaderFile(fragmentShaderFilename);
-    std::string fragmentShaderSource((std::istreambuf_iterator<char>(fragmentShaderFile)), std::istreambuf_iterator<char>());
-
-    return std::make_shared<ShaderData>(ShaderData{vertexShaderSource, fragmentShaderSource});
-}
-
-std::shared_ptr<Shader> Shader::loadShaderFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
-    auto sources = loadShaderDataFromFile(vertexShaderFilename, fragmentShaderFilename);    
-    return std::make_shared<Shader>(sources->vertexShaderSource, sources->fragmentShaderSource);
+    m_initialized = true;
+    m_data.reset();
 }
 
 unsigned int Shader::getUniformLocation(const std::string& name) {

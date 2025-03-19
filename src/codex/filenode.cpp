@@ -25,7 +25,11 @@ static const std::unordered_map<std::string, FileType> ExtensionIcons = {
     {".ogg", FileType::AUDIO_FILE},
 
     {".glb", FileType::MESH_FILE},
-    {".gltf", FileType::MESH_FILE}
+    {".gltf", FileType::MESH_FILE},
+
+    {".shader", FileType::SHADER_FILE},
+    {".vert", FileType::RAW_SHADER_FILE},
+    {".frag", FileType::RAW_SHADER_FILE}
 };
 
 FileNode::FileNode(std::filesystem::path& path, FileNode* parent) {

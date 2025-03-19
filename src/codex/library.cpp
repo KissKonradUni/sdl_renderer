@@ -16,7 +16,9 @@ static const std::unordered_map<FileType, const char*> FileTypeStrings = {
     {FileType::FONT_FILE, ICON_MS_FONT_DOWNLOAD},
     {FileType::IMAGE_FILE, ICON_MS_IMAGE},
     {FileType::AUDIO_FILE, ICON_MS_VOLUME_UP},
-    {FileType::MESH_FILE, ICON_MS_DEPLOYED_CODE}
+    {FileType::MESH_FILE, ICON_MS_DEPLOYED_CODE},
+    {FileType::SHADER_FILE, ICON_MS_STYLE},
+    {FileType::RAW_SHADER_FILE, ICON_MS_STROKE_PARTIAL}
 };
 
 void Library::init() {
@@ -114,7 +116,10 @@ IResourceBase* Library::asnycLoadResource(FileNode* node) {
     if (m_textureLookupTable.find(node) != m_textureLookupTable.end()) {
         return m_textureLookupTable[node].get();
     }
-    // TODO: Add other lookup tables
+    if (m_shaderLookupTable.find(node) != m_shaderLookupTable.end()) {
+        return m_shaderLookupTable[node].get();
+    }
+    // TODO: Add other file types
 
     // Create the action
     AsyncIOAction action;
@@ -125,11 +130,25 @@ IResourceBase* Library::asnycLoadResource(FileNode* node) {
         action.resource = texture;
         m_textureLookupTable[node] = std::unique_ptr<Texture>(texture);
     } break;
+    case FileType::SHADER_FILE: {
+        auto shader = new Shader();
+        action.resource = shader;
+        m_shaderLookupTable[node] = std::unique_ptr<Shader>(shader);
+    } break;
+    case FileType::RAW_SHADER_FILE: 
+    case FileType::TEXT_FILE:
+    case FileType::BINARY_FILE:
+    case FileType::FONT_FILE:
+        // Nothing to do with these
+        break;
     default:
         // TODO: Add other file types
         Echo::warn("Unimplemented file type.");
         return nullptr;
     }
+
+    if (action.resource == nullptr)
+        return nullptr;
 
     // Add the action to the queue
     m_asyncMutex.lock();
@@ -207,8 +226,8 @@ void Library::assetsWindow() {
             if (child->isDirectory) {
                 instance.m_selectedNode = child;
             } else {
-                instance.asnycLoadResource(child);
-                instance.m_selectedTexture = instance.tryGetLoadedTexture(child);
+                instance.m_selectedAsset = instance.asnycLoadResource(child);
+                instance.m_selectedType = child->type;
             }
         }
 
@@ -221,23 +240,39 @@ void Library::assetsWindow() {
     ImGui::Text("Inspector");
     ImGui::Separator();
 
-    if (instance.m_selectedTexture != nullptr) {        
-        auto image = instance.m_selectedTexture;
-        if (image->isInitialized()) {
-            ImGui::Text("Texture: %s", image->getNode()->name.c_str());
+    if (instance.m_selectedAsset == nullptr || !instance.m_selectedAsset->isInitialized()) {
+        ImGui::Text("No/unsupported asset selected.");
+        ImGui::EndChild();
+        ImGui::End();
+        return;
+    }
 
-            auto availableSpace = ImGui::GetContentRegionAvail();
-            struct{ int w, h; } imageSize = {image->getWidth(), image->getHeight()};
+    switch (instance.m_selectedType) {
+    case FileType::IMAGE_FILE: {
+        auto image = dynamic_cast<Texture*>(instance.m_selectedAsset);
 
-            if (imageSize.w > availableSpace.x || imageSize.h > availableSpace.y) {
-                float scale = std::min(availableSpace.x / static_cast<float>(imageSize.w),
-                                    availableSpace.y / static_cast<float>(imageSize.h));
-                imageSize.w *= scale;
-                imageSize.h *= scale;
-            }
+        ImGui::Text("Texture: %s", image->getNode()->name.c_str());
 
-            ImGui::Image(image->getHandle(), ImVec2(imageSize.w, imageSize.h));
+        auto availableSpace = ImGui::GetContentRegionAvail();
+        struct{ int w, h; } imageSize = {image->getWidth(), image->getHeight()};
+
+        if (imageSize.w > availableSpace.x || imageSize.h > availableSpace.y) {
+            float scale = std::min(availableSpace.x / static_cast<float>(imageSize.w),
+                                availableSpace.y / static_cast<float>(imageSize.h));
+            imageSize.w *= scale;
+            imageSize.h *= scale;
         }
+
+        ImGui::Image(image->getHandle(), ImVec2(imageSize.w, imageSize.h));
+        } break;
+    case FileType::SHADER_FILE: {
+        auto shader = dynamic_cast<Shader*>(instance.m_selectedAsset);
+
+        ImGui::Text("Shader: %s", shader->getNode()->name.c_str());
+        } break;
+    default:
+        ImGui::Text("No inspector for this asset type.");
+        break;
     }
 
     ImGui::EndChild();
