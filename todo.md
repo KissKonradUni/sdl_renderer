@@ -50,7 +50,3 @@ Audio: Chant
 Animation: Puppet
 Rendering: Prism
 Physics: Force
-
-
-TODO (Major):
-Add "named" assets. Basically make every loaded asset have some reference to the file it was loaded from.

@@ -23,10 +23,6 @@
 #endif
 #include <GL/gl.h>
 
-static double lastTime  = 0.0;
-static double nowTime   = 0.0;
-static double deltaTime = 0.0;
-
 std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
 
 std::unique_ptr<Hex::Camera> camera = nullptr;
@@ -153,7 +149,15 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
     return Echo::Events::handle(event);
 }
 
+static double lastTime   = 0.0;
+static double nowTime    = 0.0;
+static double deltaTime  = 0.0;
+
 SDL_AppResult SDL_AppIterate(void *appstate) {
+    // ======================
+    // Upadte asset library
+    Codex::Library::instance().checkForFinishedAsync();
+
     // ======================
     // Time management
     

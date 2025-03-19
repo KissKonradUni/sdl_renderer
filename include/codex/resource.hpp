@@ -4,12 +4,23 @@
 
 namespace Codex {
 
-template<typename DataType>
-class IResource {
+/**
+ * @brief Internal base class for easy pointer management
+ */
+class IResourceBase {
 public:
     virtual void loadData(const FileNode* file) = 0;
     virtual void loadResource() = 0;
+};
 
+/**
+ * @brief Interface for resources (textures, models, etc.)
+ *        that are most likely uploaded to the GPU
+ * @tparam DataType The raw data struct of the resource
+ */
+template<typename DataType>
+class IResource : public IResourceBase {
+public:
     inline const bool isInitialized() const { return m_initialized; }
     inline const bool isRuntimeResource() const { return m_runtimeResource; }
     inline const FileNode* getNode() const { return m_node; }

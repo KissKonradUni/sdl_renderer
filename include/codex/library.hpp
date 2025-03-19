@@ -4,9 +4,16 @@
 #include "filenode.hpp"
 
 #include <filesystem>
+#include <thread>
+#include <queue>
 #include <map>
 
 namespace Codex {
+
+struct AsyncIOAction {
+    FileNode* node;
+    IResourceBase* resource;
+};
 
 class Library {
 friend FileNode;
@@ -54,7 +61,7 @@ public:
      * @param node The node to get the texture from
      * @return Texture* The texture (nullptr if not found)
      */
-    inline Texture* tryGetTexture(FileNode* node) const {
+    inline Texture* tryGetLoadedTexture(FileNode* node) const {
         try {
             return m_textureLookupTable.at(node).get();
         } catch (const std::out_of_range& e) {
@@ -73,19 +80,40 @@ public:
      */
     bool formatPath(std::filesystem::path* path) const;
 
+    /**
+     * @brief Checks for finished asynchronous actions.
+     *        Should be called every once in a while.
+     */
+    void checkForFinishedAsync();
+
+    /**
+     * @brief The assets window for the UI
+     */
     static void assetsWindow();
 protected:
+    // Tree structure of the assets folder
     std::filesystem::path m_assetsRoot;
-
     FileNode* m_rootNode;
+
+    // Lookup tables for quick access
     std::map<std::filesystem::path, std::unique_ptr<FileNode>> m_fileLookupTable;
     std::map<FileNode*, std::unique_ptr<Texture>> m_textureLookupTable;
 
+    // Async loading
+    IResourceBase* asnycLoadResource(FileNode* node);
+
+    std::queue<AsyncIOAction> m_asyncQueue;
+    std::queue<AsyncIOAction> m_asyncFinished;
+    volatile int m_asyncRunning = 0;
+    volatile int m_asyncCheck = 0;
+    std::thread m_asyncLoader;
+    std::mutex m_asyncMutex;
+
+    // Internal functions
     Library();
     ~Library();
 
     void mapAssetsFolder();
-    void loadNode(FileNode* node);
 
     // UI Variables
     FileNode* m_selectedNode = nullptr;
