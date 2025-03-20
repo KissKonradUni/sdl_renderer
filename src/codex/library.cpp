@@ -1,4 +1,6 @@
 #include "codex/library.hpp"
+#include "codex/texture.hpp"
+#include "codex/shader.hpp"
 #include "echo/console.hpp"
 
 #include "imgui.h"
@@ -105,7 +107,8 @@ void Library::mapAssetsFolder() {
     Echo::log("Assets folder mapped.");
 }
 
-IResourceBase* Library::asnycLoadResource(FileNode* node) {
+template<typename AssetType>
+AssetType* Library::asnycLoadResource(FileNode* node) {
     // Check if the node is valid
     if (node == nullptr) {
         Echo::warn("Tried loading invalid node.");
@@ -113,39 +116,15 @@ IResourceBase* Library::asnycLoadResource(FileNode* node) {
     }
 
     // Check if the node is already loaded
-    if (m_textureLookupTable.find(node) != m_textureLookupTable.end()) {
-        return m_textureLookupTable[node].get();
+    if (m_resourceLookupTable.find(node) != m_resourceLookupTable.end()) {
+        return static_cast<AssetType*>(m_resourceLookupTable[node].get());
     }
-    if (m_shaderLookupTable.find(node) != m_shaderLookupTable.end()) {
-        return m_shaderLookupTable[node].get();
-    }
-    // TODO: Add other file types
 
     // Create the action
     AsyncIOAction action;
     action.node = node;
-    switch (node->type) {
-    case FileType::IMAGE_FILE: {
-        auto texture = new Texture();
-        action.resource = texture;
-        m_textureLookupTable[node] = std::unique_ptr<Texture>(texture);
-    } break;
-    case FileType::SHADER_FILE: {
-        auto shader = new Shader();
-        action.resource = shader;
-        m_shaderLookupTable[node] = std::unique_ptr<Shader>(shader);
-    } break;
-    case FileType::RAW_SHADER_FILE: 
-    case FileType::TEXT_FILE:
-    case FileType::BINARY_FILE:
-    case FileType::FONT_FILE:
-        // Nothing to do with these
-        break;
-    default:
-        // TODO: Add other file types
-        Echo::warn("Unimplemented file type.");
-        return nullptr;
-    }
+    action.resource = new AssetType();
+    m_resourceLookupTable[node] = std::unique_ptr<IResourceBase>(action.resource);
 
     if (action.resource == nullptr)
         return nullptr;
@@ -155,7 +134,7 @@ IResourceBase* Library::asnycLoadResource(FileNode* node) {
     m_asyncQueue.push(action);
     m_asyncMutex.unlock();
 
-    return action.resource;
+    return static_cast<AssetType*>(action.resource);
 }
 
 void Library::checkForFinishedAsync() {
@@ -226,8 +205,19 @@ void Library::assetsWindow() {
             if (child->isDirectory) {
                 instance.m_selectedNode = child;
             } else {
-                instance.m_selectedAsset = instance.asnycLoadResource(child);
                 instance.m_selectedType = child->type;
+                switch (child->type) {
+                case FileType::IMAGE_FILE:
+                    instance.m_selectedAsset = instance.asnycLoadResource<Texture>(child);
+                    break;
+                case FileType::SHADER_FILE:
+                    instance.m_selectedAsset = instance.asnycLoadResource<Shader>(child);
+                    break;
+                default:
+                    instance.m_selectedAsset = nullptr;
+                    Echo::warn("Unsupported asset type.");
+                    break;
+                }
             }
         }
 
@@ -240,8 +230,13 @@ void Library::assetsWindow() {
     ImGui::Text("Inspector");
     ImGui::Separator();
 
-    if (instance.m_selectedAsset == nullptr || !instance.m_selectedAsset->isInitialized()) {
+    if (instance.m_selectedAsset == nullptr) {
         ImGui::Text("No/unsupported asset selected.");
+        ImGui::EndChild();
+        ImGui::End();
+        return;
+    } else if (!instance.m_selectedAsset->isInitialized()) {
+        ImGui::Text("Loading asset...");
         ImGui::EndChild();
         ImGui::End();
         return;

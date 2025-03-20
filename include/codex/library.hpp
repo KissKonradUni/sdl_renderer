@@ -1,7 +1,6 @@
 #pragma once
 
-#include "codex/texture.hpp"
-#include "codex/shader.hpp"
+#include "resource.hpp"
 #include "filenode.hpp"
 
 #include <filesystem>
@@ -56,33 +55,18 @@ public:
     }
 
     /**
-     * @brief Gets a texture from the asset library
-     * @attention Excepts formatted paths
-     *
-     * @param node The node to get the texture from
-     * @return Texture* The texture (nullptr if not found)
+     * @brief Gets a resource from the asset library
+     * 
+     * @tparam AssetType The type of the asset (Texture, Shader, etc.)
+     * @param node The file node of the asset
+     * @return AssetType* The asset (nullptr if not found)
      */
-    inline Texture* tryGetLoadedTexture(FileNode* node) const {
-        try {
-            return m_textureLookupTable.at(node).get();
-        } catch (const std::out_of_range& e) {
-            return nullptr;
+    template<typename AssetType = IResourceBase>
+    inline AssetType* tryGetLoadedAsset(FileNode* node) const {
+        if (m_resourceLookupTable.find(node) != m_resourceLookupTable.end()) {
+            return static_cast<AssetType*>(m_resourceLookupTable.at(node).get());
         }
-    }
-
-    /**
-     * @brief Gets a shader from the asset library
-     * @attention Excepts formatted paths
-
-     * @param node The node to get the shader from
-     * @return Shader* The shader (nullptr if not found)
-     */
-    inline Shader* tryGetLoadedShader(FileNode* node) const {
-        try {
-            return m_shaderLookupTable.at(node).get();
-        } catch (const std::out_of_range& e) {
-            return nullptr;
-        }
+        return nullptr;
     }
     
     /**
@@ -113,11 +97,11 @@ protected:
 
     // Lookup tables for quick access
     std::map<std::filesystem::path, std::unique_ptr<FileNode>> m_fileLookupTable;
-    std::map<FileNode*, std::unique_ptr<Texture>> m_textureLookupTable;
-    std::map<FileNode*, std::unique_ptr<Shader>> m_shaderLookupTable;
+    std::map<FileNode*, std::unique_ptr<IResourceBase>> m_resourceLookupTable;
 
     // Async loading
-    IResourceBase* asnycLoadResource(FileNode* node);
+    template<typename AssetType>
+    AssetType* asnycLoadResource(FileNode* node);
 
     std::queue<AsyncIOAction> m_asyncQueue;
     std::queue<AsyncIOAction> m_asyncFinished;

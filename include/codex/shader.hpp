@@ -67,9 +67,7 @@ public:
     void setUniform(const std::string& name, const vector4f& value);
     void setUniform(const std::string& name, const matrix4x4f& value);
 
-    //static std::shared_ptr<ShaderData> loadShaderDataFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
     void loadData(const FileNode* file);
-    //static std::shared_ptr<Shader> loadShaderFromFile(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
     void loadResource();
 protected:
     unsigned int m_programHandle;

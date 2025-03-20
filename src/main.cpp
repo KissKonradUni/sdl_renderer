@@ -41,18 +41,13 @@ void initCamera() {
         vector4f(0.0f, 0.0f, 4.0f, 0.0f),
         vector4f::zero()
     );
+    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
 }
 
 void initGLParams() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-
-    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
-}
-
-void initDrawables() {
-    Codex::Library::instance().init();
 }
 
 void initEvents() {    
@@ -122,9 +117,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         return result;
 
     initCamera();
-    initEvents();
     initGLParams();
-    initDrawables();
+    initEvents();
+    Codex::Library::instance().init();
 
     sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
 
