@@ -52,4 +52,7 @@ void main()
 
     // Apply ambient occlusion
     outputColor.rgb *= (ao * 0.5 + 0.5);
+
+    // Debug - fill with white
+    outputColor = vec4(1.0);
 }

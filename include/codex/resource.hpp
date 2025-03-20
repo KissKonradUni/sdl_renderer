@@ -20,7 +20,7 @@ public:
 protected:
     bool m_initialized = false;       // If the resource has been initialized
     bool m_runtimeResource = false;   // If the resource is runtime only (no node attached)
-    const FileNode* m_node;           // The node in the library
+    const FileNode* m_node = nullptr; // The node in the library
 };
 
 /**

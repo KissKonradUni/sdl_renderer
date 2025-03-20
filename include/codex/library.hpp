@@ -62,13 +62,24 @@ public:
      * @return AssetType* The asset (nullptr if not found)
      */
     template<typename AssetType = IResourceBase>
-    inline AssetType* tryGetLoadedAsset(FileNode* node) const {
+    inline AssetType* tryGetLoadedResource(FileNode* node) const {
         if (m_resourceLookupTable.find(node) != m_resourceLookupTable.end()) {
             return static_cast<AssetType*>(m_resourceLookupTable.at(node).get());
         }
         return nullptr;
     }
-    
+
+    /**
+     * @brief Loads a resource from the asset library
+     *        If the resource is already loaded, returns the existing one
+     * 
+     * @tparam AssetType The type of the asset (Texture, Shader, etc.)
+     * @param node The file node of the asset
+     * @return AssetType* The asset (nullptr if not found)
+     */
+    template<typename AssetType>
+    AssetType* tryLoadResource(FileNode* node);
+
     /**
      * @brief Formats a path to be relative to the assets root.
      * Checks if the path is inside the assets root.
@@ -99,10 +110,6 @@ protected:
     std::map<std::filesystem::path, std::unique_ptr<FileNode>> m_fileLookupTable;
     std::map<FileNode*, std::unique_ptr<IResourceBase>> m_resourceLookupTable;
 
-    // Async loading
-    template<typename AssetType>
-    AssetType* asnycLoadResource(FileNode* node);
-
     std::queue<AsyncIOAction> m_asyncQueue;
     std::queue<AsyncIOAction> m_asyncFinished;
     volatile int m_asyncRunning = 0;
@@ -116,7 +123,10 @@ protected:
 
     void mapAssetsFolder();
 
-    // UI Variables
+    // UI
+    void assetsBrowser(Library& instance);
+    void assetsInspector(Library& instance);
+
     FileNode* m_selectedNode = nullptr;
     char m_nameBuffer[64];
 

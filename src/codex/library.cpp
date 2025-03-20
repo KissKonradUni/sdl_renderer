@@ -1,3 +1,4 @@
+#include "codex/material.hpp"
 #include "codex/library.hpp"
 #include "codex/texture.hpp"
 #include "codex/shader.hpp"
@@ -20,7 +21,8 @@ static const std::unordered_map<FileType, const char*> FileTypeStrings = {
     {FileType::AUDIO_FILE, ICON_MS_VOLUME_UP},
     {FileType::MESH_FILE, ICON_MS_DEPLOYED_CODE},
     {FileType::SHADER_FILE, ICON_MS_STYLE},
-    {FileType::RAW_SHADER_FILE, ICON_MS_STROKE_PARTIAL}
+    {FileType::RAW_SHADER_FILE, ICON_MS_STROKE_PARTIAL},
+    {FileType::MATERIAL_FILE, ICON_MS_SHAPES}
 };
 
 void Library::init() {
@@ -108,7 +110,7 @@ void Library::mapAssetsFolder() {
 }
 
 template<typename AssetType>
-AssetType* Library::asnycLoadResource(FileNode* node) {
+AssetType* Library::tryLoadResource(FileNode* node) {
     // Check if the node is valid
     if (node == nullptr) {
         Echo::warn("Tried loading invalid node.");
@@ -157,15 +159,7 @@ void Library::checkForFinishedAsync() {
     m_asyncMutex.unlock();
 }
 
-void Library::assetsWindow() {
-    Library& instance = Library::instance();
-
-    if (instance.m_selectedNode == nullptr) {
-        return;
-    }
-
-    ImGui::Begin("Assets", nullptr);
-    
+void Library::assetsBrowser(Library& instance) {
     FileNode* folderNode[16]; // Magic limit
     folderNode[0] = instance.m_selectedNode;
     int folderIndex = 0;
@@ -191,7 +185,7 @@ void Library::assetsWindow() {
     }
     
     auto availableSpace = ImGui::GetContentRegionAvail();
-    ImGui::BeginChild("AssetsList", ImVec2(0, - availableSpace.x), true);
+    ImGui::BeginChild("AssetsList", ImVec2(0, - availableSpace.x * 1.25f), ImGuiChildFlags_Borders);
 
     int index = 1;
     for (auto& child : instance.m_selectedNode->children) {
@@ -208,10 +202,13 @@ void Library::assetsWindow() {
                 instance.m_selectedType = child->type;
                 switch (child->type) {
                 case FileType::IMAGE_FILE:
-                    instance.m_selectedAsset = instance.asnycLoadResource<Texture>(child);
+                    instance.m_selectedAsset = instance.tryLoadResource<Texture>(child);
                     break;
                 case FileType::SHADER_FILE:
-                    instance.m_selectedAsset = instance.asnycLoadResource<Shader>(child);
+                    instance.m_selectedAsset = instance.tryLoadResource<Shader>(child);
+                    break;
+                case FileType::MATERIAL_FILE:
+                    instance.m_selectedAsset = instance.tryLoadResource<Material>(child);
                     break;
                 default:
                     instance.m_selectedAsset = nullptr;
@@ -225,23 +222,24 @@ void Library::assetsWindow() {
     }
 
     ImGui::EndChild();
+}
 
-    ImGui::BeginChild("AssetInspector", ImVec2(0, 0), true);
+void Library::assetsInspector(Library& instance) {
+    ImGui::BeginChild("AssetInspector", ImVec2(0, 0), ImGuiChildFlags_Borders);
     ImGui::Text("Inspector");
     ImGui::Separator();
 
     if (instance.m_selectedAsset == nullptr) {
         ImGui::Text("No/unsupported asset selected.");
         ImGui::EndChild();
-        ImGui::End();
         return;
     } else if (!instance.m_selectedAsset->isInitialized()) {
         ImGui::Text("Loading asset...");
         ImGui::EndChild();
-        ImGui::End();
         return;
     }
 
+    ImGui::BeginChild("AssetInspectorPreview", ImVec2(0, -72));
     switch (instance.m_selectedType) {
     case FileType::IMAGE_FILE: {
         auto image = dynamic_cast<Texture*>(instance.m_selectedAsset);
@@ -265,12 +263,60 @@ void Library::assetsWindow() {
 
         ImGui::Text("Shader: %s", shader->getNode()->name.c_str());
         } break;
+    case FileType::MATERIAL_FILE: {
+        auto material = dynamic_cast<Material*>(instance.m_selectedAsset);
+
+        ImGui::Text("Material: %s", material->getNode()->name.c_str());
+        ImGui::Text("Name: %s", material->getName().c_str());
+        ImGui::Text("Textures: ");
+        ImGui::BeginChild("MaterialTextures", ImVec2(0, 0), ImGuiChildFlags_Borders);
+        auto textures = material->getTextures();
+        int index = 0;
+        for (const auto& [name, texture] : textures) {
+            if (ImGui::Selectable(name.c_str(), index++ % 2 == 0)) {
+                instance.m_selectedAsset = texture;
+                instance.m_selectedType = FileType::IMAGE_FILE;
+            }
+
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("%s", texture->getNode()->path.c_str());
+                ImGui::EndTooltip();
+            }
+        }
+        ImGui::EndChild();
+
+        } break;
     default:
         ImGui::Text("No inspector for this asset type.");
         break;
     }
+    ImGui::EndChild();
+
+    if (ImGui::Selectable(ICON_MS_FOLDER "Go to containing folder", true)) {
+        instance.m_selectedNode = instance.m_selectedAsset->getNode()->parent;
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("%s", instance.m_selectedAsset->getNode()->parent->path.c_str());
+        ImGui::EndTooltip();
+    }
+    ImGui::Text("Runtime resource: %s", instance.m_selectedAsset->isRuntimeResource() ? ICON_MS_CHECK_CIRCLE : ICON_MS_CANCEL);
 
     ImGui::EndChild();
+}
+
+void Library::assetsWindow() {
+    Library& instance = Library::instance();
+
+    if (instance.m_selectedNode == nullptr) {
+        return;
+    }
+
+    ImGui::Begin("Assets", nullptr);
+    
+    instance.assetsBrowser(instance);
+    instance.assetsInspector(instance);
 
     ImGui::End();
 }

@@ -106,8 +106,14 @@ void Shader::loadData(const FileNode* file) {
     std::ifstream metaFile(library.getAssetsRoot() / file->path);
     json meta = json::parse(metaFile);
 
-    std::filesystem::path vertexShaderFilename   = meta["vert"];
-    std::filesystem::path fragmentShaderFilename = meta["frag"];
+    std::filesystem::path vertexShaderFilename   = meta["vert"].template get<std::string>();
+    std::filesystem::path fragmentShaderFilename = meta["frag"].template get<std::string>();
+
+    if (vertexShaderFilename.empty() || fragmentShaderFilename.empty()) {
+        Echo::error("Shader file not found in meta file.");
+        return;
+    }
+
     library.formatPath(&vertexShaderFilename);
     library.formatPath(&fragmentShaderFilename);
 
@@ -134,7 +140,7 @@ void Shader::loadData(const FileNode* file) {
     );
 
     m_runtimeResource = false;
-    Echo::log("Shader data loaded.");
+    Echo::log("Loaded shader data from file: " + file->path.string());
 }
 
 void Shader::loadResource() {
