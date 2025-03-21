@@ -39,10 +39,14 @@
 
 ## Compiling
 ```sh
+# Compile 3rd party libraries
+make -C lib
+# Compile the project
 make
 ```
 ## Running
 ```sh
+# Run the project
 make run
 ```
 

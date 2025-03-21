@@ -7,6 +7,7 @@
 #include "imgui.h"
 
 #include <IconsMaterialSymbols.h>
+#include <functional>
 #include <unordered_map>
 
 namespace Codex {
@@ -187,38 +188,40 @@ void Library::assetsBrowser(Library& instance) {
     auto availableSpace = ImGui::GetContentRegionAvail();
     ImGui::BeginChild("AssetsList", ImVec2(0, - availableSpace.x * 1.25f), ImGuiChildFlags_Borders);
 
-    int index = 1;
+    int index = 0;
     for (auto& child : instance.m_selectedNode->children) {
         snprintf(instance.m_nameBuffer, 64, "%s%s##%p",
             FileTypeStrings.at(child->type),
             child->name.c_str(),
             child
         );
+        index++;
 
-        if (ImGui::Selectable(instance.m_nameBuffer, index % 2 == 0)) {
-            if (child->isDirectory) {
-                instance.m_selectedNode = child;
-            } else {
-                instance.m_selectedType = child->type;
-                switch (child->type) {
-                case FileType::IMAGE_FILE:
-                    instance.m_selectedAsset = instance.tryLoadResource<Texture>(child);
-                    break;
-                case FileType::SHADER_FILE:
-                    instance.m_selectedAsset = instance.tryLoadResource<Shader>(child);
-                    break;
-                case FileType::MATERIAL_FILE:
-                    instance.m_selectedAsset = instance.tryLoadResource<Material>(child);
-                    break;
-                default:
-                    instance.m_selectedAsset = nullptr;
-                    Echo::warn("Unsupported asset type.");
-                    break;
-                }
-            }
+        if (!ImGui::Selectable(instance.m_nameBuffer, index % 2 == 0))
+            continue;
+
+        if (child->isDirectory) {
+            instance.m_selectedNode = child;
+            ImGui::EndChild();
+            return;
         }
 
-        index++;
+        instance.m_selectedType = child->type;
+
+        #define TRY_LOAD(FileType, AssetType) \
+            case FileType: \
+                instance.m_selectedAsset = instance.tryLoadResource<AssetType>(child); \
+                break;
+
+        switch (child->type) {
+            TRY_LOAD(FileType::IMAGE_FILE   , Texture )
+            TRY_LOAD(FileType::SHADER_FILE  , Shader  )
+            TRY_LOAD(FileType::MATERIAL_FILE, Material)
+            default:
+                instance.m_selectedAsset = nullptr;
+                Echo::warn("Unsupported asset type.");
+                break;
+        }
     }
 
     ImGui::EndChild();

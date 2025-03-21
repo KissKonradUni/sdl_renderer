@@ -72,7 +72,7 @@ TARGET = $(BUILD_DIR)/sdl3_app.$(EXT)
 MAKEFLAGS += -j12
 
 # Build target
-all: library $(TARGET)
+all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	@echo "[MAKEFILE] Building target in $(BUILD_MODE) mode..."
@@ -95,10 +95,6 @@ $(IMGUI_PATH)/obj/%.o: $(IMGUI_PATH)/%.cpp
 	@$(CXX) $(CXXFLAGS) -I$(INC_DIR) -c $< -o $@
 	@echo "[MAKEFILE] Compiled $<"
 
-# Run make in the lib folder
-library:
-	@$(MAKE) -C $(THIRD_PARTY_FOLDER)
-
 # Run target
 run: $(TARGET)
 	@echo "[MAKEFILE] Running target..."
@@ -108,10 +104,6 @@ run: $(TARGET)
 clean:
 	@echo "[MAKEFILE] Cleaning up..."
 	@$(RM) $(OBJ_DIR) $(BUILD_DIR)
-
-clean-lib:
-	@echo "[MAKEFILE] Cleaning up 3rd party libraries..."
-	@$(MAKE) -C $(THIRD_PARTY_FOLDER) clean
 
 # Clean imgui objects
 clean-imgui:
