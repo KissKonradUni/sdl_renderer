@@ -2,8 +2,8 @@
 #include "codex/shader.hpp"
 #include "echo/console.hpp"
 
-#include "lib/glad/glad.h"
-#include "lib/json/json.hpp"
+#include <glad.h>
+#include <json.hpp>
 
 #include <filesystem>
 #include <fstream>

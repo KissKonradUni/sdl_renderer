@@ -2,7 +2,7 @@
 #include "codex/library.hpp"
 #include "echo/console.hpp"
 
-#include "lib/json/json.hpp"
+#include <json.hpp>
 
 #include <fstream>
 

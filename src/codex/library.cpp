@@ -5,8 +5,8 @@
 #include "echo/console.hpp"
 
 #include "imgui.h"
-#include "lib/icons/IconsMaterialSymbols.h"
 
+#include <IconsMaterialSymbols.h>
 #include <unordered_map>
 
 namespace Codex {

@@ -3,7 +3,7 @@
 #include "codex/resource.hpp"
 #include "floatmath.hpp"
 
-#include "lib/stb/stb_image.h"
+#include <stb_image.h>
 
 namespace Codex {
 

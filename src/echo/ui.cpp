@@ -1,11 +1,11 @@
+#include "app.hpp"
 #include "echo/ui.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
-#include "lib/icons/IconsMaterialSymbols.h"
 
-#include "app.hpp"
+#include <IconsMaterialSymbols.h>
 
 namespace Echo {
 

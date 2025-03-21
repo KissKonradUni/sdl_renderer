@@ -18,8 +18,6 @@ SDLLIBS = `pkg-config sdl3 --libs`
 ASSIMPFLAGS = `pkg-config assimp --cflags`
 ASSIMPLIBS = `pkg-config assimp --libs`
 
-GLAD = -Iinclude/glad -Iinclude/KHR
-
 # Specify the path to the imgui library
 IMGUI_PATH = ../imgui
 
@@ -32,6 +30,10 @@ IMGUI_SRCS = $(IMGUI_PATH)/imgui.cpp \
 			 $(IMGUI_PATH)/backends/imgui_impl_opengl3.cpp
 IMGUI_OBJS = $(patsubst $(IMGUI_PATH)/%.cpp, $(IMGUI_PATH)/obj/%.o, $(IMGUI_SRCS))
 IMGUI_FLAGS = -I$(IMGUI_PATH) -I$(IMGUI_PATH)/backends
+
+THIRD_PARTY_FOLDER = ./lib
+THIRD_PARTY_FLAGS = -Ilib/include
+THIRD_PARTY_LIBS = -L./lib -lcinderdeps
 
 CXX = clang++
 
@@ -54,8 +56,8 @@ else
 	BUILD_FLAGS = $(RELEASE_FLAGS)
 endif
 
-CXXFLAGS = -Wall -std=c++23 -msse4.2 -mavx $(BUILD_FLAGS) $(SDLFLAGS) $(ASSIMPFLAGS) $(IMGUI_FLAGS)
-LDFLAGS = $(BUILD_FLAGS) $(OPENGL) $(SDLLIBS) $(ASSIMPLIBS) $(GLAD)
+CXXFLAGS = -Wall -std=c++23 -msse4.2 -mavx $(BUILD_FLAGS) $(SDLFLAGS) $(ASSIMPFLAGS) $(IMGUI_FLAGS) $(THIRD_PARTY_FLAGS)
+LDFLAGS = $(BUILD_FLAGS) $(OPENGL) $(SDLLIBS) $(ASSIMPLIBS) $(THIRD_PARTY_LIBS)
 
 # Project structure
 SRC_DIR = src
@@ -70,7 +72,7 @@ TARGET = $(BUILD_DIR)/sdl3_app.$(EXT)
 MAKEFLAGS += -j12
 
 # Build target
-all: $(TARGET)
+all: library $(TARGET)
 
 $(TARGET): $(OBJS)
 	@echo "[MAKEFILE] Building target in $(BUILD_MODE) mode..."
@@ -93,6 +95,10 @@ $(IMGUI_PATH)/obj/%.o: $(IMGUI_PATH)/%.cpp
 	@$(CXX) $(CXXFLAGS) -I$(INC_DIR) -c $< -o $@
 	@echo "[MAKEFILE] Compiled $<"
 
+# Run make in the lib folder
+library:
+	@$(MAKE) -C $(THIRD_PARTY_FOLDER)
+
 # Run target
 run: $(TARGET)
 	@echo "[MAKEFILE] Running target..."
@@ -102,6 +108,10 @@ run: $(TARGET)
 clean:
 	@echo "[MAKEFILE] Cleaning up..."
 	@$(RM) $(OBJ_DIR) $(BUILD_DIR)
+
+clean-lib:
+	@echo "[MAKEFILE] Cleaning up 3rd party libraries..."
+	@$(MAKE) -C $(THIRD_PARTY_FOLDER) clean
 
 # Clean imgui objects
 clean-imgui:

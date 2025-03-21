@@ -2,10 +2,9 @@
 #include "codex/library.hpp"
 #include "echo/console.hpp"
 
-#include "lib/glad/glad.h"
-
 #define STB_IMAGE_IMPLEMENTATION
-#include "lib/stb/stb_image.h"
+#include <stb_image.h>
+#include <glad.h>
 
 namespace Codex {
 
