@@ -3,28 +3,66 @@
 #include "codex/texture.hpp"
 #include "codex/shader.hpp"
 #include "echo/console.hpp"
+#include "codex/mesh.hpp"
 
 #include "imgui.h"
 
 #include <IconsMaterialSymbols.h>
-#include <functional>
 #include <unordered_map>
+
+// TODO: remove
+Codex::Shader* shader = nullptr;
 
 namespace Codex {
 
 // Map enum values to string constants
 static const std::unordered_map<FileType, const char*> FileTypeStrings = {
-    {FileType::DIRECTORY , ICON_MS_FOLDER},
-    {FileType::TEXT_FILE , ICON_MS_DESCRIPTION},
-    {FileType::BINARY_FILE, ICON_MS_NOTE_STACK},
-    {FileType::FONT_FILE, ICON_MS_FONT_DOWNLOAD},
-    {FileType::IMAGE_FILE, ICON_MS_IMAGE},
-    {FileType::AUDIO_FILE, ICON_MS_VOLUME_UP},
-    {FileType::MESH_FILE, ICON_MS_DEPLOYED_CODE},
-    {FileType::SHADER_FILE, ICON_MS_STYLE},
+    {FileType::DIRECTORY      , ICON_MS_FOLDER        },
+    {FileType::SPECIAL        , ICON_MS_MANUFACTURING },
+    
+    {FileType::TEXT_FILE      , ICON_MS_DESCRIPTION   },
+    {FileType::BINARY_FILE    , ICON_MS_NOTE_STACK    },
+
+    {FileType::FONT_FILE      , ICON_MS_FONT_DOWNLOAD },
+    {FileType::IMAGE_FILE     , ICON_MS_IMAGE         },
+    {FileType::AUDIO_FILE     , ICON_MS_VOLUME_UP     },
+    
+    {FileType::MESH_FILE      , ICON_MS_DEPLOYED_CODE },
+    {FileType::MESH_PART      , ICON_MS_QR_CODE       },
+
+    {FileType::SHADER_FILE    , ICON_MS_STYLE         },
     {FileType::RAW_SHADER_FILE, ICON_MS_STROKE_PARTIAL},
-    {FileType::MATERIAL_FILE, ICON_MS_SHAPES}
+    
+    {FileType::MATERIAL_FILE  , ICON_MS_SHAPES        }
 };
+
+void Library::threadFunction() {
+    while (this->m_asyncRunning) {
+        m_asyncMutex.lock();
+        if (m_asyncQueue.empty()) {
+            m_asyncMutex.unlock();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
+
+        auto action = m_asyncQueue.front();
+        m_asyncQueue.pop();
+        m_asyncMutex.unlock();
+
+        action.resource->loadData(action.node);
+        
+        m_asyncMutex.lock();
+        m_asyncFinished.push(action);
+
+        // Volatile used as functional access
+        auto asyncCheck = m_asyncCheck;
+        asyncCheck++;
+        m_asyncCheck = asyncCheck;
+
+        m_asyncMutex.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+}
 
 void Library::init() {
     m_assetsRoot = std::filesystem::current_path() / "assets";
@@ -32,45 +70,29 @@ void Library::init() {
     mapAssetsFolder();
     m_selectedNode = m_rootNode;
 
+    std::filesystem::path runtimePath = m_assetsRoot / "runtime";
+    formatPath(&runtimePath, true);
+    m_runtimeNode = new FileNode(runtimePath, m_rootNode, true);
+    m_runtimeNode->isDirectory = true;
+    m_runtimeNode->path = runtimePath;
+    m_runtimeNode->type = FileType::SPECIAL;
+    m_fileLookupTable[m_runtimeNode->path] = std::unique_ptr<FileNode>(m_runtimeNode);
+
     Echo::log("Library initialized.");
 
     // Start the async IO thread
     m_asyncRunning = 1;
-    m_asyncLoader = std::thread([this]() {
-        while (this->m_asyncRunning) {
-            m_asyncMutex.lock();
-            if (!m_asyncQueue.empty()) {
-                auto action = m_asyncQueue.front();
-                m_asyncQueue.pop();
-                m_asyncMutex.unlock();
-
-                action.resource->loadData(action.node);
-                
-                m_asyncMutex.lock();
-                m_asyncFinished.push(action);
-
-                // Volatile used as functional access
-                auto asyncCheck = m_asyncCheck;
-                asyncCheck++;
-                m_asyncCheck = asyncCheck;
-
-                m_asyncMutex.unlock();
-            } else {
-                m_asyncMutex.unlock();
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-    });
+    m_asyncLoader = std::thread(&Library::threadFunction, this);
 
     Echo::log("Async IO thread started.");
 }
 
-bool Library::formatPath(std::filesystem::path* path) const {
+bool Library::formatPath(std::filesystem::path* path, bool virt) const {
     // Check if the path is inside the assets root
     // (Disallow breaking out of the assets root)
     auto relative = std::filesystem::relative(*path, m_assetsRoot);
     auto correct = (!relative.empty() && !relative.string().contains(".."));
-    auto exists = std::filesystem::exists(m_assetsRoot / relative);
+    auto exists = virt || std::filesystem::exists(m_assetsRoot / relative);
 
     if (correct && exists) {
         // Copy relative path to original path
@@ -138,6 +160,33 @@ AssetType* Library::tryLoadResource(FileNode* node) {
     m_asyncMutex.unlock();
 
     return static_cast<AssetType*>(action.resource);
+}
+
+FileNode* Library::requestRuntimeNode(const std::string& name, FileNode* parent) {
+    auto parentNode = (parent == nullptr) ? m_runtimeNode : parent;
+    
+    std::filesystem::path runtimePath = parentNode->path / name;
+    formatPath(&runtimePath, true);
+
+    if (m_fileLookupTable.find(runtimePath) != m_fileLookupTable.end()) {
+        return nullptr;
+    }
+
+    auto node = new FileNode(runtimePath, parentNode, true);
+    m_fileLookupTable[runtimePath] = std::unique_ptr<FileNode>(node);
+
+    return node;
+}
+
+void Library::registerRuntimeResource(IResourceBase* resource) {
+    FileNode* node = const_cast<FileNode*>(resource->getNode());
+
+    if (m_resourceLookupTable.find(node) != m_resourceLookupTable.end()) {
+        Echo::warn("Tried registering a runtime resource to a used node.");
+        return;
+    }
+
+    m_resourceLookupTable[node] = std::unique_ptr<IResourceBase>(resource);
 }
 
 void Library::checkForFinishedAsync() {
@@ -217,6 +266,7 @@ void Library::assetsBrowser(Library& instance) {
             TRY_LOAD(FileType::IMAGE_FILE   , Texture )
             TRY_LOAD(FileType::SHADER_FILE  , Shader  )
             TRY_LOAD(FileType::MATERIAL_FILE, Material)
+            TRY_LOAD(FileType::MESH_FILE    , Mesh    )
             default:
                 instance.m_selectedAsset = nullptr;
                 Echo::warn("Unsupported asset type.");
@@ -244,52 +294,58 @@ void Library::assetsInspector(Library& instance) {
 
     ImGui::BeginChild("AssetInspectorPreview", ImVec2(0, -72));
     switch (instance.m_selectedType) {
-    case FileType::IMAGE_FILE: {
-        auto image = dynamic_cast<Texture*>(instance.m_selectedAsset);
+        case FileType::IMAGE_FILE: {
+            auto image = dynamic_cast<Texture*>(instance.m_selectedAsset);
 
-        ImGui::Text("Texture: %s", image->getNode()->name.c_str());
+            ImGui::Text("Texture: %s", image->getNode()->name.c_str());
 
-        auto availableSpace = ImGui::GetContentRegionAvail();
-        struct{ int w, h; } imageSize = {image->getWidth(), image->getHeight()};
+            auto availableSpace = ImGui::GetContentRegionAvail();
+            struct{ int w, h; } imageSize = {image->getWidth(), image->getHeight()};
 
-        if (imageSize.w > availableSpace.x || imageSize.h > availableSpace.y) {
-            float scale = std::min(availableSpace.x / static_cast<float>(imageSize.w),
-                                availableSpace.y / static_cast<float>(imageSize.h));
-            imageSize.w *= scale;
-            imageSize.h *= scale;
-        }
-
-        ImGui::Image(image->getHandle(), ImVec2(imageSize.w, imageSize.h));
-        } break;
-    case FileType::SHADER_FILE: {
-        auto shader = dynamic_cast<Shader*>(instance.m_selectedAsset);
-
-        ImGui::Text("Shader: %s", shader->getNode()->name.c_str());
-        } break;
-    case FileType::MATERIAL_FILE: {
-        auto material = dynamic_cast<Material*>(instance.m_selectedAsset);
-
-        ImGui::Text("Material: %s", material->getNode()->name.c_str());
-        ImGui::Text("Name: %s", material->getName().c_str());
-        ImGui::Text("Textures: ");
-        ImGui::BeginChild("MaterialTextures", ImVec2(0, 0), ImGuiChildFlags_Borders);
-        auto textures = material->getTextures();
-        int index = 0;
-        for (const auto& [name, texture] : textures) {
-            if (ImGui::Selectable(name.c_str(), index++ % 2 == 0)) {
-                instance.m_selectedAsset = texture;
-                instance.m_selectedType = FileType::IMAGE_FILE;
+            if (imageSize.w > availableSpace.x || imageSize.h > availableSpace.y) {
+                float scale = std::min(availableSpace.x / static_cast<float>(imageSize.w),
+                                    availableSpace.y / static_cast<float>(imageSize.h));
+                imageSize.w *= scale;
+                imageSize.h *= scale;
             }
 
-            if (ImGui::IsItemHovered()) {
-                ImGui::BeginTooltip();
-                ImGui::Text("%s", texture->getNode()->path.c_str());
-                ImGui::EndTooltip();
-            }
-        }
-        ImGui::EndChild();
+            ImGui::Image(image->getHandle(), ImVec2(imageSize.w, imageSize.h));
+            } break;
+        case FileType::SHADER_FILE: {
+            auto shader = dynamic_cast<Shader*>(instance.m_selectedAsset);
 
-        } break;
+            ImGui::Text("Shader: %s", shader->getNode()->name.c_str());
+            } break;
+        case FileType::MATERIAL_FILE: {
+            auto material = dynamic_cast<Material*>(instance.m_selectedAsset);
+
+            ImGui::Text("Material: %s", material->getNode()->name.c_str());
+            ImGui::Text("Name: %s", material->getName().c_str());
+            ImGui::Text("Textures: ");
+            ImGui::BeginChild("MaterialTextures", ImVec2(0, 0), ImGuiChildFlags_Borders);
+            auto textures = material->getTextures();
+            int index = 0;
+            for (const auto& [name, texture] : textures) {
+                if (ImGui::Selectable(name.c_str(), index++ % 2 == 0)) {
+                    instance.m_selectedAsset = texture;
+                    instance.m_selectedType = FileType::IMAGE_FILE;
+                }
+
+                if (ImGui::IsItemHovered() && texture->isInitialized()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("%s", texture->getNode()->path.c_str());
+                    ImGui::EndTooltip();
+                }
+            }
+
+            // TODO: remove
+            if (ImGui::Button("Bind")) {
+                material->bindTextures(shader);
+            }
+
+            ImGui::EndChild();
+
+            } break;
     default:
         ImGui::Text("No inspector for this asset type.");
         break;

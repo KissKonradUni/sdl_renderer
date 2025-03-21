@@ -3,7 +3,7 @@
 
 namespace Codex {
 
-FileNode::FileNode(std::filesystem::path& path, FileNode* parent) {
+FileNode::FileNode(std::filesystem::path& path, FileNode* parent, bool virt) {
     if (parent != nullptr) {    
         this->parent = parent;
         this->parent->children.push_back(this);
@@ -23,7 +23,9 @@ FileNode::FileNode(std::filesystem::path& path, FileNode* parent) {
             this->type = FileType::TEXT_FILE;
         }
     }
-    Library::instance().formatPath(&this->path);
+
+    if (!virt)
+        Library::instance().formatPath(&this->path);
 }
 
 FileNode::~FileNode() {

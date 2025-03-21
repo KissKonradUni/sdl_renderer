@@ -9,13 +9,17 @@ namespace Codex {
 
 enum class FileType {
     DIRECTORY,
+    SPECIAL,
+
     TEXT_FILE,
     BINARY_FILE,
 
     FONT_FILE,
     IMAGE_FILE,
     AUDIO_FILE,
+
     MESH_FILE,
+    MESH_PART,
     
     SHADER_FILE,
     RAW_SHADER_FILE,
@@ -63,7 +67,7 @@ struct FileNode {
     
     bool isDirectory;
 
-    FileNode(std::filesystem::path& path, FileNode* parent);
+    FileNode(std::filesystem::path& path, FileNode* parent, bool virt = false);
     ~FileNode();
 };
 

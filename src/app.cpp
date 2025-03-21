@@ -85,10 +85,8 @@ SDL_GLContextState* App::getGLContextPtr() {
 }
 
 App::~App() {
-    Echo::log("Window released from GPU device.");
-
-    this->m_window.reset();
     this->m_glContext.reset();
+    this->m_window.reset();
 }
 
 } // namespace Cinder

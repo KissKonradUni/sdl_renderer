@@ -21,6 +21,7 @@ vec3 normalWithMap()
     tangentNormal = tangentNormal * 2.0 - 1.0;
     
     vec3 worldNormal = tangentSpaceMatrix * tangentNormal;
+
     return normalize(worldNormal);
 }
 
@@ -49,10 +50,5 @@ void main()
     vec3 specular = vec3(0.5) * spec;
 
     outputColor = vec4(diffuse + specular, 1.0);
-
-    // Apply ambient occlusion
     outputColor.rgb *= (ao * 0.5 + 0.5);
-
-    // Debug - fill with white
-    outputColor = vec4(1.0);
 }

@@ -67,8 +67,8 @@ public:
     void setUniform(const std::string& name, const vector4f& value);
     void setUniform(const std::string& name, const matrix4x4f& value);
 
-    void loadData(const FileNode* file);
-    void loadResource();
+    void loadData(const FileNode* file) override;
+    void loadResource() override;
 protected:
     unsigned int m_programHandle;
     std::unordered_map<std::string, unsigned int> m_uniformLocations;

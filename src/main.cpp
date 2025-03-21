@@ -3,6 +3,7 @@
 #include "floatmath.hpp"
 #include "echo/input.hpp"
 #include "hex/camera.hpp"
+#include "codex/mesh.hpp"
 #include "echo/console.hpp"
 #include "codex/shader.hpp"
 #include "codex/library.hpp"
@@ -31,6 +32,9 @@ Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
 std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
 
+Codex::Mesh* mesh = nullptr;
+transformf meshTransform;
+
 void performanceWindow();
 void renderWindow();
 
@@ -48,6 +52,19 @@ void initGLParams() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+}
+
+void initDebugStuff() {
+    std::filesystem::path assetPath = "./assets/shaders/glsl/Basic.shader";
+    Codex::Library::instance().formatPath(&assetPath);
+    auto shaderNode = Codex::Library::instance().tryGetAssetNode(assetPath);
+    shader = Codex::Library::instance().tryLoadResource<Codex::Shader>(shaderNode);
+
+    assetPath = "./assets/models/sponza.glb";
+    Codex::Library::instance().formatPath(&assetPath);
+    auto meshNode = Codex::Library::instance().tryGetAssetNode(assetPath);
+    mesh = Codex::Library::instance().tryLoadResource<Codex::Mesh>(meshNode);
 }
 
 void initEvents() {    
@@ -121,6 +138,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initEvents();
     Codex::Library::instance().init();
 
+    initDebugStuff();
+
     sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
 
     // Enable adaptive vsync
@@ -183,7 +202,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
-        //cameraBuffer->updateData(camera->getShaderBufferPointer());
+        cameraBuffer->updateData(camera->getShaderBufferPointer());
         //Codex::Assets::instance().getCurrentScene().draw();
 
         /*
@@ -199,6 +218,15 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
             mesh->draw();
         }
         */
+
+        if (shader->isInitialized()) {
+            shader->bind();
+            shader->setUniform("modelMatrix", meshTransform.getModelMatrix());
+        }
+
+        if (mesh->isInitialized()) {
+            mesh->draw();
+        }
 
     sceneFramebuffer->unbind();
 

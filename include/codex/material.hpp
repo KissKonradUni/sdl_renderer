@@ -19,8 +19,8 @@ public:
     Material();
     virtual ~Material();
 
-    void loadData(const FileNode* file);
-    void loadResource();
+    void loadData(const FileNode* file) override;
+    void loadResource() override;
 
     void bindTextures(Shader* shader) const;
 

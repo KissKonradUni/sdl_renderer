@@ -1,5 +1,7 @@
 #pragma once
 
+#include "codex/shader.hpp"
+
 #include "resource.hpp"
 #include "filenode.hpp"
 
@@ -7,6 +9,9 @@
 #include <thread>
 #include <queue>
 #include <map>
+
+// TODO: remove
+extern Codex::Shader* shader;
 
 namespace Codex {
 
@@ -81,15 +86,34 @@ public:
     AssetType* tryLoadResource(FileNode* node);
 
     /**
+     * @brief Requests a runtime node for temporary assets.
+     *        This is used for creating runtime resources.
+     *        For accessing runtime resources, use @see tryGetAssetNode and @see tryGetLoadedResource
+     * 
+     * @param name The name of the runtime node
+     * @param parent The parent node (optional)
+     * @return FileNode* The runtime node (nullptr if already exists)
+     */
+    FileNode* requestRuntimeNode(const std::string& name, FileNode* parent = nullptr);
+
+    /**
+     * @brief Registers a runtime resource.
+     * 
+     * @param resource The runtime resource
+     */
+    void registerRuntimeResource(IResourceBase* resource);
+
+    /**
      * @brief Formats a path to be relative to the assets root.
      * Checks if the path is inside the assets root.
      * Also checks if the path exists.
      * 
      * @param path The path to format
+     * @param virt If the path is virtual (does not exist) [default: false]
      * @return true The path is valid
      * @return false The path does not exist or is outside the assets root
      */
-    bool formatPath(std::filesystem::path* path) const;
+    bool formatPath(std::filesystem::path* path, bool virt = false) const;
 
     /**
      * @brief Checks for finished asynchronous actions.
@@ -105,6 +129,7 @@ protected:
     // Tree structure of the assets folder
     std::filesystem::path m_assetsRoot;
     FileNode* m_rootNode;
+    FileNode* m_runtimeNode;
 
     // Lookup tables for quick access
     std::map<std::filesystem::path, std::unique_ptr<FileNode>> m_fileLookupTable;
@@ -121,6 +146,7 @@ protected:
     Library();
     ~Library();
 
+    void threadFunction();
     void mapAssetsFolder();
 
     // UI

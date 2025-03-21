@@ -99,8 +99,9 @@ void Material::bindTextures(Shader* shader) const {
 
     int index = 0;
     for (const auto& [name, texture] : m_data->textures) {
-        texture->bind(index++);
+        texture->bind(index);
         shader->setUniform(name, index);
+        index++;
     }
 }
 
