@@ -138,7 +138,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initEvents();
     Codex::Library::instance().init();
 
-    initDebugStuff();
+    //initDebugStuff();
 
     sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
 
@@ -219,6 +219,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         }
         */
 
+        /*
         if (shader->isInitialized()) {
             shader->bind();
             shader->setUniform("modelMatrix", meshTransform.getModelMatrix());
@@ -227,6 +228,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         if (mesh->isInitialized()) {
             mesh->draw();
         }
+        */
 
     sceneFramebuffer->unbind();
 

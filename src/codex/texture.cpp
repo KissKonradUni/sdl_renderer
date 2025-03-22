@@ -58,7 +58,7 @@ void Texture::loadData(const FileNode* file) {
     
     int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
-    auto data = stbi_load((Library::instance().getAssetsRoot() / file->path).c_str(), &width, &height, &channels, 4);
+    auto data = stbi_load((Library::instance().getAssetsRoot() / file->path).string().c_str(), &width, &height, &channels, 4);
 
     if (!data) {
         Echo::error(std::string("Failed to load texture from file: ") + file->path.string());

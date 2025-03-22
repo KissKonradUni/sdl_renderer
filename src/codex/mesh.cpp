@@ -57,7 +57,7 @@ void Mesh::loadData(const FileNode* node) {
     }
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(Library::instance().getAssetsRoot() / node->path,
+    const aiScene* scene = importer.ReadFile((Library::instance().getAssetsRoot() / node->path).string(),
         aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_CalcTangentSpace
     );
 
@@ -147,7 +147,7 @@ void Mesh::loadResource() {
     }
 
     auto baseName = m_node->name;
-    auto folderNode = Library::instance().requestRuntimeNode(Library::instance().getAssetsRoot() / "runtime" / baseName);
+    auto folderNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName).string());
     if (folderNode == nullptr) {
         Echo::warn("Failed to create runtime folder node.");
         return;
@@ -164,7 +164,7 @@ void Mesh::loadResource() {
         
         char partName[16];
         snprintf(partName, 16, "part_%03d.mesh", i);
-        auto meshNode = Library::instance().requestRuntimeNode(Library::instance().getAssetsRoot() / "runtime" / baseName / partName, folderNode);
+        auto meshNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName / partName).string(), folderNode);
         if (meshNode == nullptr) {
             Echo::warn("Failed to create runtime mesh node.");
             return;
