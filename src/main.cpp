@@ -1,13 +1,18 @@
 #include "app.hpp"
-#include "echo/ui.hpp"
 #include "floatmath.hpp"
-#include "echo/input.hpp"
+
+#include "hex/actor.hpp"
 #include "hex/camera.hpp"
-#include "codex/mesh.hpp"
+#include "hex/framebuffer.hpp"
+#include "hex/components/transformComponent.hpp"
+
+#include "echo/ui.hpp"
+#include "echo/input.hpp"
 #include "echo/console.hpp"
+
+#include "codex/mesh.hpp"
 #include "codex/shader.hpp"
 #include "codex/library.hpp"
-#include "hex/framebuffer.hpp"
 
 #include "imgui.h"
 
@@ -65,6 +70,9 @@ void initDebugStuff() {
     Codex::Library::instance().formatPath(&assetPath);
     auto meshNode = Codex::Library::instance().tryGetAssetNode(assetPath);
     mesh = Codex::Library::instance().tryLoadResource<Codex::Mesh>(meshNode);
+
+    Hex::Actor actor;
+    actor.addComponent<Hex::TransformComponent>();
 }
 
 void initEvents() {    
@@ -138,7 +146,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initEvents();
     Codex::Library::instance().init();
 
-    //initDebugStuff();
+    initDebugStuff();
 
     sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
 
@@ -219,7 +227,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         }
         */
 
-        /*
         if (shader->isInitialized()) {
             shader->bind();
             shader->setUniform("modelMatrix", meshTransform.getModelMatrix());
@@ -228,7 +235,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         if (mesh->isInitialized()) {
             mesh->draw();
         }
-        */
 
     sceneFramebuffer->unbind();
 

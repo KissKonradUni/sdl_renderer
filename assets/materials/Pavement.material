@@ -1,8 +1,0 @@
-{
-    "name": "Pavement material",
-    "textures": {
-        "textureDiffuse":             "./assets/images/pavement/herringbone_pavement_03_diff_4k.jpg",
-        "textureNormal":              "./assets/images/pavement/herringbone_pavement_03_nor_gl_4k.png",
-        "textureAORoughnessMetallic": "./assets/images/pavement/herringbone_pavement_03_disp_4k.png"
-    }
-}
