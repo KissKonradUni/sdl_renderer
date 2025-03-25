@@ -5,8 +5,8 @@
 > Created as a thesis for my Bachelor's degree in Computer Science.
 
 > <ins>**Created by:**</ins>
-👤 Konrád Soma Kiss
-📚 CNY8MP
+> 👤 Konrád Soma Kiss
+> 📚 CNY8MP
 
 ## 📕 Description
 
