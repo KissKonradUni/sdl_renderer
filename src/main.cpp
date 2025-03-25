@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "floatmath.hpp"
 
+#include "hex/scene.hpp"
 #include "hex/actor.hpp"
 #include "hex/camera.hpp"
 #include "hex/framebuffer.hpp"
@@ -40,6 +41,8 @@ std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
 Codex::Mesh* mesh = nullptr;
 transformf meshTransform;
 
+Hex::Scene scene;
+
 void performanceWindow();
 void renderWindow();
 
@@ -71,8 +74,25 @@ void initDebugStuff() {
     auto meshNode = Codex::Library::instance().tryGetAssetNode(assetPath);
     mesh = Codex::Library::instance().tryLoadResource<Codex::Mesh>(meshNode);
 
-    Hex::Actor actor;
-    actor.addComponent<Hex::TransformComponent>();
+    Hex::Actor* actor = new Hex::Actor();
+    actor->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor);
+
+    Hex::Actor* actor2 = new Hex::Actor(actor);
+    actor2->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor2);
+
+    Hex::Actor* actor3 = new Hex::Actor(actor2);
+    actor3->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor3);
+
+    actor = new Hex::Actor();
+    actor->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor);
+
+    actor2 = new Hex::Actor(actor);
+    actor2->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor2);
 }
 
 void initEvents() {    
@@ -160,6 +180,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     Echo::UI::instance().addUIFunction(Codex::Library::assetsWindow);
     Echo::UI::instance().addUIFunction([]() {
         camera->cameraWindow();
+        scene.editorUI();
     });
 
     return SDL_APP_CONTINUE;

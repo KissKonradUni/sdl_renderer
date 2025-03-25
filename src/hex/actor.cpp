@@ -1,9 +1,12 @@
 #include "hex/actor.hpp"
+#include "imgui.h"
 
 namespace Hex {
 
 Actor::Actor(Actor* parent) {
     m_parent = parent;
+    if (m_parent != nullptr)
+        m_parent->addChild(this);
     Echo::log("Actor created.");
 }
 
@@ -59,6 +62,27 @@ void Actor::removeChild(Actor* actor) {
     }
 
     Echo::warn("Actor does not have the child to remove.");
+}
+
+void Actor::setParent(Actor* actor) {
+    m_parent = actor;
+
+    for (const auto& component : m_components) {
+        component->onParentChanged();
+    }
+}
+
+void Actor::editorUI() {    
+    ImGui::Text("Actor %p", this);
+    ImGui::Separator();
+
+    auto availableSpace = ImGui::GetContentRegionAvail();
+    for (const auto& component : m_components) {
+        ImGui::BeginChild(component->getPrettyName().c_str(), ImVec2(availableSpace.x, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
+        ImGui::Text("%s", component->getPrettyName().c_str());
+        component->editorUI();
+        ImGui::EndChild();
+    }
 }
 
 }; // namespace Hex

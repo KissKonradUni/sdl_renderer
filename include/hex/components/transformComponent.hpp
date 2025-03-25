@@ -17,6 +17,9 @@ public:
     void render() override;
 
     inline transformf& getTransform() { return m_transform; }
+
+    virtual void onParentChanged() override;
+    virtual void editorUI() override;
 protected:
     transformf m_transform;
 };

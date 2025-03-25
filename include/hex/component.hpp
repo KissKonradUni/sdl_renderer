@@ -41,6 +41,9 @@ public:
 
     void setEnabled(const bool enabled);
     inline bool isEnabled() const { return m_enabled; }
+
+    virtual void onParentChanged() {}
+    virtual void editorUI();
 protected:
     bool m_enabled = true;
     Actor* m_actor = nullptr;

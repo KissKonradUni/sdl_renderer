@@ -47,27 +47,35 @@ public:
     }
     
     template<typename ComponentType = Component>
-    ComponentType* getComponent() const {
+    ComponentType* getComponent(bool mayBeNull = false) const {
         for (const auto& component : m_components) {
             if (component->getID() == ComponentType::getStaticID()) {
                 return static_cast<ComponentType*>(component.get());
             }
         }
 
-        Echo::warn("Actor does not have component of requested type.");
+        if (!mayBeNull)
+            Echo::warn("Actor does not have component of requested type.");
+
         return nullptr;
     }
 
     void addChild(Actor* actor);
     void removeChild(Actor* actor);
+    const std::vector<Actor*>& getChildren() const { return m_children; }
 
-    inline void setParent(Actor* actor) { m_parent = actor; }
+    void setParent(Actor* actor);
     inline Actor* const getParent() const { return m_parent; }
 
     inline void setEnabled(const bool enabled) { m_enabled = enabled; }
     inline bool isEnabled() const { return m_enabled; }
+
+    void editorUI();
+    inline void setEditorExpanded(const bool expanded) { m_editorExpanded = expanded; }
+    inline bool isEditorExpanded() const { return m_editorExpanded; }
 protected:
     bool m_enabled = true;
+    bool m_editorExpanded = true;
 
     Actor* m_parent = nullptr;
     std::vector<Actor*> m_children;
