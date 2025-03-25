@@ -1,6 +1,7 @@
 #include "hex/framebuffer.hpp"
 #include "echo/console.hpp"
-#include "lib/glad/glad.h"
+
+#include <glad.h>
 
 namespace Hex {
     

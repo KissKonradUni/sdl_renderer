@@ -3,8 +3,6 @@
 #include <SDL3/SDL.h>
 #include <map>
 
-#include "imgui.h"
-
 typedef void (*UIFunction)();
 
 namespace Echo {
@@ -27,14 +25,11 @@ public:
 
     unsigned int addUIFunction(UIFunction uiFunction);
     void removeUIFunction(unsigned int id);
-
-    void pushSmallFont();
 protected:
     UI() = default;
     ~UI();
 
     std::map<unsigned int, UIFunction> m_uiFunctions;
-    ImFont* m_smallFont;
 };
 
 }; // namespace Echo

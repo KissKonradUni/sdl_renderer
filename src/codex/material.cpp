@@ -1,87 +1,140 @@
 #include "codex/material.hpp"
-#include "lib/json/json.hpp"
-#include "codex/assets.hpp"
+#include "codex/library.hpp"
 #include "echo/console.hpp"
 
-#include <filesystem>
+#include <json.hpp>
+
 #include <fstream>
-#include <string>
-#include <array>
 
 namespace Codex {
 
-const std::array<std::string, TEXTURE_TYPE_COUNT> TextureTypeStrings = {
-    "textureDiffuse",
-    "textureNormal",
-    "textureAORoughnessMetallic"
-};
+Material::Material(std::string& name, std::map<std::string, Texture*>& textures) {
+    m_data.reset(new MaterialData{name, textures});
+    loadResource();
+    m_data.reset();
 
-Material::Material(const std::string& path) {
-    if (!std::filesystem::exists(path)) {
-        Echo::error(std::string("Material file not found: ") + path);
-        return;
-    }
+    m_runtimeResource = true;
+    m_node = nullptr;
 
-    using nlohmann::json;
+    Echo::log("Runtime material created.");
+}
 
-    std::ifstream file(path);
-    json data = json::parse(file);
-
-    m_name = data["name"].template get<std::string>();
-
-    auto texturesObject = data["textures"];
-    if (texturesObject.is_null()) {
-        Echo::warn("Material missing textures object.");
-        return;
-    }
-
-    if (texturesObject.contains(TextureTypeStrings[DIFFUSE])) {
-        m_diffusePath = texturesObject[TextureTypeStrings[DIFFUSE]].template get<std::string>();
-        Assets::instance().getTextureLibrary().getAsync(m_diffusePath, [this](std::shared_ptr<Texture> texture) {
-            m_diffuse = texture;
-            m_diffuse->m_node = Assets::instance().findAsset(m_diffusePath);
-        });
-    } else {
-        Echo::warn("Material missing diffuse texture.");
-    }
-
-    if (texturesObject.contains(TextureTypeStrings[NORMAL])) {
-        m_normalPath = texturesObject[TextureTypeStrings[NORMAL]].template get<std::string>();
-        Assets::instance().getTextureLibrary().getAsync(m_normalPath, [this](std::shared_ptr<Texture> texture) {
-            m_normal = texture;
-            m_normal->m_node = Assets::instance().findAsset(m_normalPath);
-        });
-    } else {
-        Echo::warn("Material missing normal texture.");
-    }
-
-    if (texturesObject.contains(TextureTypeStrings[AORM])) {
-        m_aormPath = texturesObject[TextureTypeStrings[AORM]].template get<std::string>();
-        Assets::instance().getTextureLibrary().getAsync(m_aormPath, [this](std::shared_ptr<Texture> texture) {
-            m_aorm = texture;
-            m_aorm->m_node = Assets::instance().findAsset(m_aormPath);
-        });
-    } else {
-        Echo::warn("Material missing AORoughnessMetallic texture.");
-    }
-
-    Echo::log(std::string("Material created: ") + m_name);
+Material::Material() {
+    Echo::log("Material placeholder created.");
 }
 
 Material::~Material() {
-    Echo::log(std::string("Material destroyed: ") + m_name);
+    Echo::log("Material destroyed.");
 }
 
-void Material::bindTextures() const {
-    if (m_diffuse) {
-        m_diffuse->bind(0);
+void Material::loadData(const FileNode* file) {
+    if (m_initialized) {
+        Echo::warn("Material already initialized.");
+        return;
     }
-    if (m_normal) {
-        m_normal->bind(1);
+
+    if (file == nullptr) {
+        Echo::error("No file to load material from.");
+        return;
     }
-    if (m_aorm) {
-        m_aorm->bind(2);
+
+    // Load the material data from the file
+    using namespace nlohmann;
+    auto& library = Codex::Library::instance();
+
+    std::ifstream metaFile(library.getAssetsRoot() / file->path);
+    json meta = json::parse(metaFile);
+
+    m_node = file;
+    m_data.reset(new MaterialData);
+    m_data->name = meta["name"].template get<std::string>();
+
+    if (meta["textures"].is_null()) {
+        Echo::warn("No textures found in material file.");
+        return;
     }
+
+    for (auto it = meta["textures"].begin(); it != meta["textures"].end(); ++it) {
+        std::string name = it.key();
+        std::filesystem::path texturePath = it.value().template get<std::string>();
+        library.formatPath(&texturePath);
+
+        auto textureNode = library.tryGetAssetNode(texturePath);
+        if (textureNode == nullptr) {
+            Echo::warn("Texture not found: " + texturePath.string());
+            continue;
+        }
+        auto texture = library.tryLoadResource<Texture>(textureNode);
+        if (texture == nullptr) {
+            Echo::warn("Texture could not be loaded: " + texturePath.string());
+            continue;
+        }
+
+        m_data->textures[name] = texture;
+    }
+
+    m_runtimeResource = false;
+    Echo::log("Loaded material data from file: " + file->path.string());
+}
+
+void Material::loadResource() {
+    if (m_initialized) {
+        Echo::warn("Material already initialized.");
+        return;
+    }
+
+    if (m_data == nullptr) {
+        Echo::error("Material data is null.");
+        return;
+    }
+
+    m_initialized = true;
+}
+
+void Material::bindTextures(Shader* shader) const {
+    if (!m_initialized) {
+        Echo::warn("Material not initialized.");
+        return;
+    }
+
+    int index = 0;
+    for (const auto& [name, texture] : m_data->textures) {
+        texture->bind(index);
+        shader->setUniform(name, index);
+        index++;
+    }
+}
+
+void Material::setTexture(const std::string& name, Texture* texture) {
+    if (!m_initialized) {
+        Echo::warn("Material not initialized.");
+        return;
+    }
+
+    m_data->textures[name] = texture;
+}
+
+void Material::removeTexture(const std::string& name) {
+    if (!m_initialized) {
+        Echo::warn("Material not initialized.");
+        return;
+    }
+
+    m_data->textures.erase(name);
+}
+
+const Texture* Material::getTexture(const std::string& name) const {
+    if (!m_initialized) {
+        Echo::warn("Material not initialized.");
+        return nullptr;
+    }
+
+    if (m_data->textures.find(name) == m_data->textures.end()) {
+        Echo::warn("Texture not found in material.");
+        return nullptr;
+    }
+
+    return m_data->textures[name];
 }
 
 }; // namespace Codex

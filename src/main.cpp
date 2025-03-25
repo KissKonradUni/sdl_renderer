@@ -1,13 +1,19 @@
 #include "app.hpp"
-#include "echo/ui.hpp"
 #include "floatmath.hpp"
-#include "echo/input.hpp"
+
+#include "hex/scene.hpp"
+#include "hex/actor.hpp"
 #include "hex/camera.hpp"
-#include "codex/assets.hpp"
-#include "echo/console.hpp"
-#include "codex/shader.hpp"
-#include "codex/texture.hpp"
 #include "hex/framebuffer.hpp"
+#include "hex/components/transformComponent.hpp"
+
+#include "echo/ui.hpp"
+#include "echo/input.hpp"
+#include "echo/console.hpp"
+
+#include "codex/mesh.hpp"
+#include "codex/shader.hpp"
+#include "codex/library.hpp"
 
 #include "imgui.h"
 
@@ -24,10 +30,6 @@
 #endif
 #include <GL/gl.h>
 
-static double lastTime  = 0.0;
-static double nowTime   = 0.0;
-static double deltaTime = 0.0;
-
 std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
 
 std::unique_ptr<Hex::Camera> camera = nullptr;
@@ -36,6 +38,11 @@ Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
 std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
 
+Codex::Mesh* mesh = nullptr;
+transformf meshTransform;
+
+Hex::Scene scene;
+
 void performanceWindow();
 void renderWindow();
 
@@ -43,21 +50,49 @@ void initCamera() {
     camera = std::make_unique<Hex::Camera>(
         Hex::CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
         80.0f,
-        vector4f(0.0f, 0.0f, -4.0f, 0.0f),
+        vector4f(0.0f, 0.0f, 4.0f, 0.0f),
         vector4f::zero()
     );
+    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
 }
 
 void initGLParams() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-
-    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
+    glFrontFace(GL_CCW);
 }
 
-void initDrawables() {
-    // TODO: Implement new system
+void initDebugStuff() {
+    std::filesystem::path assetPath = "./assets/shaders/glsl/Basic.shader";
+    Codex::Library::instance().formatPath(&assetPath);
+    auto shaderNode = Codex::Library::instance().tryGetAssetNode(assetPath);
+    shader = Codex::Library::instance().tryLoadResource<Codex::Shader>(shaderNode);
+
+    assetPath = "./assets/models/sponza.glb";
+    Codex::Library::instance().formatPath(&assetPath);
+    auto meshNode = Codex::Library::instance().tryGetAssetNode(assetPath);
+    mesh = Codex::Library::instance().tryLoadResource<Codex::Mesh>(meshNode);
+
+    Hex::Actor* actor = new Hex::Actor();
+    actor->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor);
+
+    Hex::Actor* actor2 = new Hex::Actor(actor);
+    actor2->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor2);
+
+    Hex::Actor* actor3 = new Hex::Actor(actor2);
+    actor3->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor3);
+
+    actor = new Hex::Actor();
+    actor->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor);
+
+    actor2 = new Hex::Actor(actor);
+    actor2->addComponent<Hex::TransformComponent>();
+    scene.addActor(actor2);
 }
 
 void initEvents() {    
@@ -78,6 +113,12 @@ void initEvents() {
             case SDL_SCANCODE_D:
                 cameraInput.movement.x = 1.0f;
                 break;
+            case SDL_SCANCODE_SPACE:
+                cameraInput.movement.z = 1.0f;
+                break;
+            case SDL_SCANCODE_LSHIFT:
+                cameraInput.movement.z = -1.0f;
+                break;
             case SDL_SCANCODE_ESCAPE:
                 cameraInput.lock = !cameraInput.lock;
                 cameraInput.rotation = {0.0f, 0.0f};
@@ -96,6 +137,10 @@ void initEvents() {
             case SDL_SCANCODE_A:
             case SDL_SCANCODE_D:
                 cameraInput.movement.x = 0.0f;
+                break;
+            case SDL_SCANCODE_SPACE:
+            case SDL_SCANCODE_LSHIFT:
+                cameraInput.movement.z = 0.0f;
                 break;
             default:
                 break;
@@ -117,9 +162,11 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         return result;
 
     initCamera();
-    initEvents();
     initGLParams();
-    initDrawables();
+    initEvents();
+    Codex::Library::instance().init();
+
+    initDebugStuff();
 
     sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
 
@@ -130,12 +177,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     Echo::UI::instance().addUIFunction(renderWindow);
     Echo::UI::instance().addUIFunction(performanceWindow);
     Echo::UI::instance().addUIFunction(Echo::consoleWindow);
+    Echo::UI::instance().addUIFunction(Codex::Library::assetsWindow);
     Echo::UI::instance().addUIFunction([]() {
-        Codex::Assets::instance().assetsWindow();
-        Codex::Assets::instance().previewWindow();
-
-        Codex::Assets::instance().getCurrentScene().sceneExplorerWindow();
-        Codex::Assets::instance().getCurrentScene().inspectorWindow();
+        camera->cameraWindow();
+        scene.editorUI();
     });
 
     return SDL_APP_CONTINUE;
@@ -147,7 +192,15 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
     return Echo::Events::handle(event);
 }
 
+static double lastTime   = 0.0;
+static double nowTime    = 0.0;
+static double deltaTime  = 0.0;
+
 SDL_AppResult SDL_AppIterate(void *appstate) {
+    // ======================
+    // Upadte asset library
+    Codex::Library::instance().checkForFinishedAsync();
+
     // ======================
     // Time management
     
@@ -179,7 +232,30 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
         cameraBuffer->updateData(camera->getShaderBufferPointer());
-        Codex::Assets::instance().getCurrentScene().draw();
+        //Codex::Assets::instance().getCurrentScene().draw();
+
+        /*
+        if (shader && material && mesh) {
+            shader->getShader()->bind();
+            material->bindTextures();
+            cameraBuffer->updateData(camera->getShaderBufferPointer());
+            shader->getShader()->setUniform("modelMatrix", mesh->transform.getModelMatrix());
+            shader->getShader()->setUniform("textureDiffuse", 0);
+            shader->getShader()->setUniform("textureNormal", 1);
+            shader->getShader()->setUniform("textureAORoughnessMetallic", 2);
+            //packedMesh->draw();
+            mesh->draw();
+        }
+        */
+
+        if (shader->isInitialized()) {
+            shader->bind();
+            shader->setUniform("modelMatrix", meshTransform.getModelMatrix());
+        }
+
+        if (mesh->isInitialized()) {
+            mesh->draw();
+        }
 
     sceneFramebuffer->unbind();
 

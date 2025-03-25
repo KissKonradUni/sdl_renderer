@@ -1,192 +1,233 @@
-#include "lib/glad/glad.h"
-
 #include "codex/mesh.hpp"
 #include "echo/console.hpp"
+#include "codex/library.hpp"
 
-#include <assimp/cimport.h>
+#include <glad.h>
+#include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 namespace Codex {
 
-SceneData::~SceneData() {
-    aiReleaseImport(scene);
+Mesh::Mesh(MeshPart* data, std::vector<Layout>& layout) {
+    m_data = nullptr;
+    m_node = nullptr;
+    m_initialized = false;
+    m_runtimeResource = true;
+
+    m_layout = layout;
+    uploadData(data);
+    m_data.reset();
+
+    if (data == nullptr) {
+        Echo::warn("Tried creating mesh with null data.");
+        return;
+    }
 }
 
-Mesh::Mesh(std::vector<float>& vertices, std::vector<unsigned int>& indices) {
-    glGenVertexArrays(1, &m_vertexArrayObjectHandle);
-    glBindVertexArray(m_vertexArrayObjectHandle);
-    
-    glGenBuffers(1, &m_vertexBufferObjectHandle);
+Mesh::Mesh() {
+    m_data = nullptr;
+    m_node = nullptr;
+    m_runtimeResource = true;
+    m_initialized = false;
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferObjectHandle);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-    glGenBuffers(1, &m_indexBufferObjectHandle);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBufferObjectHandle);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-    // TODO: Add layout from here
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_TRUE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
-
-    glBindVertexArray(0);
-
-    m_indexCount = indices.size();
+    Echo::log("Mesh placeholder created.");
 }
 
 Mesh::~Mesh() {
-    glDeleteBuffers(1, &m_vertexBufferObjectHandle);
-    glDeleteBuffers(1, &m_indexBufferObjectHandle);
-    glDeleteVertexArrays(1, &m_vertexArrayObjectHandle);
+    if (m_vertexBufferObjectHandle > 0)
+        glDeleteBuffers(1, &m_vertexBufferObjectHandle);
+    if (m_indexBufferObjectHandle > 0)
+        glDeleteBuffers(1, &m_indexBufferObjectHandle);
+    if (m_vertexArrayObjectHandle > 0)
+        glDeleteVertexArrays(1, &m_vertexArrayObjectHandle);
 
     Echo::log("Mesh destroyed.");
 }
 
-void Mesh::bind() const {
-    glBindVertexArray(m_vertexArrayObjectHandle);
-}
-
-void Mesh::draw() const {
-    bind();
-
-    glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, 0);
-}
-
-std::shared_ptr<SceneData> Mesh::loadSceneDataFromFile(const std::string& filename) {
-    auto scene = aiImportFile(filename.c_str(), 
-        aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenNormals | aiProcess_GenUVCoords
-    );
-
-    if (!scene) {
-        std::string message = "Couldn't load mesh: " + filename;
-        Echo::warn(message);
-        return nullptr;
+void Mesh::loadData(const FileNode* node) {
+    if (m_initialized) {
+        Echo::warn("Mesh data already loaded.");
+        return;
     }
 
-    std::string message = "Loaded mesh: " + filename;
-    Echo::log(message);
+    if (node == nullptr) {
+        Echo::warn("Tried loading mesh data from invalid node.");
+        return;
+    }
 
-    return std::make_unique<SceneData>(scene);
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile((Library::instance().getAssetsRoot() / node->path).string(),
+        aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_CalcTangentSpace
+    );
+
+    if (scene == nullptr) {
+        Echo::error(std::string("Failed to load mesh data: ") + importer.GetErrorString());
+        return;
+    }
+
+    // TODO: Might want to change the layout, let's hardcode it for now
+    std::vector<Layout> layout = {
+        Layout(Layout::Type::FLOAT3), // POSITION
+        Layout(Layout::Type::FLOAT3), // NORMAL
+        Layout(Layout::Type::FLOAT3), // TANGENT
+        Layout(Layout::Type::FLOAT2), // UV
+    };
+
+    // Initialize the mesh data
+    m_data = std::unique_ptr<MeshData>(new MeshData());
+    m_data->layout = layout;
+    m_node = node;
+    m_layout = layout;
+
+    // TODO: Remake it in a recursive way
+    aiNode* rootNode = scene->mRootNode;
+    loadDataRecursive(m_data.get(), rootNode, scene);
+
+    importer.FreeScene();
+    m_runtimeResource = false;
+    Echo::log("Loaded mesh data from file: " + node->path.string());
 }
 
-std::shared_ptr<Mesh> Mesh::loadSceneFromFile(const std::string& filename) {
-    auto data = loadSceneDataFromFile(filename);
-    return processCombinedSceneData(data);
-}
+void Mesh::loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* scene) {
+    for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        MeshPart* meshPart = new MeshPart();
+        meshPart->vertices.reserve(mesh->mNumVertices * Layout::calculateStride(m_layout));
+        meshPart->indices.reserve(mesh->mNumFaces * 3);
 
-std::shared_ptr<Mesh> Mesh::processCombinedSceneData(const std::shared_ptr<SceneData> data) {
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
+        for (unsigned int k = 0; k < mesh->mNumVertices; k++) {
+            aiVector3D vertex = mesh->mVertices[k];
+            meshPart->vertices.push_back(vertex.x);
+            meshPart->vertices.push_back(vertex.y);
+            meshPart->vertices.push_back(vertex.z);
 
-    int indexOffset = 0;
+            aiVector3D normal = mesh->mNormals[k];
+            meshPart->vertices.push_back(normal.x);
+            meshPart->vertices.push_back(normal.y);
+            meshPart->vertices.push_back(normal.z);
 
-    for (unsigned int i = 0; i < data->scene->mNumMeshes; i++) {
-        auto mesh = data->scene->mMeshes[i];
+            aiVector3D tangent = mesh->mTangents[k];
+            meshPart->vertices.push_back(tangent.x);
+            meshPart->vertices.push_back(tangent.y);
+            meshPart->vertices.push_back(tangent.z);
 
-        for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
-            vertices.push_back(mesh->mVertices[j].x);
-            vertices.push_back(mesh->mVertices[j].y);
-            vertices.push_back(mesh->mVertices[j].z);
-
-            vertices.push_back(mesh->mNormals[j].x);
-            vertices.push_back(mesh->mNormals[j].y);
-            vertices.push_back(mesh->mNormals[j].z);
-
-            vertices.push_back(mesh->mTangents[j].x);
-            vertices.push_back(mesh->mTangents[j].y);
-            vertices.push_back(mesh->mTangents[j].z);
-
-            vertices.push_back(mesh->mTextureCoords[0][j].x);
-            vertices.push_back(mesh->mTextureCoords[0][j].y);
+            aiVector3D uv = mesh->mTextureCoords[0][k];
+            meshPart->vertices.push_back(uv.x);
+            meshPart->vertices.push_back(uv.y);
         }
 
-        for (unsigned int j = 0; j < mesh->mNumFaces; j++) {
-            auto face = mesh->mFaces[j];
-
-            for (unsigned int k = 0; k < face.mNumIndices; k++) {
-                indices.push_back(face.mIndices[k] + indexOffset);
+        for (unsigned int k = 0; k < mesh->mNumFaces; k++) {
+            aiFace face = mesh->mFaces[k];
+            for (unsigned int l = 0; l < face.mNumIndices; l++) {
+                meshPart->indices.push_back(face.mIndices[l]);
             }
         }
 
-        indexOffset += mesh->mNumVertices;
-    }
+        meshPart->vertexCount = mesh->mNumVertices;
+        meshPart->indexCount = mesh->mNumFaces * 3;
 
-    return std::make_shared<Mesh>(vertices, indices);
-}
-
-std::shared_ptr<std::vector<std::shared_ptr<Mesh>>> Mesh::processScene(const std::shared_ptr<SceneData> data, transformf& parentTransform) {
-    std::shared_ptr<std::vector<std::shared_ptr<Mesh>>> meshes = std::make_shared<std::vector<std::shared_ptr<Mesh>>>();
-    meshes->reserve(data->scene->mNumMeshes);
-    
-    auto rootNode = data->scene->mRootNode;
-    recursiveProcessScene(data->scene, rootNode, *meshes, parentTransform);
-
-    return meshes;
-}
-
-void Mesh::recursiveProcessScene(const aiScene* scene, const aiNode* node, std::vector<std::shared_ptr<Mesh>>& meshes, transformf& parentTransform) {
-    aiVector3f position, rotation, scale;
-    node->mTransformation.Decompose(scale, rotation, position);
-
-    transformf transform(parentTransform);
-
-    transform.setPosition(vector4f(position.x, position.y, position.z, 0.0f));
-    transform.setRotation(vector4f(rotation.x, rotation.y, rotation.z, 0.0f));
-    transform.setScale(vector4f(scale.x, scale.y, scale.z, 1.0f));
-    
-    for (unsigned int i = 0; i < node->mNumMeshes; i++) {
-        auto mesh = scene->mMeshes[node->mMeshes[i]];
-
-        auto processedMesh = processMesh(mesh);
-        processedMesh->transform = transform;
-
-        meshes.push_back(processedMesh);
+        data->meshParts.push_back(std::unique_ptr<MeshPart>(meshPart));
     }
 
     for (unsigned int i = 0; i < node->mNumChildren; i++) {
-        recursiveProcessScene(scene, node->mChildren[i], meshes, transform);
+        loadDataRecursive(data, node->mChildren[i], scene);
     }
 }
 
-std::shared_ptr<Mesh> Mesh::processMesh(const aiMesh* mesh) {
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
-
-    for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-        vertices.push_back(mesh->mVertices[i].x);
-        vertices.push_back(mesh->mVertices[i].y);
-        vertices.push_back(mesh->mVertices[i].z);
-
-        vertices.push_back(mesh->mNormals[i].x);
-        vertices.push_back(mesh->mNormals[i].y);
-        vertices.push_back(mesh->mNormals[i].z);
-
-        vertices.push_back(mesh->mTangents[i].x);
-        vertices.push_back(mesh->mTangents[i].y);
-        vertices.push_back(mesh->mTangents[i].z);
-
-        vertices.push_back(mesh->mTextureCoords[0][i].x);
-        vertices.push_back(mesh->mTextureCoords[0][i].y);
+void Mesh::loadResource() {
+    if (m_initialized) {
+        Echo::warn("Mesh already initialized.");
+        return;
     }
 
-    for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-        auto face = mesh->mFaces[i];
+    if (m_data == nullptr) {
+        Echo::error("Mesh data is null.");
+        return;
+    }
 
-        for (unsigned int j = 0; j < face.mNumIndices; j++) {
-            indices.push_back(face.mIndices[j]);
+    auto baseName = m_node->name;
+    auto folderNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName).string());
+    if (folderNode == nullptr) {
+        Echo::warn("Failed to create runtime folder node.");
+        return;
+    }
+    folderNode->type = FileType::MESH_FILE;
+    folderNode->isDirectory = true;
+    folderNode->name = baseName;
+
+    for (int i = 0; i < m_data->meshParts.size(); i++) {
+        if (i == 0)
+            continue;
+
+        MeshPart* meshPart = m_data->meshParts[i].get();
+        
+        char partName[16];
+        snprintf(partName, 16, "part_%03d.mesh", i);
+        auto meshNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName / partName).string(), folderNode);
+        if (meshNode == nullptr) {
+            Echo::warn("Failed to create runtime mesh node.");
+            return;
         }
+        meshNode->type = FileType::MESH_PART;
+        meshNode->isDirectory = false;
+        meshNode->name = partName;
+        meshNode->extension = "mesh";
+
+        Mesh* mesh = new Mesh(meshPart, m_layout);
+        mesh->m_node = meshNode;
+        m_meshParts.push_back(mesh);
+
+        Library::instance().registerRuntimeResource(mesh);
     }
 
-    return std::make_shared<Mesh>(vertices, indices);
+    MeshPart* meshPart = m_data->meshParts[0].get();
+    uploadData(meshPart);
+
+    Echo::log("Mesh created with " + std::to_string(m_data->meshParts.size()) + " parts.");
+    m_data.reset();
+}
+
+void Mesh::uploadData(MeshPart* data) {
+    glGenVertexArrays(1, &m_vertexArrayObjectHandle);
+    glBindVertexArray(m_vertexArrayObjectHandle);
+
+    glGenBuffers(1, &m_vertexBufferObjectHandle);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBufferObjectHandle);
+    glBufferData(GL_ARRAY_BUFFER, data->vertices.size() * sizeof(float), data->vertices.data(), GL_STATIC_DRAW);
+
+    for (int i = 0; i < m_layout.size(); i++) {
+        glEnableVertexAttribArray(i);
+        uint8_t stride = Layout::calculateStride(m_layout);
+        uint64_t offset = Layout::calculateOffset(m_layout, i);
+        glVertexAttribPointer(i, m_layout[i].getSize() / sizeof(float), GL_FLOAT, GL_FALSE, stride, (void*) offset);
+    }
+
+    glGenBuffers(1, &m_indexBufferObjectHandle);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexBufferObjectHandle);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->indices.size() * sizeof(uint32_t), data->indices.data(), GL_STATIC_DRAW);
+
+    m_vertexCount = data->vertexCount;
+    m_indexCount = data->indexCount;
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    m_initialized = true;
+}
+
+void Mesh::draw() const {
+    if (!m_initialized) {
+        return;
+    }
+
+    glBindVertexArray(m_vertexArrayObjectHandle);
+    glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_INT, nullptr);
+
+    for (const auto& parts : m_meshParts) {
+        parts->draw();
+    }
 }
 
 }; // namespace Codex

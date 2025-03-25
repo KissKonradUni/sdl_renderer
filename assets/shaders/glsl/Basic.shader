@@ -1,7 +1,7 @@
 {
     "name": "Basic PBR Shader",
-    "vert": "./assets/shaders/glsl/Basic.vert.glsl",
-    "frag": "./assets/shaders/glsl/Basic.frag.glsl",
+    "vert": "./assets/shaders/glsl/Basic.vert",
+    "frag": "./assets/shaders/glsl/Basic.frag",
     "layout": {
         "vertex": [
             { "name": "position", "type": "vec3" },

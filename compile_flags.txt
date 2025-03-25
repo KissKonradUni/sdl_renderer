@@ -4,4 +4,5 @@
 -I./include
 -I../imgui
 -I../imgui/backends
+-I./lib/include
 -xc++

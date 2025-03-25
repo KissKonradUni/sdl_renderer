@@ -1,11 +1,9 @@
 #pragma once
 
-#include <string>
-#include <memory>
-
-#include "floatmath.hpp"
 #include "codex/resource.hpp"
-#include "lib/stb/stb_image.h"
+#include "floatmath.hpp"
+
+#include <stb_image.h>
 
 namespace Codex {
 
@@ -23,29 +21,26 @@ struct TextureData {
  * @brief A texture resource
  * Handles loading and uploading textures to the GPU
  */
-class Texture : public IResource {
-friend class Assets;
-friend class Material;
+class Texture : public IResource<TextureData> {
 public:
-    Texture(const unsigned char* pixels, int width, int height, int channels);
+    Texture(unsigned char* pixels, int width, int height, int channels);
     Texture(const TextureData* data);
     Texture(const vector4f& color);
-    ~Texture();
+    Texture();
+    virtual ~Texture();
 
     /**
      * @brief Loads a texture's raw data from a file
      * 
      * @param filename - The path to the file
-     * @return TextureData - The texture data
      */
-    static std::shared_ptr<TextureData> loadTextureDataFromFile(const std::string& filename);
+    void loadData(const FileNode* file);
     /**
-     * @brief Loads a texture from a file,
-     * and uploads it to the GPU
+     * @brief Uploads the texture to the GPU
+     *
      * @param filename - The path to the file
-     * @return std::shared_ptr<Texture> - The texture
      */
-    static std::shared_ptr<Texture> loadTextureFromFile(const std::string& filename);
+    void loadResource();
     
     /**
      * @brief Binds the texture to a texture slot

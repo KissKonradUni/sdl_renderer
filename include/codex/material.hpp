@@ -2,39 +2,37 @@
 
 #include "codex/resource.hpp"
 #include "codex/texture.hpp"
+#include "codex/shader.hpp"
 
-#include <cstdint>
+#include <map>
 
 namespace Codex {
 
-#define TEXTURE_TYPE_COUNT 3
-enum TextureType : uint8_t {
-    DIFFUSE  = 0, // [rgba] Diffuse / Albedo
-    NORMAL   = 1, // [rgb]  Normal map / Bump map
-    AORM     = 2  // [r]    Ambient Occlusion, [g] Roughness, [b] Metallic
-};
-
 struct MaterialData {
-    std::string path;
+    std::string name;
+    std::map<std::string, Texture*> textures;
 };
 
-class Material : public IResource {
-friend class Assets;
+class Material : public IResource<MaterialData> {
 public:
-    Material(const std::string& path);
-    ~Material();
+    Material(std::string& name, std::map<std::string, Texture*>& textures);
+    Material();
+    virtual ~Material();
 
-    void bindTextures() const;
-private:
+    void loadData(const FileNode* file) override;
+    void loadResource() override;
+
+    void bindTextures(Shader* shader) const;
+
+    inline constexpr const std::string& getName() const { return m_data->name; }
+
+    void setTexture(const std::string& name, Texture* texture);
+    void removeTexture(const std::string& name);
+    const Texture* getTexture(const std::string& name) const;
+    const std::map<std::string, Texture*>& getTextures() const { return m_data->textures; }
+protected:
     std::string m_name;
-
-    std::string m_diffusePath;
-    std::string m_normalPath;
-    std::string m_aormPath;
-
-    std::shared_ptr<Texture> m_diffuse;
-    std::shared_ptr<Texture> m_normal;
-    std::shared_ptr<Texture> m_aorm;
+    std::map<std::string, Texture*> m_textures;
 };
 
 }; // namespace Codex

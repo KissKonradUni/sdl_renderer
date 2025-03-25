@@ -1,28 +1,37 @@
 #pragma once
 
-#include "codex/assetnode.hpp"
+#include "codex/filenode.hpp"
 
 namespace Codex {
 
 /**
- * @brief A resource that can be loaded from a file.
+ * @brief Internal base class for easy pointer management
  */
-class IResource {
-friend class AssetNode;
-friend class Assets;
-
+class IResourceBase {
 public:
-    IResource() : m_node(nullptr) {}
-    IResource(AssetNode* node) : m_node(node) {}
-    virtual ~IResource() {}
+    virtual ~IResourceBase() = default;
 
-    /**
-     * @return const AssetNode* The node it's attached to.
-     * @attention May return `nullptr` if the resource was created during runtime.
-     */
-    const AssetNode* getAssetNode() const { return m_node; }
+    virtual void loadData(const FileNode* file) = 0;
+    virtual void loadResource() = 0;
+
+    inline const bool isInitialized() const { return m_initialized; }
+    inline const bool isRuntimeResource() const { return m_runtimeResource; }
+    inline const FileNode* getNode() const { return m_node; }
 protected:
-    AssetNode* m_node; // The node it's attached to
+    bool m_initialized = false;       // If the resource has been initialized
+    bool m_runtimeResource = false;   // If the resource is runtime only (no node attached)
+    const FileNode* m_node = nullptr; // The node in the library
+};
+
+/**
+ * @brief Interface for resources (textures, models, etc.)
+ *        that are most likely uploaded to the GPU
+ * @tparam DataType The raw data struct of the resource
+ */
+template<typename DataType>
+class IResource : public IResourceBase {
+protected:
+    std::unique_ptr<DataType> m_data; // The resource data (Freed after loading)
 };
 
 }; // namespace Codex
