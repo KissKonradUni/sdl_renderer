@@ -20,7 +20,7 @@ The main goal of the project (as a thesis) is to showcase techniques that don't 
 
 ### 🐧 Linux
 
-- From the package manager (Arch):
+- From the package manager (on Arch for example):
   - Clang++
   - Make
   - SDL3
