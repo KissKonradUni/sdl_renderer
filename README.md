@@ -1,12 +1,24 @@
-# SDL3 OpenGL Renderer
+# 🔥 Cinder - an SDL3 OpenGL rendering engine
 
-## Description
+[![Makefile](https://img.shields.io/badge/Makefile-red?style=for-the-badge)](./makefile) ![C++](https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white) ![Version](https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge) [![view - Documentation](https://img.shields.io/badge/view-Documentation-blue?style=for-the-badge)](./docs/Cinder.md "Go to project documentation") [![view - License](https://img.shields.io/badge/view-License-green?style=for-the-badge)](./LICENSE.md "Go to project license")
 
-.
+> Created as a thesis for my Bachelor's degree in Computer Science.
 
-## Dependencies
+> <ins>**Created by:**</ins>
+👤 Konrád Soma Kiss
+📚 CNY8MP
 
-### Linux
+## 📕 Description
+
+This project is a "modern" OpenGL rendering engine built using SDL3, designed to provide a flexible and efficient framework for graphics applications.
+
+The engine features ImGui integration for fast development, 3D model loading via Assimp, and a structured architecture for managing assets. It's cross-platform compatible for both Linux and Windows. The renderer provides a solid foundation for developing graphical applications, visualizations, and maybe games.
+
+The main goal of the project (as a thesis) is to showcase techniques that don't require the newest hardware, AI capabilities or complex graphics APIs to achieve a visually appealing result.
+
+## ⚙️ Dependencies
+
+### 🐧 Linux
 
 - From the package manager (Arch):
   - Clang++
@@ -16,7 +28,7 @@
 - From GitHub:
   - Dear Imgui [source](https://github.com/ocornut/imgui) `// Use the docking branch. Specify the path in the Makefile`
 
-### Windows
+### 🪟 Windows
 
 - MSYS2 ([https://www.msys2.org/](https://www.msys2.org/))
 - UCRT64 packages of the following:
@@ -27,20 +39,29 @@
 - From GitHub:
   - Dear Imgui [source](https://github.com/ocornut/imgui) `// Use the docking branch. Specify the path in the Makefile`
 
-> On windows the compilation should be done from the MSYS2 UCRT64 terminal.
-> Also, the .dll files of the dependencies should be provided in the `win_dlls` folder in order to make the executable shippable.
-> The `win_dlls/dll_list.txt` contains the necessary .dll files' names.
+> On windows the compilation should be done from the MSYS2 UCRT64 terminal. Also, the .dll files of the dependencies should be provided in the `win_dlls` folder in order to make the executable shippable. The `win_dlls/dll_list.txt` contains the necessary .dll files' names.
 
-## Compiling
+## 📦 Cloning
 
 ```sh
+# Clone the repository
+git clone https://github.com/KissKonradUni/sdl_renderer --depth 1 # Recommended, the repository is quite large
+# Clone imgui next to the project
+git clone https://github.com/ocornut/imgui -b docking --depth 1
+```
+
+## 🛠️ Compiling
+
+```sh
+# Enter the project directory
+cd sdl_renderer
 # Compile 3rd party libraries
 make -C lib
 # Compile the project
 make
 ```
 
-## Running
+## 🏃 Running
 
 ```sh
 # Run the project
@@ -50,21 +71,24 @@ make run
 or
 
 ``` sh
-# The working directory has to be the folder
-# containing the assets folder
+# The working directory has to be the folder containing the assets folder
 ./bin/sdl3_app
 ```
 
-## Debugging
+## 🐞 Debugging
 
-Visual Studio Code:
+> Visual Studio Code
 
 - Install the **Clangd** extension
 - Install the **C/C++** extension (disable the **IntelliSense** engine, clangd already provides it)
 - Add the **CodeLLDB** extension for debugging
 - Run the **(lldb) Build and debug** task (F5)
 
-## Licenses
+## 📜 Licenses
+
+> Of the project
+
+[GNU General Public License v3.0](./LICENSE.md)
 
 > Of used 3rd party extras
 
