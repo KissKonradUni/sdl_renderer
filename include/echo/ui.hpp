@@ -7,17 +7,12 @@ typedef void (*UIFunction)();
 
 namespace echo {
 
-class UI {
+class UIManager {
 public:
-    static UI& instance() {
-        static UI ui;
-        return ui;
-    }
+    UIManager() = default;
+    ~UIManager();
 
-    UI(const UI&) = delete;
-    UI& operator=(const UI&) = delete;
-
-    SDL_AppResult initUI();
+    SDL_AppResult init(SDL_Window* window, SDL_GLContextState* glContext);
     void processEvent(SDL_Event* event);
     void newFrame();
     void render();
@@ -26,9 +21,6 @@ public:
     unsigned int addUIFunction(UIFunction uiFunction);
     void removeUIFunction(unsigned int id);
 protected:
-    UI() = default;
-    ~UI();
-
     std::map<unsigned int, UIFunction> m_uiFunctions;
 };
 

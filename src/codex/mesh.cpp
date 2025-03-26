@@ -1,5 +1,6 @@
+#include "cinder.hpp"
+
 #include "codex/mesh.hpp"
-#include "echo/console.hpp"
 #include "codex/library.hpp"
 
 #include <glad.h>
@@ -20,7 +21,7 @@ Mesh::Mesh(MeshPart* data, std::vector<Layout>& layout) {
     m_data.reset();
 
     if (data == nullptr) {
-        echo::warn("Tried creating mesh with null data.");
+        cinder::warn("Tried creating mesh with null data.");
         return;
     }
 }
@@ -31,7 +32,7 @@ Mesh::Mesh() {
     m_runtimeResource = true;
     m_initialized = false;
 
-    echo::log("Mesh placeholder created.");
+    cinder::log("Mesh placeholder created.");
 }
 bool Mesh::m_suppressDestroyMessage = false;
 
@@ -44,19 +45,19 @@ Mesh::~Mesh() {
         glDeleteVertexArrays(1, &m_vertexArrayObjectHandle);
 
     if (!Mesh::m_suppressDestroyMessage) {
-        echo::log("Mesh destroyed... extra messages supressed.");
+        cinder::log("Mesh destroyed... extra messages supressed.");
         Mesh::m_suppressDestroyMessage = true;
     }
 }
 
 void Mesh::loadData(const FileNode* node) {
     if (m_initialized) {
-        echo::warn("Mesh data already loaded.");
+        cinder::warn("Mesh data already loaded.");
         return;
     }
 
     if (node == nullptr) {
-        echo::warn("Tried loading mesh data from invalid node.");
+        cinder::warn("Tried loading mesh data from invalid node.");
         return;
     }
 
@@ -66,7 +67,7 @@ void Mesh::loadData(const FileNode* node) {
     );
 
     if (scene == nullptr) {
-        echo::error(std::string("Failed to load mesh data: ") + importer.GetErrorString());
+        cinder::error(std::string("Failed to load mesh data: ") + importer.GetErrorString());
         return;
     }
 
@@ -90,7 +91,7 @@ void Mesh::loadData(const FileNode* node) {
 
     importer.FreeScene();
     m_runtimeResource = false;
-    echo::log("Loaded mesh data from file: " + node->path.string());
+    cinder::log("Loaded mesh data from file: " + node->path.string());
 }
 
 void Mesh::loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* scene) {
@@ -141,19 +142,19 @@ void Mesh::loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* 
 
 void Mesh::loadResource() {
     if (m_initialized) {
-        echo::warn("Mesh already initialized.");
+        cinder::warn("Mesh already initialized.");
         return;
     }
 
     if (m_data == nullptr) {
-        echo::error("Mesh data is null.");
+        cinder::error("Mesh data is null.");
         return;
     }
 
     auto baseName = m_node->name;
     auto folderNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName).string());
     if (folderNode == nullptr) {
-        echo::warn("Failed to create runtime folder node.");
+        cinder::warn("Failed to create runtime folder node.");
         return;
     }
     folderNode->type = FileType::MESH_FILE;
@@ -170,7 +171,7 @@ void Mesh::loadResource() {
         snprintf(partName, 16, "part_%03d.mesh", i);
         auto meshNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName / partName).string(), folderNode);
         if (meshNode == nullptr) {
-            echo::warn("Failed to create runtime mesh node.");
+            cinder::warn("Failed to create runtime mesh node.");
             return;
         }
         meshNode->type = FileType::MESH_PART;
@@ -188,7 +189,7 @@ void Mesh::loadResource() {
     MeshPart* meshPart = m_data->meshParts[0].get();
     uploadData(meshPart);
 
-    echo::log("Mesh created with " + std::to_string(m_data->meshParts.size()) + " parts.");
+    cinder::log("Mesh created with " + std::to_string(m_data->meshParts.size()) + " parts.");
     m_data.reset();
 }
 

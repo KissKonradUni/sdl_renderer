@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "cinder.hpp"
 #include "floatmath.hpp"
 
 #include "hex/scene.hpp"
@@ -8,7 +9,7 @@
 #include "hex/components/transformComponent.hpp"
 
 #include "echo/ui.hpp"
-#include "echo/input.hpp"
+#include "echo/event.hpp"
 #include "echo/console.hpp"
 
 #include "codex/mesh.hpp"
@@ -47,6 +48,7 @@ std::unique_ptr<Framebuffer> sceneFramebuffer = nullptr;
 Mesh* mesh = nullptr;
 transformf meshTransform;
 
+std::unique_ptr<cinder::App> app;
 Scene scene;
 
 double lastTime   = 0.0;
@@ -106,10 +108,12 @@ void initDebugStuff() {
 }
 
 void initEvents() {    
-    Events::add(SDL_EVENT_QUIT    , [](SDL_Event* event) { 
+    auto events = app->getEventManager();
+
+    events->add(SDL_EVENT_QUIT    , [](SDL_Event* event) { 
         return SDL_APP_SUCCESS; 
     });
-    Events::add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
+    events->add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
                 cameraInput.movement.y = -1.0f;
@@ -138,7 +142,7 @@ void initEvents() {
         }
         return SDL_APP_CONTINUE;
     });
-    Events::add(SDL_EVENT_KEY_UP, [](SDL_Event* event) {
+    events->add(SDL_EVENT_KEY_UP, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
             case SDL_SCANCODE_S:
@@ -157,7 +161,7 @@ void initEvents() {
         }
         return SDL_APP_CONTINUE;
     });
-    Events::add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
+    events->add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
         cameraInput.rotation.pitch += event->motion.xrel;
         cameraInput.rotation.yaw   += event->motion.yrel;
 
@@ -279,7 +283,8 @@ void renderWindow() {
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     using namespace cinder;
 
-    const auto result = App::instance().initApp("Cinder", "1.0", "hu.konrads.cinder");
+    app.reset(new App());
+    SDL_AppResult result = app->init("Cinder", "1.0", "hu.konrads.cinder");
 
     if (result != SDL_APP_CONTINUE)
         return result;
@@ -296,12 +301,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     // Enable adaptive vsync
     SDL_GL_SetSwapInterval(-1);
 
-    UI::instance().initUI();
-    UI::instance().addUIFunction(renderWindow);
-    UI::instance().addUIFunction(performanceWindow);
-    UI::instance().addUIFunction(consoleWindow);
-    UI::instance().addUIFunction(Library::assetsWindow);
-    UI::instance().addUIFunction([]() {
+    auto ui = app->getUIManager();
+    ui->addUIFunction(renderWindow);
+    ui->addUIFunction(performanceWindow);
+    ui->addUIFunction(Library::assetsWindow);
+    ui->addUIFunction([]() {
+        app->getConsole()->drawConsole();
         camera->cameraWindow();
         scene.editorUI();
     });
@@ -312,8 +317,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
     using namespace cinder;
 
-    UI::instance().processEvent(event);
-    return Events::handle(event);
+           app->getUIManager()->processEvent(event);
+    return app->getEventManager()->handle(event);
 }
 
 SDL_AppResult SDL_AppIterate(void *appstate) {
@@ -333,7 +338,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // ======================
     // Process new frame
 
-    UI::instance().newFrame();
+    app->getUIManager()->newFrame();
     camera->update(cameraInput, deltaTime);
     
     // ======================
@@ -382,16 +387,19 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     sceneFramebuffer->unbind();
 
     // Draw UI on top of everything
-    UI::instance().render();
+    app->getUIManager()->render();
 
     // Finalize frame
-    SDL_GL_SwapWindow(App::getWindowPtr());
+    SDL_GL_SwapWindow(app->getWindowPtr());
 
     // ======================
     // Wait for next frame
     return SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    echo::log(std::string("Application quit with result: ") + std::to_string(result));
+void SDL_AppQuit(void *appstate, SDL_AppResult result) {    
+    using namespace cinder;
+    
+    log(std::format("Application quit with result: {}", (uint8_t)result));
+    app->cleanup();
 }

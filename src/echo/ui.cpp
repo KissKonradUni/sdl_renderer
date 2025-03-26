@@ -1,4 +1,4 @@
-#include "app.hpp"
+#include "cinder.hpp"
 #include "echo/ui.hpp"
 
 #include "imgui.h"
@@ -9,10 +9,11 @@
 
 namespace echo {
 
-SDL_AppResult UI::initUI() {
+SDL_AppResult UIManager::init(SDL_Window* window, SDL_GLContextState* glContext) {
     // TODO: Add Error checking
+    cinder::log("Initializing UIManager...");
 
-    echo::log("Initializing ImGui...");
+    cinder::log("Initializing ImGui...");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -40,19 +41,21 @@ SDL_AppResult UI::initUI() {
     static const ImWchar iconsRanges[] = { ICON_MIN_MS, ICON_MAX_MS, 0 };
     io.Fonts->AddFontFromFileTTF("assets/fonts/" FONT_ICON_FILE_NAME_MSR, iconSize, &iconsConfig, iconsRanges);
 
-    ImGui_ImplSDL3_InitForOpenGL(cinder::App::getWindowPtr(), cinder::App::getGLContextPtr());
+    ImGui_ImplSDL3_InitForOpenGL(window, glContext);
     ImGui_ImplOpenGL3_Init();
 
-    echo::log("Initialized ImGui.");
+    cinder::log("Initialized ImGui.");
+
+    cinder::log("Initialized UIManager.");
 
     return SDL_APP_CONTINUE;
 }
 
-void UI::processEvent(SDL_Event* event) {
+void UIManager::processEvent(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
-void UI::newFrame() {
+void UIManager::newFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
@@ -64,7 +67,7 @@ void UI::newFrame() {
     }
 }
 
-void UI::render() {
+void UIManager::render() {
     ImGui::Render();
     auto data = ImGui::GetDrawData();
     if (data) {
@@ -72,27 +75,27 @@ void UI::render() {
     }
 }
 
-void UI::cleanup() {
+void UIManager::cleanup() {
     m_uiFunctions.clear();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 }
 
-unsigned int UI::addUIFunction(UIFunction uiFunction) {
+unsigned int UIManager::addUIFunction(UIFunction uiFunction) {
     int id = m_uiFunctions.size();
     m_uiFunctions[id] = uiFunction;
     return id;
 }
 
-void UI::removeUIFunction(unsigned int id) {
+void UIManager::removeUIFunction(unsigned int id) {
     m_uiFunctions.erase(id);
 }
 
-UI::~UI() {
+UIManager::~UIManager() {
     this->cleanup();
-    echo::log("ImGui closed.");
-    echo::log("Echo UI destroyed.");
+    cinder::log("ImGui closed.");
+    cinder::log("UIManager destroyed.");
 }
 
 }; // namespace echo

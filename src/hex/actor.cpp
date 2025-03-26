@@ -7,13 +7,13 @@ Actor::Actor(Actor* parent) {
     m_parent = parent;
     if (m_parent != nullptr)
         m_parent->addChild(this);
-    echo::log("Actor created.");
+    cinder::log("Actor created.");
 }
 
 Actor::~Actor() {
     m_children.clear();
     m_components.clear();
-    echo::log("Actor destroyed.");
+    cinder::log("Actor destroyed.");
 }
 
 void Actor::update() {
@@ -40,7 +40,7 @@ void Actor::render() {
 
 void Actor::addChild(Actor* actor) {
     if (actor == nullptr) {
-        echo::warn("Cannot add null child to actor.");
+        cinder::warn("Cannot add null child to actor.");
         return;
     }
 
@@ -50,7 +50,7 @@ void Actor::addChild(Actor* actor) {
 
 void Actor::removeChild(Actor* actor) {
     if (actor == nullptr) {
-        echo::warn("Cannot remove null child from actor.");
+        cinder::warn("Cannot remove null child from actor.");
         return;
     }
 
@@ -61,7 +61,7 @@ void Actor::removeChild(Actor* actor) {
         }
     }
 
-    echo::warn("Actor does not have the child to remove.");
+    cinder::warn("Actor does not have the child to remove.");
 }
 
 void Actor::setParent(Actor* actor) {

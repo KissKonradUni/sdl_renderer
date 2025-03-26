@@ -1,6 +1,6 @@
+#include "cinder.hpp"
 #include "codex/texture.hpp"
 #include "codex/library.hpp"
-#include "echo/console.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -20,7 +20,7 @@ Texture::Texture(unsigned char* pixels, int width, int height, int channels) {
     this->m_runtimeResource = true;
     this->m_node = nullptr;
 
-    echo::log("Runtime texture created.");
+    cinder::log("Runtime texture created.");
 }
 
 Texture::Texture(const TextureData* data) : Texture(data->pixels, data->width, data->height, data->channels) {}
@@ -36,23 +36,23 @@ Texture::Texture(const vector4f& color) : Texture(nullptr, 1, 1, 4) {
 }
 
 Texture::Texture() {
-    echo::log("Texture placeholder created.");
+    cinder::log("Texture placeholder created.");
 }
 
 Texture::~Texture() {
     glDeleteTextures(1, &m_textureHandle);
 
-    echo::log("Texture destroyed.");
+    cinder::log("Texture destroyed.");
 }
 
 void Texture::loadData(const FileNode* file) {
     if (m_initialized) {
-        echo::warn("Texture already initialized.");
+        cinder::warn("Texture already initialized.");
         return;
     }
 
     if (file == nullptr) {
-        echo::error("No file to load texture from.");
+        cinder::error("No file to load texture from.");
         return;
     }
     
@@ -61,10 +61,10 @@ void Texture::loadData(const FileNode* file) {
     auto data = stbi_load((Library::instance().getAssetsRoot() / file->path).string().c_str(), &width, &height, &channels, 4);
 
     if (!data) {
-        echo::error(std::string("Failed to load texture from file: ") + file->path.string());
+        cinder::error(std::string("Failed to load texture from file: ") + file->path.string());
         return;
     }
-    echo::log(std::string("Loaded texture from file: ") + file->path.string());
+    cinder::log(std::string("Loaded texture from file: ") + file->path.string());
 
     this->m_data.reset(new TextureData{data, width, height, channels});
     this->m_node = file;
@@ -73,12 +73,12 @@ void Texture::loadData(const FileNode* file) {
 
 void Texture::loadResource() {    
     if (m_initialized) {
-        echo::warn("Texture already initialized.");
+        cinder::warn("Texture already initialized.");
         return;
     }
 
     if (m_data == nullptr) {
-        echo::error("No texture data to load.");
+        cinder::error("No texture data to load.");
         return;
     }
 

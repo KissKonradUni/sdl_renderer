@@ -1,6 +1,6 @@
-#include "codex/library.hpp"
+#include "cinder.hpp"
 #include "codex/shader.hpp"
-#include "echo/console.hpp"
+#include "codex/library.hpp"
 
 #include <glad.h>
 #include <json.hpp>
@@ -16,7 +16,7 @@ UniformBuffer::UniformBuffer(size_t size, int binding) {
     glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, binding, m_uniformBufferObjectHandle);
 
-    echo::log("Uniform buffer created.");
+    cinder::log("Uniform buffer created.");
 
     m_size = size;
 }
@@ -47,13 +47,13 @@ Shader::Shader() {
     m_runtimeResource = true;
     m_initialized = false;
 
-    echo::log("Shader program placeholder created.");
+    cinder::log("Shader program placeholder created.");
 }
 
 Shader::~Shader() {
     glDeleteProgram(m_programHandle);
 
-    echo::log("Shader program destroyed.");
+    cinder::log("Shader program destroyed.");
 }
 
 void Shader::bind() {
@@ -63,7 +63,7 @@ void Shader::bind() {
 void Shader::setUniform(const std::string& name, const int& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        echo::warn(std::string("Couldn't find uniform: ") + name);
+        cinder::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniform1i(location, value);
@@ -72,7 +72,7 @@ void Shader::setUniform(const std::string& name, const int& value) {
 void Shader::setUniform(const std::string& name, const vector4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        echo::warn(std::string("Couldn't find uniform: ") + name);
+        cinder::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniform4fv(location, 1, value.as_array.data());
@@ -81,7 +81,7 @@ void Shader::setUniform(const std::string& name, const vector4f& value) {
 void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        echo::warn(std::string("Couldn't find uniform: ") + name);
+        cinder::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
@@ -91,12 +91,12 @@ void Shader::loadData(const FileNode* file) {
     m_node = file;
 
     if (m_initialized) {
-        echo::warn("Shader program already initialized.");
+        cinder::warn("Shader program already initialized.");
         return;
     }
 
     if (file == nullptr) {
-        echo::error("No file to load shader from.");
+        cinder::error("No file to load shader from.");
         return;
     }
     
@@ -110,7 +110,7 @@ void Shader::loadData(const FileNode* file) {
     std::filesystem::path fragmentShaderFilename = meta["frag"].template get<std::string>();
 
     if (vertexShaderFilename.empty() || fragmentShaderFilename.empty()) {
-        echo::error("Shader file not found in meta file.");
+        cinder::error("Shader file not found in meta file.");
         return;
     }
 
@@ -118,11 +118,11 @@ void Shader::loadData(const FileNode* file) {
     library.formatPath(&fragmentShaderFilename);
 
     if (!std::filesystem::exists(library.getAssetsRoot() / vertexShaderFilename)) {
-        echo::error("Vertex shader file not found: " + vertexShaderFilename.string());
+        cinder::error("Vertex shader file not found: " + vertexShaderFilename.string());
         return;
     }
     if (!std::filesystem::exists(library.getAssetsRoot() / fragmentShaderFilename)) {
-        echo::error("Fragment shader file not found: " + fragmentShaderFilename.string());
+        cinder::error("Fragment shader file not found: " + fragmentShaderFilename.string());
         return;
     }
 
@@ -140,7 +140,7 @@ void Shader::loadData(const FileNode* file) {
     );
 
     m_runtimeResource = false;
-    echo::log("Loaded shader data from file: " + file->path.string());
+    cinder::log("Loaded shader data from file: " + file->path.string());
 }
 
 void Shader::loadResource() {
@@ -148,12 +148,12 @@ void Shader::loadResource() {
     char infoLog[512];
 
     if (m_initialized) {
-        echo::warn("Shader program already initialized.");
+        cinder::warn("Shader program already initialized.");
         return;
     }
 
     if (m_data == nullptr) {
-        echo::error("Shader data is null.");
+        cinder::error("Shader data is null.");
         return;
     }
 
@@ -168,8 +168,8 @@ void Shader::loadResource() {
     glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShaderHandle, 512, NULL, infoLog);
-        echo::warn("Vertex shader compilation failed...");
-        echo::warn(infoLog);
+        cinder::warn("Vertex shader compilation failed...");
+        cinder::warn(infoLog);
     }
     
     auto fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
@@ -180,8 +180,8 @@ void Shader::loadResource() {
     glGetShaderiv(fragmentShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShaderHandle, 512, NULL, infoLog);
-        echo::warn("Fragment shader compilation failed...");
-        echo::warn(infoLog);
+        cinder::warn("Fragment shader compilation failed...");
+        cinder::warn(infoLog);
     }
 
     m_programHandle = glCreateProgram();
@@ -193,14 +193,14 @@ void Shader::loadResource() {
 
     if (!success) {
         glGetProgramInfoLog(m_programHandle, 512, NULL, infoLog);
-        echo::warn("Shader program linking failed...");
-        echo::warn(infoLog);
+        cinder::warn("Shader program linking failed...");
+        cinder::warn(infoLog);
     }
 
     glDeleteShader(vertexShaderHandle);
     glDeleteShader(fragmentShaderHandle);
 
-    echo::log("Shader program created.");
+    cinder::log("Shader program created.");
     m_initialized = true;
     m_data.reset();
 }

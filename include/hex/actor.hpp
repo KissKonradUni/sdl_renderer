@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "echo/console.hpp"
+#include "cinder.hpp"
 #include "hex/component.hpp"
 
 namespace hex {
@@ -24,7 +24,7 @@ public:
     bool addComponent(Args&&... args) {
         for (const auto& component : m_components) {
             if (component->getID() == ComponentType::getStaticID()) {
-                echo::warn("Actor already has component of type.");
+                cinder::warn("Actor already has component of type.");
                 return false;
             }
         }
@@ -42,7 +42,7 @@ public:
             }
         }
 
-        echo::warn("Actor does not have component of requested type.");
+        cinder::warn("Actor does not have component of requested type.");
         return false;
     }
     
@@ -55,7 +55,7 @@ public:
         }
 
         if (!mayBeNull)
-            echo::warn("Actor does not have component of requested type.");
+            cinder::warn("Actor does not have component of requested type.");
 
         return nullptr;
     }

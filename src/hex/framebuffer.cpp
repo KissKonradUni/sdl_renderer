@@ -1,5 +1,5 @@
+#include "cinder.hpp"
 #include "hex/framebuffer.hpp"
-#include "echo/console.hpp"
 
 #include <glad.h>
 
@@ -20,9 +20,9 @@ Framebuffer::Framebuffer(int width, int height)
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_depthStencilTarget);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        echo::error("Framebuffer is not complete!");
+        cinder::error("Framebuffer is not complete!");
     }
-    echo::log("Created framebuffer.");
+    cinder::log("Created framebuffer.");
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -31,7 +31,7 @@ Framebuffer::Framebuffer(int width, int height)
 Framebuffer::~Framebuffer() {
     glDeleteFramebuffers(1, &m_framebufferHandle);
     glDeleteRenderbuffers(1, &m_depthStencilTarget);
-    echo::log("Framebuffer destroyed.");
+    cinder::log("Framebuffer destroyed.");
 }
 
 void Framebuffer::bind() {

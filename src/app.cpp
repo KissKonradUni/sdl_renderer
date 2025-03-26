@@ -1,18 +1,17 @@
 #include "app.hpp"
+#include "cinder.hpp"
 
 #include <glad.h>
 
 namespace cinder {
 
-CinderDeleter cinderDeleter;
-
 SDL_AppResult App::initSDL() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        echo::error("Couldn't initialize SDL.");
-        echo::error(SDL_GetError());
+        cinder::error("Couldn't initialize SDL.");
+        cinder::error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    echo::log("SDL initialized.");
+    cinder::log("SDL initialized.");
     return SDL_APP_CONTINUE;
 }
 
@@ -25,13 +24,13 @@ SDL_AppResult App::initWindow() {
 
     SDL_Window* rawWindow = SDL_CreateWindow("Cinder", 1920, 1200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (rawWindow == NULL) {
-        echo::error("Couldn't create window.");
-        echo::error(SDL_GetError());
+        cinder::error("Couldn't create window.");
+        cinder::error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    echo::log("Window created successfully.");
+    cinder::log("Window created successfully.");
 
-    this->m_window.reset(rawWindow, cinderDeleter);
+    this->m_window.reset(rawWindow);
     return SDL_APP_CONTINUE;
 }
 
@@ -39,27 +38,30 @@ SDL_AppResult App::initGLContext() {
     SDL_GLContextState* rawGlContext = SDL_GL_CreateContext(this->m_window.get());
 
     if (rawGlContext == NULL) {
-        echo::error("Couldn't create GL context.");
-        echo::error(SDL_GetError());
+        cinder::error("Couldn't create GL context.");
+        cinder::error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    echo::log("GL context created successfully.");
+    cinder::log("GL context created successfully.");
 
-    echo::log("Loading OpenGL 4.6 functions...");
+    cinder::log("Loading OpenGL 4.6 functions...");
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-        echo::error("Failed to initialize GLAD");
+        cinder::error("Failed to initialize GLAD");
         return SDL_APP_FAILURE;
     }
     gladLoadGL();
-    echo::log("OpenGL 4.6 functions loaded successfully.");
+    cinder::log("OpenGL 4.6 functions loaded successfully.");
 
-    this->m_glContext.reset(rawGlContext, cinderDeleter);
+    this->m_glContext.reset(rawGlContext);
     return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult App::initApp(std::string appName, std::string appVersion, std::string appId) {
+SDL_AppResult App::init(std::string appName, std::string appVersion, std::string appId) {
     SDL_SetAppMetadata(appName.c_str(), appVersion.c_str(), appId.c_str());
-    echo::log("Application starting...");
+    
+    m_console = std::make_unique<echo::Console>();
+    m_console->init();
+    cinder::log("Application starting...");
 
     SDL_AppResult result = this->initSDL();
     if (result != SDL_APP_CONTINUE)
@@ -73,20 +75,24 @@ SDL_AppResult App::initApp(std::string appName, std::string appVersion, std::str
     if (result != SDL_APP_CONTINUE)
         return result;
 
+    m_uiManager = std::make_unique<echo::UIManager>();
+    m_uiManager->init(this->m_window.get(), this->m_glContext.get());
+
+    m_eventManager = std::make_unique<echo::EventManager>();
+    m_eventManager->init();
+
     return SDL_APP_CONTINUE;
 }
 
-SDL_Window* App::getWindowPtr() {
-    return App::instance().m_window.get();
-}
+void App::cleanup() {
+    this->m_eventManager.reset();
+    this->m_uiManager.reset();
 
-SDL_GLContextState* App::getGLContextPtr() {
-    return App::instance().m_glContext.get();
-}
-
-App::~App() {
     this->m_glContext.reset();
+    cinder::log("GL context destroyed.");
     this->m_window.reset();
+    cinder::log("Window destroyed.");
+    this->m_console.reset();
 }
 
 } // namespace cinder

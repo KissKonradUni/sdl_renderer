@@ -4,10 +4,6 @@
 #include <imgui.h>
 #include <SDL3/SDL.h>
 
-#define ANSI_RED "\x1b[31m"
-#define ANSI_YELLOW "\x1b[33m"
-#define ANSI_RESET "\x1b[0m"
-
 namespace echo {
 
 MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
@@ -17,26 +13,17 @@ MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
 	this->hours        = (milliseconds / 3600000) % 24;
 }
 
-void Console::log(const std::string& message) {
-	newMessage(Message{ 
-		message, MSG_INFO, MessageTimestamp(SDL_GetTicks())
-	});
-}
-
-void Console::warn(const std::string& message) {
-	newMessage(Message{ 
-		message, MSG_WARN, MessageTimestamp(SDL_GetTicks())
-	});
-}
-
-void Console::error(const std::string& message) {
-	newMessage(Message{ 
-		message, MSG_ERROR, MessageTimestamp(SDL_GetTicks())
-	});
-}
-
 Console::~Console() {
+	log("Console destroyed.");
+	
+	for (auto& message : m_messages) {
+		delete message;
+	}
 	m_messages.clear();
+}
+
+void Console::init() {
+	log("Console initialized.");
 }
 
 void Console::drawConsole() {
@@ -47,6 +34,9 @@ void Console::drawConsole() {
 		auto width = ImGui::GetContentRegionAvail().x;
 		ImGui::SameLine(width - 96);
 		if (ImGui::Button("Clear", ImVec2(90, 0))) {
+			for (auto& message : m_messages) {
+				delete message;
+			}
 			m_messages.clear();
 		}
 	ImGui::EndChild();
@@ -56,7 +46,7 @@ void Console::drawConsole() {
 	ImGui::BeginChild("ConsoleMessages", ImVec2(0, -48), false, false);
 		ImVec4 color;
 		for (const auto& message : m_messages) {
-			switch (message.level) {
+			switch (message->level) {
 				case MSG_INFO:
 					color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 					break;
@@ -70,12 +60,12 @@ void Console::drawConsole() {
 			ImGui::TextColored(
 				color,
 				"[%0.2d:%0.2d:%0.2d:%0.3d][%s] %s",
-				message.timestamp.hours,
-				message.timestamp.minutes,
-				message.timestamp.seconds,
-				message.timestamp.milliseconds,
+				message->timestamp.hours,
+				message->timestamp.minutes,
+				message->timestamp.seconds,
+				message->timestamp.milliseconds,
 				this->m_prefix.c_str(),
-				message.message.c_str()
+				message->message.c_str()
 			);
 		}
 
@@ -104,47 +94,8 @@ void Console::drawConsole() {
 	ImGui::End();
 }
 
-void Console::newMessage(const Message& message) {
-	m_messages.push_back(message);
-
-	std::string color = ANSI_RESET;
-	if (message.level == MSG_WARN) {
-		color = ANSI_YELLOW;
-	} else if (message.level == MSG_ERROR) {
-		color = ANSI_RED;
-	}
-
-	SDL_Log(
-		"%s[%0.2d:%0.2d:%0.2d:%0.3d][%s] %s%s",
-		color.c_str(),
-		message.timestamp.hours,
-		message.timestamp.minutes,
-		message.timestamp.seconds,
-		message.timestamp.milliseconds,
-		this->m_prefix.c_str(),
-		message.message.c_str(),
-		ANSI_RESET
-	);
-}
-
 unsigned int Console::getMessageWidth(const std::string& message) {
 	return ImGui::CalcTextSize(message.c_str()).x;
-}
-
-void log(const std::string& message) {
-	Console::instance().log(message);
-}
-
-void warn(const std::string& message) {
-	Console::instance().warn(message);
-}
-
-void error(const std::string& message) {
-	Console::instance().error(message);
-}
- 
-void consoleWindow() {
-	Console::instance().drawConsole();
 }
 
 } // namespace echo

@@ -9,15 +9,15 @@ namespace echo {
 
 typedef SDL_AppResult (EventHandlerFunction)(SDL_Event*);
 
-class Events {
+class EventManager {
 public:
-    static Events& instance() {
-        static Events instance;
-        return instance;
-    }
+    EventManager() = default;
+    ~EventManager();
 
-    Events(const Events&) = delete;
-    Events& operator=(const Events&) = delete;
+    /**
+     * @brief Initializes the EventManager
+     */
+    void init();
 
     /**
      * @brief Handle an incoming SDL event
@@ -25,8 +25,7 @@ public:
      * 
      * @param event The SDL event to handle
      */
-    SDL_AppResult handleEvent(SDL_Event* event);
-    static SDL_AppResult handle(SDL_Event* event);
+    SDL_AppResult handle(SDL_Event* event);
 
     /**
      * @brief Add an event handler to the eventHandlers map
@@ -37,8 +36,7 @@ public:
      * @param eventType UInt32 representing the type of SDL event to handle
      * @param handler Pointer to the function to handle the event
      */
-    void addEvent(Uint32 eventType, EventHandlerFunction* handler);
-    static void add(Uint32 eventType, EventHandlerFunction* handler);
+    void add(Uint32 eventType, EventHandlerFunction* handler);
 
     /**
      * @brief Remove an event handler from the eventHandlers map
@@ -48,13 +46,9 @@ public:
      * @param eventType UInt32 representing the type of SDL event to handle
      * @param handler Pointer to the function to remove from the eventHandlers map
      */
-    void cancelEvent(Uint32 eventType, EventHandlerFunction* handler);
-    static void cancel(Uint32 eventType, EventHandlerFunction* handler);
+    void cancel(Uint32 eventType, EventHandlerFunction* handler);
 protected:
     std::map<Uint32, std::vector<EventHandlerFunction*>> m_eventHandlers;
-
-    Events();
-    ~Events();
 };
 
 }; // namespace echo
