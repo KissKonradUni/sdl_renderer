@@ -2,7 +2,7 @@
 
 #include "imgui.h"
 
-namespace Hex {
+namespace hex {
 
 Camera::Camera(CameraViewport viewport, float fieldOfView, vector4f position, vector4f rotation) {
     this->m_viewport = viewport;
@@ -103,4 +103,4 @@ void Camera::cameraWindow() {
     ImGui::End();
 }
 
-}; // namespace Hex
+}; // namespace hex

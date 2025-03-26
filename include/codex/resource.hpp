@@ -2,7 +2,7 @@
 
 #include "codex/filenode.hpp"
 
-namespace Codex {
+namespace codex {
 
 /**
  * @brief Internal base class for easy pointer management
@@ -34,4 +34,4 @@ protected:
     std::unique_ptr<DataType> m_data; // The resource data (Freed after loading)
 };
 
-}; // namespace Codex
+}; // namespace codex

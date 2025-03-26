@@ -7,12 +7,12 @@
 
 #include <IconsMaterialSymbols.h>
 
-namespace Echo {
+namespace echo {
 
 SDL_AppResult UI::initUI() {
     // TODO: Add Error checking
 
-    Echo::log("Initializing ImGui...");
+    echo::log("Initializing ImGui...");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -40,10 +40,10 @@ SDL_AppResult UI::initUI() {
     static const ImWchar iconsRanges[] = { ICON_MIN_MS, ICON_MAX_MS, 0 };
     io.Fonts->AddFontFromFileTTF("assets/fonts/" FONT_ICON_FILE_NAME_MSR, iconSize, &iconsConfig, iconsRanges);
 
-    ImGui_ImplSDL3_InitForOpenGL(Cinder::App::getWindowPtr(), Cinder::App::getGLContextPtr());
+    ImGui_ImplSDL3_InitForOpenGL(cinder::App::getWindowPtr(), cinder::App::getGLContextPtr());
     ImGui_ImplOpenGL3_Init();
 
-    Echo::log("Initialized ImGui.");
+    echo::log("Initialized ImGui.");
 
     return SDL_APP_CONTINUE;
 }
@@ -91,8 +91,8 @@ void UI::removeUIFunction(unsigned int id) {
 
 UI::~UI() {
     this->cleanup();
-    Echo::log("ImGui closed.");
-    Echo::log("Echo UI destroyed.");
+    echo::log("ImGui closed.");
+    echo::log("Echo UI destroyed.");
 }
 
-}; // namespace Echo
+}; // namespace echo

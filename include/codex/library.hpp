@@ -11,9 +11,9 @@
 #include <map>
 
 // TODO: remove
-extern Codex::Shader* shader;
+extern codex::Shader* shader;
 
-namespace Codex {
+namespace codex {
 
 struct AsyncIOAction {
     FileNode* node;
@@ -21,7 +21,6 @@ struct AsyncIOAction {
 };
 
 class Library {
-friend FileNode;
 public:
     static Library& instance() {
         static Library instance;
@@ -160,4 +159,4 @@ protected:
     IResourceBase* m_selectedAsset = nullptr;
 };
 
-}; // namespace Codex
+}; // namespace codex

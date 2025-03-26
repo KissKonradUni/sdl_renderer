@@ -6,7 +6,7 @@
 #include <stb_image.h>
 #include <glad.h>
 
-namespace Codex {
+namespace codex {
 
 TextureData::~TextureData() { 
     stbi_image_free(pixels); 
@@ -20,7 +20,7 @@ Texture::Texture(unsigned char* pixels, int width, int height, int channels) {
     this->m_runtimeResource = true;
     this->m_node = nullptr;
 
-    Echo::log("Runtime texture created.");
+    echo::log("Runtime texture created.");
 }
 
 Texture::Texture(const TextureData* data) : Texture(data->pixels, data->width, data->height, data->channels) {}
@@ -36,23 +36,23 @@ Texture::Texture(const vector4f& color) : Texture(nullptr, 1, 1, 4) {
 }
 
 Texture::Texture() {
-    Echo::log("Texture placeholder created.");
+    echo::log("Texture placeholder created.");
 }
 
 Texture::~Texture() {
     glDeleteTextures(1, &m_textureHandle);
 
-    Echo::log("Texture destroyed.");
+    echo::log("Texture destroyed.");
 }
 
 void Texture::loadData(const FileNode* file) {
     if (m_initialized) {
-        Echo::warn("Texture already initialized.");
+        echo::warn("Texture already initialized.");
         return;
     }
 
     if (file == nullptr) {
-        Echo::error("No file to load texture from.");
+        echo::error("No file to load texture from.");
         return;
     }
     
@@ -61,10 +61,10 @@ void Texture::loadData(const FileNode* file) {
     auto data = stbi_load((Library::instance().getAssetsRoot() / file->path).string().c_str(), &width, &height, &channels, 4);
 
     if (!data) {
-        Echo::error(std::string("Failed to load texture from file: ") + file->path.string());
+        echo::error(std::string("Failed to load texture from file: ") + file->path.string());
         return;
     }
-    Echo::log(std::string("Loaded texture from file: ") + file->path.string());
+    echo::log(std::string("Loaded texture from file: ") + file->path.string());
 
     this->m_data.reset(new TextureData{data, width, height, channels});
     this->m_node = file;
@@ -73,12 +73,12 @@ void Texture::loadData(const FileNode* file) {
 
 void Texture::loadResource() {    
     if (m_initialized) {
-        Echo::warn("Texture already initialized.");
+        echo::warn("Texture already initialized.");
         return;
     }
 
     if (m_data == nullptr) {
-        Echo::error("No texture data to load.");
+        echo::error("No texture data to load.");
         return;
     }
 
@@ -123,4 +123,4 @@ void Texture::attachToFramebuffer(int attachment) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, m_textureHandle, 0);
 }
 
-} // namespace Codex
+} // namespace codex

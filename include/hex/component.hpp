@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Hex {
+namespace hex {
 
 // Forward declaration
 class Actor;
@@ -54,4 +54,4 @@ protected:
     }
 };
 
-}; // namespace Hex
+}; // namespace hex

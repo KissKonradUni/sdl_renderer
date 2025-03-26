@@ -3,7 +3,7 @@
 
 #include "imgui.h"
 
-namespace Hex {
+namespace hex {
 
 TransformComponent::TransformComponent(Actor* actor) : Component(actor), m_transform() {
     onParentChanged();
@@ -50,4 +50,4 @@ void TransformComponent::editorUI() {
     }
 }
 
-}; // namespace Hex
+}; // namespace hex

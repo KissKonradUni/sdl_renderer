@@ -5,7 +5,7 @@
 
 #include <stb_image.h>
 
-namespace Codex {
+namespace codex {
 
 /**
  * @brief The raw data of a texture
@@ -75,4 +75,4 @@ protected:
     int m_width, m_height, m_channels;
 };
 
-}; // namespace Codex
+}; // namespace codex

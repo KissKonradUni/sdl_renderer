@@ -3,7 +3,7 @@
 #include "imgui.h"
 #include <IconsMaterialSymbols.h>
 
-namespace Hex {
+namespace hex {
 
 Scene::Scene() {
     
@@ -106,4 +106,4 @@ void Scene::editorUI() {
     ImGui::End();
 }
 
-}; // namespace Hex
+}; // namespace hex

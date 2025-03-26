@@ -1,19 +1,19 @@
 #include "hex/actor.hpp"
 #include "imgui.h"
 
-namespace Hex {
+namespace hex {
 
 Actor::Actor(Actor* parent) {
     m_parent = parent;
     if (m_parent != nullptr)
         m_parent->addChild(this);
-    Echo::log("Actor created.");
+    echo::log("Actor created.");
 }
 
 Actor::~Actor() {
     m_children.clear();
     m_components.clear();
-    Echo::log("Actor destroyed.");
+    echo::log("Actor destroyed.");
 }
 
 void Actor::update() {
@@ -40,7 +40,7 @@ void Actor::render() {
 
 void Actor::addChild(Actor* actor) {
     if (actor == nullptr) {
-        Echo::warn("Cannot add null child to actor.");
+        echo::warn("Cannot add null child to actor.");
         return;
     }
 
@@ -50,7 +50,7 @@ void Actor::addChild(Actor* actor) {
 
 void Actor::removeChild(Actor* actor) {
     if (actor == nullptr) {
-        Echo::warn("Cannot remove null child from actor.");
+        echo::warn("Cannot remove null child from actor.");
         return;
     }
 
@@ -61,7 +61,7 @@ void Actor::removeChild(Actor* actor) {
         }
     }
 
-    Echo::warn("Actor does not have the child to remove.");
+    echo::warn("Actor does not have the child to remove.");
 }
 
 void Actor::setParent(Actor* actor) {
@@ -85,4 +85,4 @@ void Actor::editorUI() {
     }
 }
 
-}; // namespace Hex
+}; // namespace hex

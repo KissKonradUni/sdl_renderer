@@ -8,7 +8,7 @@
 #define ANSI_YELLOW "\x1b[33m"
 #define ANSI_RESET "\x1b[0m"
 
-namespace Echo {
+namespace echo {
 
 MessageTimestamp::MessageTimestamp(unsigned long milliseconds) {
 	this->milliseconds = milliseconds % 1000;
@@ -147,4 +147,4 @@ void consoleWindow() {
 	Console::instance().drawConsole();
 }
 
-} // namespace Echo
+} // namespace echo

@@ -3,7 +3,7 @@
 #include "floatmath.hpp"
 #include "codex/shader.hpp"
 
-namespace Hex {
+namespace hex {
 
 struct CameraInput {
     struct {
@@ -25,7 +25,7 @@ struct CameraViewport {
     float h;
 };
 
-struct CameraUniformBufferData : Codex::UniformBufferData {
+struct CameraUniformBufferData : codex::UniformBufferData {
     matrix4x4f view;
     matrix4x4f projection;
     vector4f m_position;
@@ -79,4 +79,4 @@ public:
     void cameraWindow();
 };
 
-} // namespace Hex
+} // namespace hex

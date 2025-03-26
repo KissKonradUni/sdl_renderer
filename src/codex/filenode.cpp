@@ -1,7 +1,7 @@
 #include "codex/filenode.hpp"
 #include "codex/library.hpp"
 
-namespace Codex {
+namespace codex {
 
 FileNode::FileNode(std::filesystem::path& path, FileNode* parent, bool virt) {
     if (parent != nullptr) {    
@@ -32,4 +32,4 @@ FileNode::~FileNode() {
     // We don't delete children, as they are owned by the library
 }
 
-}; // namespace Codex
+}; // namespace codex

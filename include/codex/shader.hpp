@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace Codex {
+namespace codex {
 
 /**
  * @brief Struct type for uniform buffers.
@@ -76,4 +76,4 @@ protected:
     unsigned int getUniformLocation(const std::string& name);
 };
 
-}; // namespace Codex
+}; // namespace codex

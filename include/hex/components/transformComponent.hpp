@@ -3,7 +3,7 @@
 #include "hex/component.hpp"
 #include "floatmath.hpp"
 
-namespace Hex {
+namespace hex {
 
 class TransformComponent : public Component {
     ImplementComponentType(TransformComponent)
@@ -24,4 +24,4 @@ protected:
     transformf m_transform;
 };
 
-}; // namespace Hex
+}; // namespace hex

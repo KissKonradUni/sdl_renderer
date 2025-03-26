@@ -5,7 +5,7 @@
 
 typedef void (*UIFunction)();
 
-namespace Echo {
+namespace echo {
 
 class UI {
 public:
@@ -32,4 +32,4 @@ protected:
     std::map<unsigned int, UIFunction> m_uiFunctions;
 };
 
-}; // namespace Echo
+}; // namespace echo

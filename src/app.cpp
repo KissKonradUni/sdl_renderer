@@ -2,17 +2,17 @@
 
 #include <glad.h>
 
-namespace Cinder {
+namespace cinder {
 
 CinderDeleter cinderDeleter;
 
 SDL_AppResult App::initSDL() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        Echo::error("Couldn't initialize SDL.");
-        Echo::error(SDL_GetError());
+        echo::error("Couldn't initialize SDL.");
+        echo::error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    Echo::log("SDL initialized.");
+    echo::log("SDL initialized.");
     return SDL_APP_CONTINUE;
 }
 
@@ -25,11 +25,11 @@ SDL_AppResult App::initWindow() {
 
     SDL_Window* rawWindow = SDL_CreateWindow("Cinder", 1920, 1200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (rawWindow == NULL) {
-        Echo::error("Couldn't create window.");
-        Echo::error(SDL_GetError());
+        echo::error("Couldn't create window.");
+        echo::error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    Echo::log("Window created successfully.");
+    echo::log("Window created successfully.");
 
     this->m_window.reset(rawWindow, cinderDeleter);
     return SDL_APP_CONTINUE;
@@ -39,19 +39,19 @@ SDL_AppResult App::initGLContext() {
     SDL_GLContextState* rawGlContext = SDL_GL_CreateContext(this->m_window.get());
 
     if (rawGlContext == NULL) {
-        Echo::error("Couldn't create GL context.");
-        Echo::error(SDL_GetError());
+        echo::error("Couldn't create GL context.");
+        echo::error(SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    Echo::log("GL context created successfully.");
+    echo::log("GL context created successfully.");
 
-    Echo::log("Loading OpenGL 4.6 functions...");
+    echo::log("Loading OpenGL 4.6 functions...");
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-        Echo::error("Failed to initialize GLAD");
+        echo::error("Failed to initialize GLAD");
         return SDL_APP_FAILURE;
     }
     gladLoadGL();
-    Echo::log("OpenGL 4.6 functions loaded successfully.");
+    echo::log("OpenGL 4.6 functions loaded successfully.");
 
     this->m_glContext.reset(rawGlContext, cinderDeleter);
     return SDL_APP_CONTINUE;
@@ -59,7 +59,7 @@ SDL_AppResult App::initGLContext() {
 
 SDL_AppResult App::initApp(std::string appName, std::string appVersion, std::string appId) {
     SDL_SetAppMetadata(appName.c_str(), appVersion.c_str(), appId.c_str());
-    Echo::log("Application starting...");
+    echo::log("Application starting...");
 
     SDL_AppResult result = this->initSDL();
     if (result != SDL_APP_CONTINUE)
@@ -89,4 +89,4 @@ App::~App() {
     this->m_window.reset();
 }
 
-} // namespace Cinder
+} // namespace cinder

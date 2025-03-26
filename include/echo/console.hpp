@@ -6,7 +6,7 @@
 
 #include <SDL3/SDL.h>
 
-namespace Echo {
+namespace echo {
 
 enum MessageLevel {
     MSG_INFO = 0,
@@ -66,4 +66,4 @@ void error(const std::string& message);
 
 void consoleWindow();
 
-}; // namespace Echo
+}; // namespace echo

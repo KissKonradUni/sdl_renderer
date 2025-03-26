@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <fstream>
 
-namespace Codex {
+namespace codex {
 
 UniformBuffer::UniformBuffer(size_t size, int binding) {
     glGenBuffers(1, &m_uniformBufferObjectHandle);
@@ -16,7 +16,7 @@ UniformBuffer::UniformBuffer(size_t size, int binding) {
     glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, binding, m_uniformBufferObjectHandle);
 
-    Echo::log("Uniform buffer created.");
+    echo::log("Uniform buffer created.");
 
     m_size = size;
 }
@@ -47,13 +47,13 @@ Shader::Shader() {
     m_runtimeResource = true;
     m_initialized = false;
 
-    Echo::log("Shader program placeholder created.");
+    echo::log("Shader program placeholder created.");
 }
 
 Shader::~Shader() {
     glDeleteProgram(m_programHandle);
 
-    Echo::log("Shader program destroyed.");
+    echo::log("Shader program destroyed.");
 }
 
 void Shader::bind() {
@@ -63,7 +63,7 @@ void Shader::bind() {
 void Shader::setUniform(const std::string& name, const int& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        Echo::warn(std::string("Couldn't find uniform: ") + name);
+        echo::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniform1i(location, value);
@@ -72,7 +72,7 @@ void Shader::setUniform(const std::string& name, const int& value) {
 void Shader::setUniform(const std::string& name, const vector4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        Echo::warn(std::string("Couldn't find uniform: ") + name);
+        echo::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniform4fv(location, 1, value.as_array.data());
@@ -81,7 +81,7 @@ void Shader::setUniform(const std::string& name, const vector4f& value) {
 void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
-        Echo::warn(std::string("Couldn't find uniform: ") + name);
+        echo::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
@@ -91,17 +91,17 @@ void Shader::loadData(const FileNode* file) {
     m_node = file;
 
     if (m_initialized) {
-        Echo::warn("Shader program already initialized.");
+        echo::warn("Shader program already initialized.");
         return;
     }
 
     if (file == nullptr) {
-        Echo::error("No file to load shader from.");
+        echo::error("No file to load shader from.");
         return;
     }
     
     using namespace nlohmann;
-    auto& library = Codex::Library::instance();
+    auto& library = codex::Library::instance();
 
     std::ifstream metaFile(library.getAssetsRoot() / file->path);
     json meta = json::parse(metaFile);
@@ -110,7 +110,7 @@ void Shader::loadData(const FileNode* file) {
     std::filesystem::path fragmentShaderFilename = meta["frag"].template get<std::string>();
 
     if (vertexShaderFilename.empty() || fragmentShaderFilename.empty()) {
-        Echo::error("Shader file not found in meta file.");
+        echo::error("Shader file not found in meta file.");
         return;
     }
 
@@ -118,11 +118,11 @@ void Shader::loadData(const FileNode* file) {
     library.formatPath(&fragmentShaderFilename);
 
     if (!std::filesystem::exists(library.getAssetsRoot() / vertexShaderFilename)) {
-        Echo::error("Vertex shader file not found: " + vertexShaderFilename.string());
+        echo::error("Vertex shader file not found: " + vertexShaderFilename.string());
         return;
     }
     if (!std::filesystem::exists(library.getAssetsRoot() / fragmentShaderFilename)) {
-        Echo::error("Fragment shader file not found: " + fragmentShaderFilename.string());
+        echo::error("Fragment shader file not found: " + fragmentShaderFilename.string());
         return;
     }
 
@@ -140,7 +140,7 @@ void Shader::loadData(const FileNode* file) {
     );
 
     m_runtimeResource = false;
-    Echo::log("Loaded shader data from file: " + file->path.string());
+    echo::log("Loaded shader data from file: " + file->path.string());
 }
 
 void Shader::loadResource() {
@@ -148,12 +148,12 @@ void Shader::loadResource() {
     char infoLog[512];
 
     if (m_initialized) {
-        Echo::warn("Shader program already initialized.");
+        echo::warn("Shader program already initialized.");
         return;
     }
 
     if (m_data == nullptr) {
-        Echo::error("Shader data is null.");
+        echo::error("Shader data is null.");
         return;
     }
 
@@ -168,8 +168,8 @@ void Shader::loadResource() {
     glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShaderHandle, 512, NULL, infoLog);
-        Echo::warn("Vertex shader compilation failed...");
-        Echo::warn(infoLog);
+        echo::warn("Vertex shader compilation failed...");
+        echo::warn(infoLog);
     }
     
     auto fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
@@ -180,8 +180,8 @@ void Shader::loadResource() {
     glGetShaderiv(fragmentShaderHandle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShaderHandle, 512, NULL, infoLog);
-        Echo::warn("Fragment shader compilation failed...");
-        Echo::warn(infoLog);
+        echo::warn("Fragment shader compilation failed...");
+        echo::warn(infoLog);
     }
 
     m_programHandle = glCreateProgram();
@@ -193,14 +193,14 @@ void Shader::loadResource() {
 
     if (!success) {
         glGetProgramInfoLog(m_programHandle, 512, NULL, infoLog);
-        Echo::warn("Shader program linking failed...");
-        Echo::warn(infoLog);
+        echo::warn("Shader program linking failed...");
+        echo::warn(infoLog);
     }
 
     glDeleteShader(vertexShaderHandle);
     glDeleteShader(fragmentShaderHandle);
 
-    Echo::log("Shader program created.");
+    echo::log("Shader program created.");
     m_initialized = true;
     m_data.reset();
 }
@@ -216,4 +216,4 @@ unsigned int Shader::getUniformLocation(const std::string& name) {
     return location;
 }
 
-} // namespace Codex
+} // namespace codex

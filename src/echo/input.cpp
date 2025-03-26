@@ -1,7 +1,7 @@
 #include "echo/input.hpp"
 #include "echo/console.hpp"
 
-namespace Echo {
+namespace echo {
 
 SDL_AppResult Events::handleEvent(SDL_Event* event) {
     if (!m_eventHandlers.contains(event->type))
@@ -54,7 +54,7 @@ Events::Events() {
 Events::~Events() {
     // No need for custom destructor
     // The handlers are not owned by the EventHandler
-    Echo::log("Event handler destroyed.");
+    echo::log("Event handler destroyed.");
 }
 
 };

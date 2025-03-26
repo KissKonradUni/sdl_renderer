@@ -6,7 +6,7 @@
 #include "echo/console.hpp"
 #include "hex/component.hpp"
 
-namespace Hex {
+namespace hex {
 
 class Actor {
 public:
@@ -24,7 +24,7 @@ public:
     bool addComponent(Args&&... args) {
         for (const auto& component : m_components) {
             if (component->getID() == ComponentType::getStaticID()) {
-                Echo::warn("Actor already has component of type.");
+                echo::warn("Actor already has component of type.");
                 return false;
             }
         }
@@ -42,7 +42,7 @@ public:
             }
         }
 
-        Echo::warn("Actor does not have component of requested type.");
+        echo::warn("Actor does not have component of requested type.");
         return false;
     }
     
@@ -55,7 +55,7 @@ public:
         }
 
         if (!mayBeNull)
-            Echo::warn("Actor does not have component of requested type.");
+            echo::warn("Actor does not have component of requested type.");
 
         return nullptr;
     }
@@ -83,4 +83,4 @@ protected:
     std::vector<std::unique_ptr<Component>> m_components;
 };
 
-}; // namespace Hex
+}; // namespace hex

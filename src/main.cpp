@@ -30,30 +30,40 @@
 #endif
 #include <GL/gl.h>
 
-std::unique_ptr<Codex::UniformBuffer> cameraBuffer = nullptr;
+namespace cinder {
 
-std::unique_ptr<Hex::Camera> camera = nullptr;
-Hex::CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
+using namespace codex;
+using namespace hex;
+using namespace echo;
+
+std::unique_ptr<UniformBuffer> cameraBuffer = nullptr;
+
+std::unique_ptr<Camera> camera = nullptr;
+CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
 
 struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
-std::unique_ptr<Hex::Framebuffer> sceneFramebuffer = nullptr;
+std::unique_ptr<Framebuffer> sceneFramebuffer = nullptr;
 
-Codex::Mesh* mesh = nullptr;
+Mesh* mesh = nullptr;
 transformf meshTransform;
 
-Hex::Scene scene;
+Scene scene;
+
+double lastTime   = 0.0;
+double nowTime    = 0.0;
+double deltaTime  = 0.0;
 
 void performanceWindow();
 void renderWindow();
 
 void initCamera() {
-    camera = std::make_unique<Hex::Camera>(
-        Hex::CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
+    camera = std::make_unique<Camera>(
+        CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
         80.0f,
         vector4f(0.0f, 0.0f, 4.0f, 0.0f),
         vector4f::zero()
     );
-    cameraBuffer = std::make_unique<Codex::UniformBuffer>(sizeof(Hex::CameraUniformBufferData), 0);
+    cameraBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
 }
 
 void initGLParams() {
@@ -65,41 +75,41 @@ void initGLParams() {
 
 void initDebugStuff() {
     std::filesystem::path assetPath = "./assets/shaders/glsl/Basic.shader";
-    Codex::Library::instance().formatPath(&assetPath);
-    auto shaderNode = Codex::Library::instance().tryGetAssetNode(assetPath);
-    shader = Codex::Library::instance().tryLoadResource<Codex::Shader>(shaderNode);
+    Library::instance().formatPath(&assetPath);
+    auto shaderNode = Library::instance().tryGetAssetNode(assetPath);
+    shader = Library::instance().tryLoadResource<Shader>(shaderNode);
 
     assetPath = "./assets/models/sponza.glb";
-    Codex::Library::instance().formatPath(&assetPath);
-    auto meshNode = Codex::Library::instance().tryGetAssetNode(assetPath);
-    mesh = Codex::Library::instance().tryLoadResource<Codex::Mesh>(meshNode);
+    Library::instance().formatPath(&assetPath);
+    auto meshNode = Library::instance().tryGetAssetNode(assetPath);
+    mesh = Library::instance().tryLoadResource<Mesh>(meshNode);
 
-    Hex::Actor* actor = new Hex::Actor();
-    actor->addComponent<Hex::TransformComponent>();
+    Actor* actor = new Actor();
+    actor->addComponent<TransformComponent>();
     scene.addActor(actor);
 
-    Hex::Actor* actor2 = new Hex::Actor(actor);
-    actor2->addComponent<Hex::TransformComponent>();
+    Actor* actor2 = new Actor(actor);
+    actor2->addComponent<TransformComponent>();
     scene.addActor(actor2);
 
-    Hex::Actor* actor3 = new Hex::Actor(actor2);
-    actor3->addComponent<Hex::TransformComponent>();
+    Actor* actor3 = new Actor(actor2);
+    actor3->addComponent<TransformComponent>();
     scene.addActor(actor3);
 
-    actor = new Hex::Actor();
-    actor->addComponent<Hex::TransformComponent>();
+    actor = new Actor();
+    actor->addComponent<TransformComponent>();
     scene.addActor(actor);
 
-    actor2 = new Hex::Actor(actor);
-    actor2->addComponent<Hex::TransformComponent>();
+    actor2 = new Actor(actor);
+    actor2->addComponent<TransformComponent>();
     scene.addActor(actor2);
 }
 
 void initEvents() {    
-    Echo::Events::add(SDL_EVENT_QUIT    , [](SDL_Event* event) { 
+    Events::add(SDL_EVENT_QUIT    , [](SDL_Event* event) { 
         return SDL_APP_SUCCESS; 
     });
-    Echo::Events::add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
+    Events::add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
                 cameraInput.movement.y = -1.0f;
@@ -128,7 +138,7 @@ void initEvents() {
         }
         return SDL_APP_CONTINUE;
     });
-    Echo::Events::add(SDL_EVENT_KEY_UP, [](SDL_Event* event) {
+    Events::add(SDL_EVENT_KEY_UP, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
             case SDL_SCANCODE_S:
@@ -147,131 +157,12 @@ void initEvents() {
         }
         return SDL_APP_CONTINUE;
     });
-    Echo::Events::add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
+    Events::add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
         cameraInput.rotation.pitch += event->motion.xrel;
         cameraInput.rotation.yaw   += event->motion.yrel;
 
         return SDL_APP_CONTINUE;
     });
-}
-
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
-    const auto result = Cinder::App::instance().initApp("Cinder", "1.0", "hu.konrads.cinder");
-
-    if (result != SDL_APP_CONTINUE)
-        return result;
-
-    initCamera();
-    initGLParams();
-    initEvents();
-    Codex::Library::instance().init();
-
-    initDebugStuff();
-
-    sceneFramebuffer = std::make_unique<Hex::Framebuffer>(1920, 1200);
-
-    // Enable adaptive vsync
-    SDL_GL_SetSwapInterval(-1);
-
-    Echo::UI::instance().initUI();
-    Echo::UI::instance().addUIFunction(renderWindow);
-    Echo::UI::instance().addUIFunction(performanceWindow);
-    Echo::UI::instance().addUIFunction(Echo::consoleWindow);
-    Echo::UI::instance().addUIFunction(Codex::Library::assetsWindow);
-    Echo::UI::instance().addUIFunction([]() {
-        camera->cameraWindow();
-        scene.editorUI();
-    });
-
-    return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
-    Echo::UI::instance().processEvent(event);
-    
-    return Echo::Events::handle(event);
-}
-
-static double lastTime   = 0.0;
-static double nowTime    = 0.0;
-static double deltaTime  = 0.0;
-
-SDL_AppResult SDL_AppIterate(void *appstate) {
-    // ======================
-    // Upadte asset library
-    Codex::Library::instance().checkForFinishedAsync();
-
-    // ======================
-    // Time management
-    
-    nowTime = static_cast<double>(SDL_GetTicks()) / 1000.0;
-    deltaTime = nowTime - lastTime;
-    lastTime = nowTime;
-
-    // ======================
-    // Process new frame
-
-    Echo::UI::instance().newFrame();
-    camera->update(cameraInput, deltaTime);
-    
-    // ======================
-    // Update "game" logic
-
-    // if (mesh)
-    //     mesh->rotation.y += deltaTime * 0.314f;
-
-    // ======================
-    // Render
-
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    sceneFramebuffer->bind();
-
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
-
-        cameraBuffer->updateData(camera->getShaderBufferPointer());
-        //Codex::Assets::instance().getCurrentScene().draw();
-
-        /*
-        if (shader && material && mesh) {
-            shader->getShader()->bind();
-            material->bindTextures();
-            cameraBuffer->updateData(camera->getShaderBufferPointer());
-            shader->getShader()->setUniform("modelMatrix", mesh->transform.getModelMatrix());
-            shader->getShader()->setUniform("textureDiffuse", 0);
-            shader->getShader()->setUniform("textureNormal", 1);
-            shader->getShader()->setUniform("textureAORoughnessMetallic", 2);
-            //packedMesh->draw();
-            mesh->draw();
-        }
-        */
-
-        if (shader->isInitialized()) {
-            shader->bind();
-            shader->setUniform("modelMatrix", meshTransform.getModelMatrix());
-        }
-
-        if (mesh->isInitialized()) {
-            mesh->draw();
-        }
-
-    sceneFramebuffer->unbind();
-
-    // Draw UI on top of everything
-    Echo::UI::instance().render();
-
-    // Finalize frame
-    SDL_GL_SwapWindow(Cinder::App::getWindowPtr());
-
-    // ======================
-    // Wait for next frame
-    return SDL_APP_CONTINUE;
-}
-
-void SDL_AppQuit(void *appstate, SDL_AppResult result) {
-    Echo::log(std::string("Application quit with result: ") + std::to_string(result));
 }
 
 size_t getCurrentMemoryUsage() {
@@ -381,4 +272,126 @@ void renderWindow() {
     ImGui::Text("Input: %s", cameraInput.lock ? "Locked" : "Captured");
 
     ImGui::End();
+}
+
+} // namespace cinder
+
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
+    using namespace cinder;
+
+    const auto result = App::instance().initApp("Cinder", "1.0", "hu.konrads.cinder");
+
+    if (result != SDL_APP_CONTINUE)
+        return result;
+
+    initCamera();
+    initGLParams();
+    initEvents();
+    Library::instance().init();
+
+    initDebugStuff();
+
+    sceneFramebuffer = std::make_unique<Framebuffer>(1920, 1200);
+
+    // Enable adaptive vsync
+    SDL_GL_SetSwapInterval(-1);
+
+    UI::instance().initUI();
+    UI::instance().addUIFunction(renderWindow);
+    UI::instance().addUIFunction(performanceWindow);
+    UI::instance().addUIFunction(consoleWindow);
+    UI::instance().addUIFunction(Library::assetsWindow);
+    UI::instance().addUIFunction([]() {
+        camera->cameraWindow();
+        scene.editorUI();
+    });
+
+    return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
+    using namespace cinder;
+
+    UI::instance().processEvent(event);
+    return Events::handle(event);
+}
+
+SDL_AppResult SDL_AppIterate(void *appstate) {
+    using namespace cinder;
+
+    // ======================
+    // Upadte asset library
+    Library::instance().checkForFinishedAsync();
+
+    // ======================
+    // Time management
+    
+    nowTime = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    deltaTime = nowTime - lastTime;
+    lastTime = nowTime;
+
+    // ======================
+    // Process new frame
+
+    UI::instance().newFrame();
+    camera->update(cameraInput, deltaTime);
+    
+    // ======================
+    // Update "game" logic
+
+    // if (mesh)
+    //     mesh->rotation.y += deltaTime * 0.314f;
+
+    // ======================
+    // Render
+
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    sceneFramebuffer->bind();
+
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
+
+        cameraBuffer->updateData(camera->getShaderBufferPointer());
+        //Assets::instance().getCurrentScene().draw();
+
+        /*
+        if (shader && material && mesh) {
+            shader->getShader()->bind();
+            material->bindTextures();
+            cameraBuffer->updateData(camera->getShaderBufferPointer());
+            shader->getShader()->setUniform("modelMatrix", mesh->transform.getModelMatrix());
+            shader->getShader()->setUniform("textureDiffuse", 0);
+            shader->getShader()->setUniform("textureNormal", 1);
+            shader->getShader()->setUniform("textureAORoughnessMetallic", 2);
+            //packedMesh->draw();
+            mesh->draw();
+        }
+        */
+
+        if (shader && shader->isInitialized()) {
+            shader->bind();
+            shader->setUniform("modelMatrix", meshTransform.getModelMatrix());
+        }
+
+        if (mesh && mesh->isInitialized()) {
+            mesh->draw();
+        }
+
+    sceneFramebuffer->unbind();
+
+    // Draw UI on top of everything
+    UI::instance().render();
+
+    // Finalize frame
+    SDL_GL_SwapWindow(App::getWindowPtr());
+
+    // ======================
+    // Wait for next frame
+    return SDL_APP_CONTINUE;
+}
+
+void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+    echo::log(std::string("Application quit with result: ") + std::to_string(result));
 }

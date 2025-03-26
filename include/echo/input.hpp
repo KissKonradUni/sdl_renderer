@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 
-namespace Echo {
+namespace echo {
 
 typedef SDL_AppResult (EventHandlerFunction)(SDL_Event*);
 
@@ -57,4 +57,4 @@ protected:
     ~Events();
 };
 
-}; // namespace Echo
+}; // namespace echo

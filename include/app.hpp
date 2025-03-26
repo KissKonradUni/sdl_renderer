@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-namespace Cinder {
+namespace cinder {
 
 class App {
 public:
@@ -39,12 +39,12 @@ class CinderDeleter {
 public: 
     void operator()(SDL_Window* window) {
         SDL_DestroyWindow(window);
-        Echo::log("Window destroyed.");
+        echo::log("Window destroyed.");
     }
     void operator()(SDL_GLContextState* glContext) {
         SDL_GL_DestroyContext(glContext);
-        Echo::log("GL context destroyed.");
+        echo::log("GL context destroyed.");
     }
 };
 
-}; // namespace Cinder
+}; // namespace cinder

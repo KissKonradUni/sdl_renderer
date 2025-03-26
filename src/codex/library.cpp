@@ -11,9 +11,9 @@
 #include <unordered_map>
 
 // TODO: remove
-Codex::Shader* shader = nullptr;
+codex::Shader* shader = nullptr;
 
-namespace Codex {
+namespace codex {
 
 // Map enum values to string constants
 static const std::unordered_map<FileType, const char*> FileTypeStrings = {
@@ -78,13 +78,13 @@ void Library::init() {
     m_runtimeNode->type = FileType::SPECIAL;
     m_fileLookupTable[m_runtimeNode->path] = std::unique_ptr<FileNode>(m_runtimeNode);
 
-    Echo::log("Library initialized.");
+    echo::log("Library initialized.");
 
     // Start the async IO thread
     m_asyncRunning = 1;
     m_asyncLoader = std::thread(&Library::threadFunction, this);
 
-    Echo::log("Async IO thread started.");
+    echo::log("Async IO thread started.");
 }
 
 bool Library::formatPath(std::filesystem::path* path, bool virt) const {
@@ -110,7 +110,7 @@ Library::Library() {}
 Library::~Library() {
     m_asyncRunning = 0;
     m_asyncLoader.join();
-    Echo::log("Library destroyed.");
+    echo::log("Library destroyed.");
 }
 
 void Library::mapAssetsFolder() {
@@ -129,14 +129,14 @@ void Library::mapAssetsFolder() {
         m_fileLookupTable[node->path] = std::unique_ptr<FileNode>(node);
     }
 
-    Echo::log("Assets folder mapped.");
+    echo::log("Assets folder mapped.");
 }
 
 template<typename AssetType>
 AssetType* Library::tryLoadResource(FileNode* node) {
     // Check if the node is valid
     if (node == nullptr) {
-        Echo::warn("Tried loading invalid node.");
+        echo::warn("Tried loading invalid node.");
         return nullptr;
     }
 
@@ -182,7 +182,7 @@ void Library::registerRuntimeResource(IResourceBase* resource) {
     FileNode* node = const_cast<FileNode*>(resource->getNode());
 
     if (m_resourceLookupTable.find(node) != m_resourceLookupTable.end()) {
-        Echo::warn("Tried registering a runtime resource to a used node.");
+        echo::warn("Tried registering a runtime resource to a used node.");
         return;
     }
 
@@ -269,7 +269,7 @@ void Library::assetsBrowser(Library& instance) {
             TRY_LOAD(FileType::MESH_FILE    , Mesh    )
             default:
                 instance.m_selectedAsset = nullptr;
-                Echo::warn("Unsupported asset type.");
+                echo::warn("Unsupported asset type.");
                 break;
         }
     }

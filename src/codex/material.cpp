@@ -6,7 +6,7 @@
 
 #include <fstream>
 
-namespace Codex {
+namespace codex {
 
 Material::Material(std::string& name, std::map<std::string, Texture*>& textures) {
     m_data.reset(new MaterialData{name, textures});
@@ -16,31 +16,31 @@ Material::Material(std::string& name, std::map<std::string, Texture*>& textures)
     m_runtimeResource = true;
     m_node = nullptr;
 
-    Echo::log("Runtime material created.");
+    echo::log("Runtime material created.");
 }
 
 Material::Material() {
-    Echo::log("Material placeholder created.");
+    echo::log("Material placeholder created.");
 }
 
 Material::~Material() {
-    Echo::log("Material destroyed.");
+    echo::log("Material destroyed.");
 }
 
 void Material::loadData(const FileNode* file) {
     if (m_initialized) {
-        Echo::warn("Material already initialized.");
+        echo::warn("Material already initialized.");
         return;
     }
 
     if (file == nullptr) {
-        Echo::error("No file to load material from.");
+        echo::error("No file to load material from.");
         return;
     }
 
     // Load the material data from the file
     using namespace nlohmann;
-    auto& library = Codex::Library::instance();
+    auto& library = codex::Library::instance();
 
     std::ifstream metaFile(library.getAssetsRoot() / file->path);
     json meta = json::parse(metaFile);
@@ -50,7 +50,7 @@ void Material::loadData(const FileNode* file) {
     m_data->name = meta["name"].template get<std::string>();
 
     if (meta["textures"].is_null()) {
-        Echo::warn("No textures found in material file.");
+        echo::warn("No textures found in material file.");
         return;
     }
 
@@ -61,12 +61,12 @@ void Material::loadData(const FileNode* file) {
 
         auto textureNode = library.tryGetAssetNode(texturePath);
         if (textureNode == nullptr) {
-            Echo::warn("Texture not found: " + texturePath.string());
+            echo::warn("Texture not found: " + texturePath.string());
             continue;
         }
         auto texture = library.tryLoadResource<Texture>(textureNode);
         if (texture == nullptr) {
-            Echo::warn("Texture could not be loaded: " + texturePath.string());
+            echo::warn("Texture could not be loaded: " + texturePath.string());
             continue;
         }
 
@@ -74,17 +74,17 @@ void Material::loadData(const FileNode* file) {
     }
 
     m_runtimeResource = false;
-    Echo::log("Loaded material data from file: " + file->path.string());
+    echo::log("Loaded material data from file: " + file->path.string());
 }
 
 void Material::loadResource() {
     if (m_initialized) {
-        Echo::warn("Material already initialized.");
+        echo::warn("Material already initialized.");
         return;
     }
 
     if (m_data == nullptr) {
-        Echo::error("Material data is null.");
+        echo::error("Material data is null.");
         return;
     }
 
@@ -93,7 +93,7 @@ void Material::loadResource() {
 
 void Material::bindTextures(Shader* shader) const {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        echo::warn("Material not initialized.");
         return;
     }
 
@@ -107,7 +107,7 @@ void Material::bindTextures(Shader* shader) const {
 
 void Material::setTexture(const std::string& name, Texture* texture) {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        echo::warn("Material not initialized.");
         return;
     }
 
@@ -116,7 +116,7 @@ void Material::setTexture(const std::string& name, Texture* texture) {
 
 void Material::removeTexture(const std::string& name) {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        echo::warn("Material not initialized.");
         return;
     }
 
@@ -125,16 +125,16 @@ void Material::removeTexture(const std::string& name) {
 
 const Texture* Material::getTexture(const std::string& name) const {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        echo::warn("Material not initialized.");
         return nullptr;
     }
 
     if (m_data->textures.find(name) == m_data->textures.end()) {
-        Echo::warn("Texture not found in material.");
+        echo::warn("Texture not found in material.");
         return nullptr;
     }
 
     return m_data->textures[name];
 }
 
-}; // namespace Codex
+}; // namespace codex

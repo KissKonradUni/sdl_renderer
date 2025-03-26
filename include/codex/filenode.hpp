@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <vector>
 
-namespace Codex {
+namespace codex {
 
 enum class FileType {
     DIRECTORY,
@@ -71,4 +71,4 @@ struct FileNode {
     ~FileNode();
 };
 
-}; // namespace Codex
+}; // namespace codex
