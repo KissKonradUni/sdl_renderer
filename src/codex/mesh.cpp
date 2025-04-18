@@ -167,8 +167,7 @@ void Mesh::loadResource() {
 
         MeshPart* meshPart = m_data->meshParts[i].get();
         
-        char partName[16];
-        snprintf(partName, 16, "part_%03d.mesh", i);
+        std::string partName = std::format("part_{:0>3}.mesh", i);
         auto meshNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName / partName).string(), folderNode);
         if (meshNode == nullptr) {
             cinder::warn("Failed to create runtime mesh node.");

@@ -212,7 +212,7 @@ struct alignas(16) matrix4x4f {
      * @param vec The vector to translate by.
      * @return matrix4x4f The translation matrix.
      */
-    static matrix4x4f translation(vector4f vec) { return translation(vec.x, vec.y, vec.z); }
+    inline static matrix4x4f translation(vector4f vec) { return translation(vec.x, vec.y, vec.z); }
     /**
      * @brief Use for rotating objects in 3D space. Select which axis to rotate around using a unit vector.
      * 
@@ -230,7 +230,7 @@ struct alignas(16) matrix4x4f {
      * @param unit The unit vector to rotate around.
      * @return matrix4x4f The rotation matrix.
      */
-    static matrix4x4f rotation(radians angle, vector4f unit) { return rotation(angle, unit.x, unit.y, unit.z); }
+    inline static matrix4x4f rotation(radians angle, vector4f unit) { return rotation(angle, unit.x, unit.y, unit.z); }
     /**
      * @brief Use for scaling objects in 3D space.
      * 
@@ -246,14 +246,14 @@ struct alignas(16) matrix4x4f {
      * @param vec The vector to scale by.
      * @return matrix4x4f The scale matrix.
      */
-    static matrix4x4f scale(vector4f vec) { return scale(vec.x, vec.y, vec.z); }
+    inline static matrix4x4f scale(vector4f vec) { return scale(vec.x, vec.y, vec.z); }
     /**
      * @brief Use for scaling objects in 3D space.
      * 
      * @param s Scalar value to scale by.
      * @return matrix4x4f The scale matrix.
      */
-    static matrix4x4f scale(float s) { return scale(s, s, s); }
+    inline static matrix4x4f scale(float s) { return scale(s, s, s); }
     /**
      * @brief Use for creating a rotation matrix for the camera.
      * 
@@ -277,6 +277,9 @@ struct alignas(16) matrix4x4f {
 /**
  * @brief Represents a 3D transform.
  * Used for representing the "space" of an object in 3D space.
+ *
+ * @attention Uses setters and getters to enable lazy evaluation of the model matrix.
+ * If these values are not set, the model matrix will not be updated.
  */
 struct alignas(16) transformf {
 public:
@@ -292,41 +295,41 @@ public:
     /**
      * @return vector4f The position of the object.
      */
-    vector4f getPosition() const { return m_position; }
+    inline vector4f getPosition() const { return m_position; }
     /**
      * @param position The new position of the object.
      */
-    void setPosition(const vector4f& position) { this->m_position = position; m_dirty = true; }
+    inline void setPosition(const vector4f& position) { this->m_position = position; m_dirty = true; }
 
     /**
      * @return vector4f The rotation of the object.
      */
-    vector4f getRotation() const { return m_rotation; }
+    inline vector4f getRotation() const { return m_rotation; }
     /**
      * @param rotation The new rotation of the object.
      */
-    void setRotation(const vector4f& rotation) { this->m_rotation = rotation; m_dirty = true; }
+    inline void setRotation(const vector4f& rotation) { this->m_rotation = rotation; m_dirty = true; }
 
     /**
      * @return vector4f The scale of the object.
      */
-    vector4f getScale() const { return m_scale; }
+    inline vector4f getScale() const { return m_scale; }
     /**
      * @param scale The new scale of the object.
      */
-    void setScale(const vector4f& scale) { this->m_scale = scale; m_dirty = true; }
+    inline void setScale(const vector4f& scale) { this->m_scale = scale; m_dirty = true; }
 
     /**
      * @return const std::shared_ptr<transformf>& The parent transform of the object.
      * @attention May return `nullptr` if the object has no parent.
      */
-    const transformf* getParent() const { return m_parent; }
+    inline const transformf* getParent() const { return m_parent; }
     /**
      * @brief Set the parent transform of the object.
      * 
      * @param parent The parent transform. If `nullptr`, the object will be parentless.
      */
-    void setParent(transformf* parent) { this->m_parent = parent; m_dirty = true; }
+    inline void setParent(transformf* parent) { this->m_parent = parent; m_dirty = true; }
 
     /**
      * @param movement The vector to move the object by. (in local space)
@@ -346,6 +349,40 @@ public:
      * @return matrix4x4f The model matrix of the object. (World -> Local)
      */
     matrix4x4f getModelMatrix();
+
+    /**
+     * @brief Gets the position of the object, but in a direct way.
+     * This is not recommended to use, as it does not update the model matrix.
+     * Use `getPosition()` instead.
+     *
+     * @return vector4f* The position of the object.
+     */
+    inline vector4f* unsafe_getPosition() { return &m_position; }
+
+    /**
+     * @brief Gets the rotation of the object, but in a direct way.
+     * This is not recommended to use, as it does not update the model matrix.
+     * Use `getRotation()` instead.
+     *
+     * @return vector4f* The rotation of the object.
+     */
+    inline vector4f* unsafe_getRotation() { return &m_rotation; }
+
+    /**
+     * @brief Gets the scale of the object, but in a direct way.
+     * This is not recommended to use, as it does not update the model matrix.
+     * Use `getScale()` instead.
+     *
+     * @return vector4f* The scale of the object.
+     */
+    inline vector4f* unsafe_getScale() { return &m_scale; }
+
+    /**
+     * @brief Mark the transform as dirty.
+     * This will cause the model matrix to be recalculated on the next call to `getModelMatrix()`.
+     * Mostly used for internal purposes.
+     */
+    inline void markDirty() { m_dirty = true; }
 protected:
     transformf* m_parent = nullptr;
 

@@ -21,6 +21,8 @@ public:
     virtual void onParentChanged() override;
     virtual void editorUI() override;
 protected:
+    inline transformf* getTransformPtr() { return &m_transform; }
+
     transformf m_transform;
 };
 

@@ -1,5 +1,7 @@
 #include "hex/actor.hpp"
+
 #include "imgui.h"
+#include "IconsMaterialSymbols.h"
 
 namespace hex {
 
@@ -76,10 +78,22 @@ void Actor::editorUI() {
     ImGui::Text("Actor %p", this);
     ImGui::Separator();
 
+    ImGui::Text("Parent actor: %p", m_parent);
+    ImGui::Separator();
+
     auto availableSpace = ImGui::GetContentRegionAvail();
-    for (const auto& component : m_components) {
+    for (const auto& component : m_components) {        
         ImGui::BeginChild(component->getPrettyName().c_str(), ImVec2(availableSpace.x, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
+        
+        static char name[32];
+        snprintf(name, sizeof(name), "%s##%p", component->isEnabled() ? ICON_MS_CHECK_BOX : ICON_MS_DISABLED_BY_DEFAULT, component.get());
+        if (ImGui::Selectable(name, component->isEnabled(), 0, ImVec2(42, 32))) {
+            component->setEnabled(!component->isEnabled());
+        }
+        ImGui::SameLine();
         ImGui::Text("%s", component->getPrettyName().c_str());
+        
+        ImGui::Separator();
         component->editorUI();
         ImGui::EndChild();
     }

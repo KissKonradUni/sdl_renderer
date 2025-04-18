@@ -37,26 +37,26 @@ using namespace codex;
 using namespace hex;
 using namespace echo;
 
-std::unique_ptr<UniformBuffer> cameraBuffer = nullptr;
-
-std::unique_ptr<Camera> camera = nullptr;
-CameraInput cameraInput{{0.0f, 0.0f}, {0.0f, 0.0f}, true};
-
-struct { int x, y; bool changed; } lastFrameWindowSize {100, 100, false};
-std::unique_ptr<Framebuffer> sceneFramebuffer = nullptr;
-
-Mesh* mesh = nullptr;
-transformf meshTransform;
-
-std::unique_ptr<cinder::App> app;
-Scene scene;
-
+// TODO: time struct in app
 double lastTime   = 0.0;
 double nowTime    = 0.0;
 double deltaTime  = 0.0;
 
-void performanceWindow();
-void renderWindow();
+std::unique_ptr<cinder::App> app;
+// TODO: make some kind of manager, move to app
+Scene scene;
+Mesh* mesh = nullptr;
+
+// TODO: make a component for this, add to actor, move to scene
+std::unique_ptr<Camera> camera = nullptr;
+std::unique_ptr<UniformBuffer> cameraUniformBuffer = nullptr;
+// TODO: make it a part of input maybe?
+CameraInput cameraInput;
+
+// TODO: make it part of prism (rendering module)
+typedef struct { int x, y; bool changed; } windowStruct;
+windowStruct lastFrameWindowSize{100, 100, false};
+std::unique_ptr<Framebuffer> sceneFramebuffer = nullptr;
 
 void initCamera() {
     camera = std::make_unique<Camera>(
@@ -65,7 +65,7 @@ void initCamera() {
         vector4f(0.0f, 0.0f, 4.0f, 0.0f),
         vector4f::zero()
     );
-    cameraBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
+    cameraUniformBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
 }
 
 void initGLParams() {
@@ -358,7 +358,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
-        cameraBuffer->updateData(camera->getShaderBufferPointer());
+        cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
         //Assets::instance().getCurrentScene().draw();
 
         /*
@@ -377,7 +377,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
         if (shader && shader->isInitialized()) {
             shader->bind();
-            shader->setUniform("modelMatrix", meshTransform.getModelMatrix());
+            static transformf transform;
+            shader->setUniform("modelMatrix", transform.getModelMatrix());
         }
 
         if (mesh && mesh->isInitialized()) {

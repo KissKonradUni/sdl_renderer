@@ -16,6 +16,8 @@ struct CameraInput {
         float yaw;
     } rotation;
     bool lock;
+
+    CameraInput() : movement{0.0f, 0.0f, 0.0f}, rotation{0.0f, 0.0f}, lock(true) {}
 };
 
 struct CameraViewport {

@@ -81,24 +81,44 @@ CameraUniformBufferData* Camera::getShaderBufferPointer() {
 void Camera::cameraWindow() {
     ImGui::Begin("Camera", nullptr);
     
+    if (!ImGui::BeginTable("##cam_props", 2, ImGuiTableFlags_SizingStretchProp)) {
+        ImGui::End();
+        return;
+    }
+
+    ImGui::TableNextColumn();
     ImGui::Text("Position: ");
-    ImGui::SameLine();
+
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);
     ImGui::InputFloat3("##cam_pos", &this->m_position.x);
 
+    ImGui::TableNextColumn();
     ImGui::Text("Rotation: ");
-    ImGui::SameLine();
+
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);
     ImGui::InputFloat2("##cam_rot", &this->m_rotation.x);
 
-    ImGui::Text("Fov:      ");
-    ImGui::SameLine();
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);
+    ImGui::Text("Fov: ");
+    
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);
     if (ImGui::InputFloat("##cam_fov", &this->m_fieldOfView, 0.0f, 0.0f)) {
         this->m_fieldOfView = SDL_clamp(this->m_fieldOfView, 1.0f, 179.0f);
         this->updateProjectionMatrix();
     }
 
+    ImGui::TableNextColumn();
     ImGui::Text("Viewport: ");
-    ImGui::SameLine();
+    
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);
     ImGui::InputFloat2("##cam_viewport", &this->m_viewport.w);
+
+    ImGui::EndTable();
 
     ImGui::End();
 }

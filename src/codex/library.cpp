@@ -296,7 +296,7 @@ void Library::assetsInspector(Library& instance) {
     ImGui::BeginChild("AssetInspectorPreview", ImVec2(0, -72));
     switch (instance.m_selectedType) {
         case FileType::IMAGE_FILE: {
-            auto image = dynamic_cast<Texture*>(instance.m_selectedAsset);
+            auto image = (Texture*)(instance.m_selectedAsset);
 
             ImGui::Text("Texture: %s", image->getNode()->name.c_str());
 
@@ -313,12 +313,12 @@ void Library::assetsInspector(Library& instance) {
             ImGui::Image(image->getHandle(), ImVec2(imageSize.w, imageSize.h));
             } break;
         case FileType::SHADER_FILE: {
-            auto shader = dynamic_cast<Shader*>(instance.m_selectedAsset);
+            auto shader = (Shader*)(instance.m_selectedAsset);
 
             ImGui::Text("Shader: %s", shader->getNode()->name.c_str());
             } break;
         case FileType::MATERIAL_FILE: {
-            auto material = dynamic_cast<Material*>(instance.m_selectedAsset);
+            auto material = (Material*)(instance.m_selectedAsset);
 
             ImGui::Text("Material: %s", material->getNode()->name.c_str());
             ImGui::Text("Name: %s", material->getName().c_str());

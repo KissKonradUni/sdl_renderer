@@ -39,7 +39,7 @@ public:
 
     Actor* const getActor() const;
 
-    void setEnabled(const bool enabled);
+    inline void setEnabled(const bool enabled) { m_enabled = enabled; }
     inline bool isEnabled() const { return m_enabled; }
 
     virtual void onParentChanged() {}
