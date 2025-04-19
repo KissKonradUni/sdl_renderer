@@ -30,9 +30,7 @@ void TransformComponent::render() {
     // Nothing to do
 }
 
-void TransformComponent::editorUI() {
-    ImGui::Text("Parent transform: %p", m_transform.getParent());
-    
+void TransformComponent::editorUI() {    
     if (!ImGui::BeginTable("##transform_props", 2, ImGuiTableFlags_SizingStretchProp)) {
         return;
     }
@@ -62,6 +60,9 @@ void TransformComponent::editorUI() {
     }
 
     ImGui::EndTable();
+
+    ImGui::Separator();
+    ImGui::Text("Pointer: %p", this);
 }
 
 }; // namespace hex

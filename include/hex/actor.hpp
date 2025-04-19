@@ -73,9 +73,14 @@ public:
     void editorUI();
     inline void setEditorExpanded(const bool expanded) { m_editorExpanded = expanded; }
     inline bool isEditorExpanded() const { return m_editorExpanded; }
+
+    inline void setName(const std::string& name) { m_name = name; }
+    inline const std::string& getName() const { return m_name; }
 protected:
     bool m_enabled = true;
     bool m_editorExpanded = true;
+
+    std::string m_name;
 
     Actor* m_parent = nullptr;
     std::vector<Actor*> m_children;

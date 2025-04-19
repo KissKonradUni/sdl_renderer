@@ -67,7 +67,7 @@ void Scene::drawActorTree(Actor* actor, int depth) {
     }
     ImGui::SameLine();
 
-    snprintf(buffer, 64, "%p", actor);
+    snprintf(buffer, 64, "%s##%p", actor->getName().c_str(), actor);
     if (ImGui::Button(buffer, ImVec2(-0.1f, 0))) {
         m_selectedActor = actor;
     }

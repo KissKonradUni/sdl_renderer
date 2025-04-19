@@ -2,6 +2,7 @@
 #include "cinder.hpp"
 #include "floatmath.hpp"
 
+#include "hex/components/rendererComponent.hpp"
 #include "hex/scene.hpp"
 #include "hex/actor.hpp"
 #include "hex/camera.hpp"
@@ -43,8 +44,11 @@ double nowTime    = 0.0;
 double deltaTime  = 0.0;
 
 std::unique_ptr<cinder::App> app;
+
 // TODO: make some kind of manager, move to app
 Scene scene;
+
+Material* material = nullptr;
 Mesh* mesh = nullptr;
 
 // TODO: make a component for this, add to actor, move to scene
@@ -81,6 +85,11 @@ void initDebugStuff() {
     auto shaderNode = Library::instance().tryGetAssetNode(assetPath);
     shader = Library::instance().tryLoadResource<Shader>(shaderNode);
 
+    assetPath = "./assets/materials/Plaster.material";
+    Library::instance().formatPath(&assetPath);
+    auto materialNode = Library::instance().tryGetAssetNode(assetPath);
+    material = Library::instance().tryLoadResource<Material>(materialNode);
+
     assetPath = "./assets/models/sponza.glb";
     Library::instance().formatPath(&assetPath);
     auto meshNode = Library::instance().tryGetAssetNode(assetPath);
@@ -88,6 +97,7 @@ void initDebugStuff() {
 
     Actor* actor = new Actor();
     actor->addComponent<TransformComponent>();
+    actor->addComponent<RendererComponent>(shader, material, mesh);
     scene.addActor(actor);
 
     Actor* actor2 = new Actor(actor);
@@ -374,16 +384,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
             mesh->draw();
         }
         */
-
-        if (shader && shader->isInitialized()) {
-            shader->bind();
-            static transformf transform;
-            shader->setUniform("modelMatrix", transform.getModelMatrix());
-        }
-
-        if (mesh && mesh->isInitialized()) {
-            mesh->draw();
-        }
+        scene.render();
 
     sceneFramebuffer->unbind();
 

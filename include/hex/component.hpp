@@ -20,7 +20,7 @@ class Actor;
 
 class Component {
 public:
-    Component(Actor* actor) : m_actor(actor) {}
+    Component(Actor* actor) : m_actor(actor) { }
     virtual ~Component() = default;
 
     using ComponentTypeID = std::uint32_t;
@@ -40,12 +40,21 @@ public:
     Actor* const getActor() const;
 
     inline void setEnabled(const bool enabled) { m_enabled = enabled; }
-    inline bool isEnabled() const { return m_enabled; }
+    inline bool isEnabled() const { return m_dependenciesFound && m_enabled; }
 
-    virtual void onParentChanged() {}
+    /**
+     * @brief Resolve dependencies for the component.
+     * For example, a renderer component may need to resolve its transform component.
+     *
+     * @return true if dependencies were resolved successfully, false otherwise.
+     * @note If this function returns false, the component will be disabled. 
+     */
+    virtual bool resolveDependencies() { return true; }
+    virtual void onParentChanged() { }
     virtual void editorUI();
 protected:
     bool m_enabled = true;
+    bool m_dependenciesFound = false;
     Actor* m_actor = nullptr;
 
     static ComponentTypeID getNextTypeID() {

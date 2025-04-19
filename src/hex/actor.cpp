@@ -5,11 +5,16 @@
 
 namespace hex {
 
+static uint32_t s_actorID = 0;
+
 Actor::Actor(Actor* parent) {
     m_parent = parent;
     if (m_parent != nullptr)
         m_parent->addChild(this);
     cinder::log("Actor created.");
+
+    m_name.resize(64);
+    snprintf(m_name.data(), m_name.capacity(), "Actor_%03d", s_actorID++);
 }
 
 Actor::~Actor() {
@@ -75,10 +80,10 @@ void Actor::setParent(Actor* actor) {
 }
 
 void Actor::editorUI() {    
-    ImGui::Text("Actor %p", this);
+    ImGui::Text("Actor %s", m_name.c_str());
     ImGui::Separator();
 
-    ImGui::Text("Parent actor: %p", m_parent);
+    ImGui::Text("Parent actor: %s", (m_parent != nullptr) ? m_parent->m_name.c_str() : "None");
     ImGui::Separator();
 
     auto availableSpace = ImGui::GetContentRegionAvail();
