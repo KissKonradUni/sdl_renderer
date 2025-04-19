@@ -10,9 +10,6 @@
 #include <queue>
 #include <map>
 
-// TODO: remove
-extern codex::Shader* shader;
-
 namespace codex {
 
 struct AsyncIOAction {

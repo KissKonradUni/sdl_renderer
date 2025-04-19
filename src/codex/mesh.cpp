@@ -85,7 +85,6 @@ void Mesh::loadData(const FileNode* node) {
     m_node = node;
     m_layout = layout;
 
-    // TODO: Remake it in a recursive way
     aiNode* rootNode = scene->mRootNode;
     loadDataRecursive(m_data.get(), rootNode, scene);
 

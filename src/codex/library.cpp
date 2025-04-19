@@ -11,9 +11,6 @@
 #include <IconsMaterialSymbols.h>
 #include <unordered_map>
 
-// TODO: remove
-codex::Shader* shader = nullptr;
-
 namespace codex {
 
 // Map enum values to string constants
@@ -337,11 +334,6 @@ void Library::assetsInspector(Library& instance) {
                     ImGui::Text("%s", texture->getNode()->path.c_str());
                     ImGui::EndTooltip();
                 }
-            }
-
-            // TODO: remove
-            if (ImGui::Button("Bind")) {
-                material->bindTextures(shader);
             }
 
             ImGui::EndChild();

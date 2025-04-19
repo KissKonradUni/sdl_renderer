@@ -60,9 +60,6 @@ void TransformComponent::editorUI() {
     }
 
     ImGui::EndTable();
-
-    ImGui::Separator();
-    ImGui::Text("Pointer: %p", this);
 }
 
 }; // namespace hex

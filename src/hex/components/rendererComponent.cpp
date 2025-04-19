@@ -93,9 +93,6 @@ void RendererComponent::editorUI() {
     }
 
     ImGui::EndTable();
-
-    ImGui::Separator();
-    ImGui::Text("Pointer: %p", this);
 }
 
 }

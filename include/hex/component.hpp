@@ -20,7 +20,7 @@ class Actor;
 
 class Component {
 public:
-    Component(Actor* actor) : m_actor(actor) { }
+    Component(Actor* actor) : m_actor(actor) { m_dependenciesFound = resolveDependencies(); }
     virtual ~Component() = default;
 
     using ComponentTypeID = std::uint32_t;
@@ -50,7 +50,7 @@ public:
      * @note If this function returns false, the component will be disabled. 
      */
     virtual bool resolveDependencies() { return true; }
-    virtual void onParentChanged() { }
+    virtual void onParentChanged() { m_dependenciesFound = resolveDependencies(); }
     virtual void editorUI();
 protected:
     bool m_enabled = true;

@@ -100,6 +100,8 @@ void Actor::editorUI() {
         
         ImGui::Separator();
         component->editorUI();
+        ImGui::Separator();
+        ImGui::Text("Pointer: %p", this);
         ImGui::EndChild();
     }
 }

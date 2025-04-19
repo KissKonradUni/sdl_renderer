@@ -48,9 +48,6 @@ std::unique_ptr<cinder::App> app;
 // TODO: make some kind of manager, move to app
 Scene scene;
 
-Material* material = nullptr;
-Mesh* mesh = nullptr;
-
 // TODO: make a component for this, add to actor, move to scene
 std::unique_ptr<Camera> camera = nullptr;
 std::unique_ptr<UniformBuffer> cameraUniformBuffer = nullptr;
@@ -83,17 +80,17 @@ void initDebugStuff() {
     std::filesystem::path assetPath = "./assets/shaders/glsl/Basic.shader";
     Library::instance().formatPath(&assetPath);
     auto shaderNode = Library::instance().tryGetAssetNode(assetPath);
-    shader = Library::instance().tryLoadResource<Shader>(shaderNode);
+    auto shader = Library::instance().tryLoadResource<Shader>(shaderNode);
 
     assetPath = "./assets/materials/Plaster.material";
     Library::instance().formatPath(&assetPath);
     auto materialNode = Library::instance().tryGetAssetNode(assetPath);
-    material = Library::instance().tryLoadResource<Material>(materialNode);
+    auto material = Library::instance().tryLoadResource<Material>(materialNode);
 
     assetPath = "./assets/models/sponza.glb";
     Library::instance().formatPath(&assetPath);
     auto meshNode = Library::instance().tryGetAssetNode(assetPath);
-    mesh = Library::instance().tryLoadResource<Mesh>(meshNode);
+    auto mesh = Library::instance().tryLoadResource<Mesh>(meshNode);
 
     Actor* actor = new Actor();
     actor->addComponent<TransformComponent>();
