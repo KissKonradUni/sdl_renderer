@@ -1,5 +1,6 @@
 #pragma once
 
+#include "codex/library.hpp"
 #include "echo/ui.hpp"
 #include "echo/event.hpp"
 #include "echo/console.hpp"
@@ -34,6 +35,7 @@ public:
     constexpr inline echo::Console*      getConsole()      const { return m_console.get(); }
     constexpr inline echo::UIManager*    getUIManager()    const { return m_uiManager.get(); }
     constexpr inline echo::EventManager* getEventManager() const { return m_eventManager.get(); }
+    constexpr inline codex::Library*     getLibrary()      const { return m_library.get(); }
 protected:
     SDL_AppResult initSDL();
     SDL_AppResult initWindow();
@@ -45,6 +47,8 @@ protected:
     std::unique_ptr<echo::Console>           m_console;
     std::unique_ptr<echo::UIManager>       m_uiManager;
     std::unique_ptr<echo::EventManager> m_eventManager;
+
+    std::unique_ptr<codex::Library>          m_library;
 };
 
 }; // namespace cinder

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "codex/shader.hpp"
-
 #include "resource.hpp"
 #include "filenode.hpp"
 
@@ -19,13 +17,11 @@ struct AsyncIOAction {
 
 class Library {
 public:
-    static Library& instance() {
-        static Library instance;
-        return instance;
-    }
-
     Library(const Library&) = delete;
     Library& operator=(const Library&) = delete;
+    
+    Library();
+    ~Library();
 
     /**
      * @brief Initializes the asset library
@@ -138,16 +134,12 @@ protected:
     std::thread m_asyncLoader;
     std::mutex m_asyncMutex;
 
-    // Internal functions
-    Library();
-    ~Library();
-
     void threadFunction();
     void mapAssetsFolder();
 
     // UI
-    void assetsBrowser(Library& instance);
-    void assetsInspector(Library& instance);
+    void assetsBrowser(Library* instance);
+    void assetsInspector(Library* instance);
 
     FileNode* m_selectedNode = nullptr;
     char m_nameBuffer[64];

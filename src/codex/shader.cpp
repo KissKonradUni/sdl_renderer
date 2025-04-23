@@ -101,9 +101,9 @@ void Shader::loadData(const FileNode* file) {
     }
     
     using namespace nlohmann;
-    auto& library = codex::Library::instance();
+    auto library = cinder::app->getLibrary();
 
-    std::ifstream metaFile(library.getAssetsRoot() / file->path);
+    std::ifstream metaFile(library->getAssetsRoot() / file->path);
     json meta = json::parse(metaFile);
 
     std::filesystem::path vertexShaderFilename   = meta["vert"].template get<std::string>();
@@ -114,20 +114,20 @@ void Shader::loadData(const FileNode* file) {
         return;
     }
 
-    library.formatPath(&vertexShaderFilename);
-    library.formatPath(&fragmentShaderFilename);
+    library->formatPath(&vertexShaderFilename);
+    library->formatPath(&fragmentShaderFilename);
 
-    if (!std::filesystem::exists(library.getAssetsRoot() / vertexShaderFilename)) {
+    if (!std::filesystem::exists(library->getAssetsRoot() / vertexShaderFilename)) {
         cinder::error("Vertex shader file not found: " + vertexShaderFilename.string());
         return;
     }
-    if (!std::filesystem::exists(library.getAssetsRoot() / fragmentShaderFilename)) {
+    if (!std::filesystem::exists(library->getAssetsRoot() / fragmentShaderFilename)) {
         cinder::error("Fragment shader file not found: " + fragmentShaderFilename.string());
         return;
     }
 
-    std::ifstream vertexShaderFile(library.getAssetsRoot() / vertexShaderFilename);
-    std::ifstream fragmentShaderFile(library.getAssetsRoot() / fragmentShaderFilename);
+    std::ifstream vertexShaderFile  (library->getAssetsRoot() / vertexShaderFilename);
+    std::ifstream fragmentShaderFile(library->getAssetsRoot() / fragmentShaderFilename);
 
     m_data = std::make_unique<ShaderData>();
     m_data->vertexShaderSource = std::string(

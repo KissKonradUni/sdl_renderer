@@ -81,6 +81,11 @@ SDL_AppResult App::init(std::string appName, std::string appVersion, std::string
     m_eventManager = std::make_unique<echo::EventManager>();
     m_eventManager->init();
 
+    m_library = std::make_unique<codex::Library>();
+    m_library->init();
+
+    cinder::log("Application initialized successfully.");
+
     return SDL_APP_CONTINUE;
 }
 
@@ -88,6 +93,8 @@ void App::cleanup() {
     this->m_eventManager.reset();
     this->m_uiManager.reset();
 
+    this->m_library.reset();
+    cinder::log("Library destroyed.");
     this->m_glContext.reset();
     cinder::log("GL context destroyed.");
     this->m_window.reset();

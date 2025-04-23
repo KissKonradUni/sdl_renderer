@@ -49,6 +49,13 @@ void main()
     float spec = pow(max(dot(normal, halfwayDir), 0.0), specPower);
     vec3 specular = vec3(0.5) * spec;
 
+    float strength = 3.0;
+    float attenuation = 1.0 / length(lightPos - fragmentPosition) * strength;
+    attenuation = clamp(attenuation, 0.0, 1.0);
+
+    diffuse *= attenuation;
+    specular *= attenuation;
+
     outputColor = vec4(diffuse + specular, 1.0);
     outputColor.rgb *= (ao * 0.5 + 0.5);
 }

@@ -58,7 +58,7 @@ void RendererComponent::onParentChanged() {
 }
 
 void RendererComponent::editorUI() {
-    if (!ImGui::BeginTable("##transform_props", 2, ImGuiTableFlags_SizingStretchProp)) {
+    if (!ImGui::BeginTable("##transform_props", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInner)) {
         return;
     }
 
@@ -67,7 +67,7 @@ void RendererComponent::editorUI() {
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(-0.001f);    
     if (m_shader != nullptr && m_shader->getNode() != nullptr) {
-        if (ImGui::Selectable(m_shader->getNode()->name.c_str(), false)) {
+        if (ImGui::Selectable(m_shader->getNode()->name.c_str(), true)) {
             // TODO: Implement file browser
         }
     }
@@ -77,7 +77,7 @@ void RendererComponent::editorUI() {
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(-0.001f);
     if (m_material != nullptr && m_material->getNode() != nullptr) {    
-        if (ImGui::Selectable(m_material->getNode()->name.c_str(), false)) {
+        if (ImGui::Selectable(m_material->getNode()->name.c_str(), true)) {
             // TODO: Implement file browser
         }
     }
@@ -87,7 +87,7 @@ void RendererComponent::editorUI() {
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(-0.001f);
     if (m_mesh != nullptr && m_mesh->getNode() != nullptr) {
-        if (ImGui::Selectable(m_mesh->getNode()->name.c_str(), false)) {
+        if (ImGui::Selectable(m_mesh->getNode()->name.c_str(), true)) {
             // TODO: Implement file browser
         }
     }

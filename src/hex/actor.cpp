@@ -79,8 +79,15 @@ void Actor::setParent(Actor* actor) {
     }
 }
 
-void Actor::editorUI() {    
-    ImGui::Text("Actor %s", m_name.c_str());
+void Actor::editorUI() {  
+    static char name[64];
+    snprintf(name, sizeof(name), "%s##%p", m_enabled ? ICON_MS_CHECK_BOX : ICON_MS_CHECK_BOX_OUTLINE_BLANK, this);
+    if (ImGui::Selectable(name, m_enabled, 0, ImVec2(42, 36))) {
+        m_enabled = !m_enabled;
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(-0.001f);
+    ImGui::InputText("##actor_name", m_name.data(), m_name.capacity(), ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::Separator();
 
     ImGui::Text("Parent actor: %s", (m_parent != nullptr) ? m_parent->m_name.c_str() : "None");
@@ -90,7 +97,6 @@ void Actor::editorUI() {
     for (const auto& component : m_components) {        
         ImGui::BeginChild(component->getPrettyName().c_str(), ImVec2(availableSpace.x, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
         
-        static char name[32];
         snprintf(name, sizeof(name), "%s##%p", component->isEnabled() ? ICON_MS_CHECK_BOX : ICON_MS_DISABLED_BY_DEFAULT, component.get());
         if (ImGui::Selectable(name, component->isEnabled(), 0, ImVec2(42, 32))) {
             component->setEnabled(!component->isEnabled());

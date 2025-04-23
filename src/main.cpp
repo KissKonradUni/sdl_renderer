@@ -77,41 +77,30 @@ void initGLParams() {
 }
 
 void initDebugStuff() {
+    using namespace cinder;
+
+    auto library = app->getLibrary();
+
     std::filesystem::path assetPath = "./assets/shaders/glsl/Basic.shader";
-    Library::instance().formatPath(&assetPath);
-    auto shaderNode = Library::instance().tryGetAssetNode(assetPath);
-    auto shader = Library::instance().tryLoadResource<Shader>(shaderNode);
+    library->formatPath(&assetPath);
+    auto shaderNode = library->tryGetAssetNode(assetPath);
+    auto shader = library->tryLoadResource<Shader>(shaderNode);
 
     assetPath = "./assets/materials/Plaster.material";
-    Library::instance().formatPath(&assetPath);
-    auto materialNode = Library::instance().tryGetAssetNode(assetPath);
-    auto material = Library::instance().tryLoadResource<Material>(materialNode);
+    library->formatPath(&assetPath);
+    auto materialNode = library->tryGetAssetNode(assetPath);
+    auto material = library->tryLoadResource<Material>(materialNode);
 
     assetPath = "./assets/models/sponza.glb";
-    Library::instance().formatPath(&assetPath);
-    auto meshNode = Library::instance().tryGetAssetNode(assetPath);
-    auto mesh = Library::instance().tryLoadResource<Mesh>(meshNode);
+    library->formatPath(&assetPath);
+    auto meshNode = library->tryGetAssetNode(assetPath);
+    auto mesh = library->tryLoadResource<Mesh>(meshNode);
 
     Actor* actor = new Actor();
+    actor->setName("Sponza");
     actor->addComponent<TransformComponent>();
     actor->addComponent<RendererComponent>(shader, material, mesh);
     scene.addActor(actor);
-
-    Actor* actor2 = new Actor(actor);
-    actor2->addComponent<TransformComponent>();
-    scene.addActor(actor2);
-
-    Actor* actor3 = new Actor(actor2);
-    actor3->addComponent<TransformComponent>();
-    scene.addActor(actor3);
-
-    actor = new Actor();
-    actor->addComponent<TransformComponent>();
-    scene.addActor(actor);
-
-    actor2 = new Actor(actor);
-    actor2->addComponent<TransformComponent>();
-    scene.addActor(actor2);
 }
 
 void initEvents() {    
@@ -299,7 +288,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     initCamera();
     initGLParams();
     initEvents();
-    Library::instance().init();
 
     initDebugStuff();
 
@@ -333,7 +321,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     // ======================
     // Upadte asset library
-    Library::instance().checkForFinishedAsync();
+    app->getLibrary()->checkForFinishedAsync();
 
     // ======================
     // Time management
@@ -366,21 +354,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 
         cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
-        //Assets::instance().getCurrentScene().draw();
-
-        /*
-        if (shader && material && mesh) {
-            shader->getShader()->bind();
-            material->bindTextures();
-            cameraBuffer->updateData(camera->getShaderBufferPointer());
-            shader->getShader()->setUniform("modelMatrix", mesh->transform.getModelMatrix());
-            shader->getShader()->setUniform("textureDiffuse", 0);
-            shader->getShader()->setUniform("textureNormal", 1);
-            shader->getShader()->setUniform("textureAORoughnessMetallic", 2);
-            //packedMesh->draw();
-            mesh->draw();
-        }
-        */
         scene.render();
 
     sceneFramebuffer->unbind();

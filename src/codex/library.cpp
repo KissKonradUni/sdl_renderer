@@ -105,10 +105,9 @@ bool Library::formatPath(std::filesystem::path* path, bool virt) const {
 
 Library::Library() {}
 
-Library::~Library() {
+Library::~Library() {    
     m_asyncRunning = 0;
     m_asyncLoader.join();
-    cinder::log("Library destroyed.");
 }
 
 void Library::mapAssetsFolder() {
@@ -207,9 +206,9 @@ void Library::checkForFinishedAsync() {
     m_asyncMutex.unlock();
 }
 
-void Library::assetsBrowser(Library& instance) {
+void Library::assetsBrowser(Library* instance) {
     FileNode* folderNode[16]; // Magic limit
-    folderNode[0] = instance.m_selectedNode;
+    folderNode[0] = instance->m_selectedNode;
     int folderIndex = 0;
     while (folderNode[folderIndex]->parent != nullptr) {
         folderNode[folderIndex + 1] = folderNode[folderIndex]->parent;
@@ -217,14 +216,14 @@ void Library::assetsBrowser(Library& instance) {
     }
 
     for (int i = folderIndex; i >= 0; i--) {
-        snprintf(instance.m_nameBuffer, 64, "%s%s##%p",
+        snprintf(instance->m_nameBuffer, 64, "%s%s##%p",
             ICON_MS_FOLDER_OPEN,
             i == folderIndex ? "." : folderNode[i]->name.c_str(),
             folderNode[i]
         );
 
-        if (ImGui::Button(instance.m_nameBuffer, ImVec2(0, 32))) {
-            instance.m_selectedNode = folderNode[i];
+        if (ImGui::Button(instance->m_nameBuffer, ImVec2(0, 32))) {
+            instance->m_selectedNode = folderNode[i];
         }
 
         if (i != 0) {
@@ -236,28 +235,28 @@ void Library::assetsBrowser(Library& instance) {
     ImGui::BeginChild("AssetsList", ImVec2(0, - availableSpace.x * 1.25f), ImGuiChildFlags_Borders);
 
     int index = 0;
-    for (auto& child : instance.m_selectedNode->children) {
-        snprintf(instance.m_nameBuffer, 64, "%s%s##%p",
+    for (auto& child : instance->m_selectedNode->children) {
+        snprintf(instance->m_nameBuffer, 64, "%s%s##%p",
             FileTypeStrings.at(child->type),
             child->name.c_str(),
             child
         );
         index++;
 
-        if (!ImGui::Selectable(instance.m_nameBuffer, index % 2 == 0))
+        if (!ImGui::Selectable(instance->m_nameBuffer, index % 2 == 0))
             continue;
 
         if (child->isDirectory) {
-            instance.m_selectedNode = child;
+            instance->m_selectedNode = child;
             ImGui::EndChild();
             return;
         }
 
-        instance.m_selectedType = child->type;
+        instance->m_selectedType = child->type;
 
         #define TRY_LOAD(FileType, AssetType) \
             case FileType: \
-                instance.m_selectedAsset = instance.tryLoadResource<AssetType>(child); \
+                instance->m_selectedAsset = instance->tryLoadResource<AssetType>(child); \
                 break;
 
         switch (child->type) {
@@ -266,7 +265,7 @@ void Library::assetsBrowser(Library& instance) {
             TRY_LOAD(FileType::MATERIAL_FILE, Material)
             TRY_LOAD(FileType::MESH_FILE    , Mesh    )
             default:
-                instance.m_selectedAsset = nullptr;
+                instance->m_selectedAsset = nullptr;
                 cinder::warn("Unsupported asset type.");
                 break;
         }
@@ -275,25 +274,25 @@ void Library::assetsBrowser(Library& instance) {
     ImGui::EndChild();
 }
 
-void Library::assetsInspector(Library& instance) {
+void Library::assetsInspector(Library* instance) {
     ImGui::BeginChild("AssetInspector", ImVec2(0, 0), ImGuiChildFlags_Borders);
     ImGui::Text("Inspector");
     ImGui::Separator();
 
-    if (instance.m_selectedAsset == nullptr) {
+    if (instance->m_selectedAsset == nullptr) {
         ImGui::Text("No/unsupported asset selected.");
         ImGui::EndChild();
         return;
-    } else if (!instance.m_selectedAsset->isInitialized()) {
+    } else if (!instance->m_selectedAsset->isInitialized()) {
         ImGui::Text("Loading asset...");
         ImGui::EndChild();
         return;
     }
 
     ImGui::BeginChild("AssetInspectorPreview", ImVec2(0, -72));
-    switch (instance.m_selectedType) {
+    switch (instance->m_selectedType) {
         case FileType::IMAGE_FILE: {
-            auto image = (Texture*)(instance.m_selectedAsset);
+            auto image = (Texture*)(instance->m_selectedAsset);
 
             ImGui::Text("Texture: %s", image->getNode()->name.c_str());
 
@@ -310,12 +309,12 @@ void Library::assetsInspector(Library& instance) {
             ImGui::Image(image->getHandle(), ImVec2(imageSize.w, imageSize.h));
             } break;
         case FileType::SHADER_FILE: {
-            auto shader = (Shader*)(instance.m_selectedAsset);
+            auto shader = (Shader*)(instance->m_selectedAsset);
 
             ImGui::Text("Shader: %s", shader->getNode()->name.c_str());
             } break;
         case FileType::MATERIAL_FILE: {
-            auto material = (Material*)(instance.m_selectedAsset);
+            auto material = (Material*)(instance->m_selectedAsset);
 
             ImGui::Text("Material: %s", material->getNode()->name.c_str());
             ImGui::Text("Name: %s", material->getName().c_str());
@@ -325,8 +324,8 @@ void Library::assetsInspector(Library& instance) {
             int index = 0;
             for (const auto& [name, texture] : textures) {
                 if (ImGui::Selectable(name.c_str(), index++ % 2 == 0)) {
-                    instance.m_selectedAsset = texture;
-                    instance.m_selectedType = FileType::IMAGE_FILE;
+                    instance->m_selectedAsset = texture;
+                    instance->m_selectedType = FileType::IMAGE_FILE;
                 }
 
                 if (ImGui::IsItemHovered() && texture->isInitialized()) {
@@ -346,29 +345,29 @@ void Library::assetsInspector(Library& instance) {
     ImGui::EndChild();
 
     if (ImGui::Selectable(ICON_MS_FOLDER "Go to containing folder", true)) {
-        instance.m_selectedNode = instance.m_selectedAsset->getNode()->parent;
+        instance->m_selectedNode = instance->m_selectedAsset->getNode()->parent;
     }
     if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGui::Text("%s", instance.m_selectedAsset->getNode()->parent->path.c_str());
+        ImGui::Text("%s", instance->m_selectedAsset->getNode()->parent->path.c_str());
         ImGui::EndTooltip();
     }
-    ImGui::Text("Runtime resource: %s", instance.m_selectedAsset->isRuntimeResource() ? ICON_MS_CHECK_CIRCLE : ICON_MS_CANCEL);
+    ImGui::Text("Runtime resource: %s", instance->m_selectedAsset->isRuntimeResource() ? ICON_MS_CHECK_CIRCLE : ICON_MS_CANCEL);
 
     ImGui::EndChild();
 }
 
 void Library::assetsWindow() {
-    Library& instance = Library::instance();
+    Library* instance = cinder::app->getLibrary();
 
-    if (instance.m_selectedNode == nullptr) {
+    if (instance->m_selectedNode == nullptr) {
         return;
     }
 
     ImGui::Begin("Assets", nullptr);
     
-    instance.assetsBrowser(instance);
-    instance.assetsInspector(instance);
+    instance->assetsBrowser(instance);
+    instance->assetsInspector(instance);
 
     ImGui::End();
 }

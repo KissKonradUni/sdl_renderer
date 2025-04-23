@@ -1,3 +1,4 @@
+#include "cinder.hpp"
 #include "codex/filenode.hpp"
 #include "codex/library.hpp"
 
@@ -25,7 +26,7 @@ FileNode::FileNode(std::filesystem::path& path, FileNode* parent, bool virt) {
     }
 
     if (!virt)
-        Library::instance().formatPath(&this->path);
+        cinder::app->getLibrary()->formatPath(&this->path);
 }
 
 FileNode::~FileNode() {

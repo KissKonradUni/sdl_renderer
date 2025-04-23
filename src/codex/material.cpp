@@ -41,9 +41,9 @@ void Material::loadData(const FileNode* file) {
 
     // Load the material data from the file
     using namespace nlohmann;
-    auto& library = codex::Library::instance();
+    auto library = cinder::app->getLibrary();
 
-    std::ifstream metaFile(library.getAssetsRoot() / file->path);
+    std::ifstream metaFile(library->getAssetsRoot() / file->path);
     json meta = json::parse(metaFile);
 
     m_node = file;
@@ -58,14 +58,14 @@ void Material::loadData(const FileNode* file) {
     for (auto it = meta["textures"].begin(); it != meta["textures"].end(); ++it) {
         std::string name = it.key();
         std::filesystem::path texturePath = it.value().template get<std::string>();
-        library.formatPath(&texturePath);
+        library->formatPath(&texturePath);
 
-        auto textureNode = library.tryGetAssetNode(texturePath);
+        auto textureNode = library->tryGetAssetNode(texturePath);
         if (textureNode == nullptr) {
             cinder::warn("Texture not found: " + texturePath.string());
             continue;
         }
-        auto texture = library.tryLoadResource<Texture>(textureNode);
+        auto texture = library->tryLoadResource<Texture>(textureNode);
         if (texture == nullptr) {
             cinder::warn("Texture could not be loaded: " + texturePath.string());
             continue;

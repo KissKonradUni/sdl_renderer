@@ -62,7 +62,7 @@ void Mesh::loadData(const FileNode* node) {
     }
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile((Library::instance().getAssetsRoot() / node->path).string(),
+    const aiScene* scene = importer.ReadFile((cinder::app->getLibrary()->getAssetsRoot() / node->path).string(),
         aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_CalcTangentSpace
     );
 
@@ -150,8 +150,11 @@ void Mesh::loadResource() {
         return;
     }
 
+    using namespace cinder;
+    auto library = cinder::app->getLibrary();
+
     auto baseName = m_node->name;
-    auto folderNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName).string());
+    auto folderNode = library->requestRuntimeNode((library->getAssetsRoot() / "runtime" / baseName).string());
     if (folderNode == nullptr) {
         cinder::warn("Failed to create runtime folder node.");
         return;
@@ -167,7 +170,7 @@ void Mesh::loadResource() {
         MeshPart* meshPart = m_data->meshParts[i].get();
         
         std::string partName = std::format("part_{:0>3}.mesh", i);
-        auto meshNode = Library::instance().requestRuntimeNode((Library::instance().getAssetsRoot() / "runtime" / baseName / partName).string(), folderNode);
+        auto meshNode = library->requestRuntimeNode((library->getAssetsRoot() / "runtime" / baseName / partName).string(), folderNode);
         if (meshNode == nullptr) {
             cinder::warn("Failed to create runtime mesh node.");
             return;
@@ -181,7 +184,7 @@ void Mesh::loadResource() {
         mesh->m_node = meshNode;
         m_meshParts.push_back(mesh);
 
-        Library::instance().registerRuntimeResource(mesh);
+        library->registerRuntimeResource(mesh);
     }
 
     MeshPart* meshPart = m_data->meshParts[0].get();
