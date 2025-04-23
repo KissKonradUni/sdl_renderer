@@ -98,4 +98,59 @@ UIManager::~UIManager() {
     cinder::log("UIManager destroyed.");
 }
 
+void UIManager::openAssetBrowserDialog(
+    int filter,
+    dialogSuccessCallback successCallback,
+    dialogCancelCallback cancelCallback,
+    bool dontFilter
+) {
+    m_lastFilter = filter;
+    m_lastSuccessCallback = successCallback;
+    m_lastCancelCallback = cancelCallback;
+
+    if (filter == 0) {
+        m_lastFilter = codex::FileType::TEXT_FILE;
+    }
+
+    if (dontFilter) {
+        m_lastFilter = 0;
+    }
+
+    m_lastDialogID = this->addUIFunction(UIManager::assetBrowserDialog);
+}
+
+void UIManager::assetBrowserDialog() {
+    auto instance = cinder::app->getUIManager();
+
+    ImGui::SetNextWindowBgAlpha(1.0f);
+    if (ImGui::Begin("Asset Picker...", nullptr, 
+        ImGuiWindowFlags_NoResize | 
+        ImGuiWindowFlags_NoCollapse | 
+        ImGuiWindowFlags_NoMove
+    )) {
+        auto screenSize = ImGui::GetMainViewport()->Size;
+        
+        ImGui::SetWindowSize(screenSize, ImGuiCond_Always);
+        ImGui::SetWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+
+        using namespace cinder;
+        auto library = app->getLibrary();
+
+        library->assetsList([](codex::FileNode* node) {
+            auto instance = cinder::app->getUIManager();
+            instance->m_lastSuccessCallback(node);
+            instance->removeUIFunction(instance->m_lastDialogID);
+        }, 0.95f);
+
+        if (ImGui::Button("Cancel")) {
+            if (instance->m_lastCancelCallback) {
+                instance->m_lastCancelCallback();
+            }
+            instance->removeUIFunction(instance->m_lastDialogID);
+        }
+
+        ImGui::End();
+    }
+}
+
 }; // namespace echo

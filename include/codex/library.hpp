@@ -117,6 +117,25 @@ public:
      * @brief The assets window for the UI
      */
     static void assetsWindow();
+
+    // ====================== //
+    /* Internal UI functions */
+
+    /**
+     * @brief Callback for the assets list element
+     * Gets called when an asset is selected
+     */
+    using onAssetSelectCallback = void (*)(FileNode* node);
+
+    /**
+     * @brief Displays the assets list
+     * @note This function is for internal use, it displays an imgui part, does not open a window
+     * 
+     * @param instance The library instance
+     * @param fill The percentage of the window to fill
+     * @param callback The callback for the asset selection
+     */
+    void assetsList(onAssetSelectCallback callback, float fill = 0.66f);
 protected:
     // Tree structure of the assets folder
     std::filesystem::path m_assetsRoot;
@@ -138,8 +157,9 @@ protected:
     void mapAssetsFolder();
 
     // UI
-    void assetsBrowser(Library* instance);
-    void assetsInspector(Library* instance);
+    static void assetsBrowserCallback(FileNode* node);
+    void assetsBrowser();
+    void assetsInspector();
 
     FileNode* m_selectedNode = nullptr;
     char m_nameBuffer[64];

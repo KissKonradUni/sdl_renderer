@@ -7,7 +7,7 @@
 
 namespace codex {
 
-enum class FileType {
+enum FileType : uint8_t {
     DIRECTORY,
     SPECIAL,
 

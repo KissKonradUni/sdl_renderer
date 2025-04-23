@@ -206,7 +206,9 @@ void Library::checkForFinishedAsync() {
     m_asyncMutex.unlock();
 }
 
-void Library::assetsBrowser(Library* instance) {
+void Library::assetsList(onAssetSelectCallback callback, float fill) {
+    auto instance = this;
+
     FileNode* folderNode[16]; // Magic limit
     folderNode[0] = instance->m_selectedNode;
     int folderIndex = 0;
@@ -232,7 +234,7 @@ void Library::assetsBrowser(Library* instance) {
     }
     
     auto availableSpace = ImGui::GetContentRegionAvail();
-    ImGui::BeginChild("AssetsList", ImVec2(0, - availableSpace.x * 1.25f), ImGuiChildFlags_Borders);
+    ImGui::BeginChild("AssetsList", ImVec2(0, availableSpace.y * fill), ImGuiChildFlags_Borders);
 
     int index = 0;
     for (auto& child : instance->m_selectedNode->children) {
@@ -254,27 +256,39 @@ void Library::assetsBrowser(Library* instance) {
 
         instance->m_selectedType = child->type;
 
-        #define TRY_LOAD(FileType, AssetType) \
-            case FileType: \
-                instance->m_selectedAsset = instance->tryLoadResource<AssetType>(child); \
-                break;
-
-        switch (child->type) {
-            TRY_LOAD(FileType::IMAGE_FILE   , Texture )
-            TRY_LOAD(FileType::SHADER_FILE  , Shader  )
-            TRY_LOAD(FileType::MATERIAL_FILE, Material)
-            TRY_LOAD(FileType::MESH_FILE    , Mesh    )
-            default:
-                instance->m_selectedAsset = nullptr;
-                cinder::warn("Unsupported asset type.");
-                break;
-        }
+        if (callback != nullptr)
+            callback(child);
     }
 
     ImGui::EndChild();
 }
 
-void Library::assetsInspector(Library* instance) {
+#define TRY_LOAD(FileType, AssetType) \
+case FileType: \
+    instance->m_selectedAsset = instance->tryLoadResource<AssetType>(node); \
+    break;
+
+void Library::assetsBrowserCallback(FileNode* node) {
+    auto instance = cinder::app->getLibrary();
+
+    switch (node->type) {
+        TRY_LOAD(FileType::IMAGE_FILE   , Texture )
+        TRY_LOAD(FileType::SHADER_FILE  , Shader  )
+        TRY_LOAD(FileType::MATERIAL_FILE, Material)
+        TRY_LOAD(FileType::MESH_FILE    , Mesh    )
+        default:
+            instance->m_selectedAsset = instance->tryGetLoadedResource(node);
+            break;
+    }
+}
+
+void Library::assetsBrowser() {
+    this->assetsList(assetsBrowserCallback);
+}
+
+void Library::assetsInspector() {
+    auto instance = cinder::app->getLibrary();
+
     ImGui::BeginChild("AssetInspector", ImVec2(0, 0), ImGuiChildFlags_Borders);
     ImGui::Text("Inspector");
     ImGui::Separator();
@@ -338,9 +352,9 @@ void Library::assetsInspector(Library* instance) {
             ImGui::EndChild();
 
             } break;
-    default:
-        ImGui::Text("No inspector for this asset type.");
-        break;
+        default:
+            ImGui::Text("No inspector for this asset type.");
+            break;
     }
     ImGui::EndChild();
 
@@ -366,8 +380,8 @@ void Library::assetsWindow() {
 
     ImGui::Begin("Assets", nullptr);
     
-    instance->assetsBrowser(instance);
-    instance->assetsInspector(instance);
+    instance->assetsBrowser();
+    instance->assetsInspector();
 
     ImGui::End();
 }
