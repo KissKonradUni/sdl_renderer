@@ -306,9 +306,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         scene.editorUI();
     });
 
-    ui->openAssetBrowserDialog(0, [](FileNode* node) {
-        // Test
-    });
+    //ui->openAssetBrowserDialog(0, [](FileNode* node) {
+    //    // Test
+    //});
 
     return SDL_APP_CONTINUE;
 }
