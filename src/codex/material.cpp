@@ -1,12 +1,13 @@
-#include "codex/material.hpp"
+#include "cinder.hpp"
+
 #include "codex/library.hpp"
-#include "echo/console.hpp"
+#include "codex/material.hpp"
 
 #include <json.hpp>
 
 #include <fstream>
 
-namespace Codex {
+namespace codex {
 
 Material::Material(std::string& name, std::map<std::string, Texture*>& textures) {
     m_data.reset(new MaterialData{name, textures});
@@ -16,33 +17,33 @@ Material::Material(std::string& name, std::map<std::string, Texture*>& textures)
     m_runtimeResource = true;
     m_node = nullptr;
 
-    Echo::log("Runtime material created.");
+    cinder::log("Runtime material created.");
 }
 
 Material::Material() {
-    Echo::log("Material placeholder created.");
+    cinder::log("Material placeholder created.");
 }
 
 Material::~Material() {
-    Echo::log("Material destroyed.");
+    cinder::log("Material destroyed.");
 }
 
 void Material::loadData(const FileNode* file) {
     if (m_initialized) {
-        Echo::warn("Material already initialized.");
+        cinder::warn("Material already initialized.");
         return;
     }
 
     if (file == nullptr) {
-        Echo::error("No file to load material from.");
+        cinder::error("No file to load material from.");
         return;
     }
 
     // Load the material data from the file
     using namespace nlohmann;
-    auto& library = Codex::Library::instance();
+    auto library = cinder::app->getLibrary();
 
-    std::ifstream metaFile(library.getAssetsRoot() / file->path);
+    std::ifstream metaFile(library->getAssetsRoot() / file->path);
     json meta = json::parse(metaFile);
 
     m_node = file;
@@ -50,23 +51,23 @@ void Material::loadData(const FileNode* file) {
     m_data->name = meta["name"].template get<std::string>();
 
     if (meta["textures"].is_null()) {
-        Echo::warn("No textures found in material file.");
+        cinder::warn("No textures found in material file.");
         return;
     }
 
     for (auto it = meta["textures"].begin(); it != meta["textures"].end(); ++it) {
         std::string name = it.key();
         std::filesystem::path texturePath = it.value().template get<std::string>();
-        library.formatPath(&texturePath);
+        library->formatPath(&texturePath);
 
-        auto textureNode = library.tryGetAssetNode(texturePath);
+        auto textureNode = library->tryGetAssetNode(texturePath);
         if (textureNode == nullptr) {
-            Echo::warn("Texture not found: " + texturePath.string());
+            cinder::warn("Texture not found: " + texturePath.string());
             continue;
         }
-        auto texture = library.tryLoadResource<Texture>(textureNode);
+        auto texture = library->tryLoadResource<Texture>(textureNode);
         if (texture == nullptr) {
-            Echo::warn("Texture could not be loaded: " + texturePath.string());
+            cinder::warn("Texture could not be loaded: " + texturePath.string());
             continue;
         }
 
@@ -74,17 +75,17 @@ void Material::loadData(const FileNode* file) {
     }
 
     m_runtimeResource = false;
-    Echo::log("Loaded material data from file: " + file->path.string());
+    cinder::log("Loaded material data from file: " + file->path.string());
 }
 
 void Material::loadResource() {
     if (m_initialized) {
-        Echo::warn("Material already initialized.");
+        cinder::warn("Material already initialized.");
         return;
     }
 
     if (m_data == nullptr) {
-        Echo::error("Material data is null.");
+        cinder::error("Material data is null.");
         return;
     }
 
@@ -93,7 +94,7 @@ void Material::loadResource() {
 
 void Material::bindTextures(Shader* shader) const {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        cinder::warn("Material not initialized.");
         return;
     }
 
@@ -107,7 +108,7 @@ void Material::bindTextures(Shader* shader) const {
 
 void Material::setTexture(const std::string& name, Texture* texture) {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        cinder::warn("Material not initialized.");
         return;
     }
 
@@ -116,7 +117,7 @@ void Material::setTexture(const std::string& name, Texture* texture) {
 
 void Material::removeTexture(const std::string& name) {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        cinder::warn("Material not initialized.");
         return;
     }
 
@@ -125,16 +126,16 @@ void Material::removeTexture(const std::string& name) {
 
 const Texture* Material::getTexture(const std::string& name) const {
     if (!m_initialized) {
-        Echo::warn("Material not initialized.");
+        cinder::warn("Material not initialized.");
         return nullptr;
     }
 
     if (m_data->textures.find(name) == m_data->textures.end()) {
-        Echo::warn("Texture not found in material.");
+        cinder::warn("Texture not found in material.");
         return nullptr;
     }
 
     return m_data->textures[name];
 }
 
-}; // namespace Codex
+}; // namespace codex

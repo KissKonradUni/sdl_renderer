@@ -3,7 +3,7 @@
 
 #include "imgui.h"
 
-namespace Hex {
+namespace hex {
 
 TransformComponent::TransformComponent(Actor* actor) : Component(actor), m_transform() {
     onParentChanged();
@@ -18,7 +18,7 @@ void TransformComponent::onParentChanged() {
     
     auto parentTransform = parent->getComponent<TransformComponent>(true);
     if (parentTransform != nullptr) {
-        m_transform = parentTransform->getTransform();
+        m_transform.setParent(parentTransform->getTransformPtr());
     }
 }
 
@@ -30,24 +30,36 @@ void TransformComponent::render() {
     // Nothing to do
 }
 
-void TransformComponent::editorUI() {
-    auto position = m_transform.getPosition();
-    ImGui::InputFloat3("Position", &position.x);
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        m_transform.setPosition(position);
+void TransformComponent::editorUI() {    
+    if (!ImGui::BeginTable("##transform_props", 2, ImGuiTableFlags_SizingStretchProp)) {
+        return;
     }
 
-    auto rotation = m_transform.getRotation();
-    ImGui::InputFloat3("Rotation", &rotation.x);
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        m_transform.setRotation(rotation);
+    ImGui::TableNextColumn();
+    ImGui::Text("Position: ");
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);    
+    if (ImGui::InputFloat3("Position", &m_transform.unsafe_getPosition()->x)) {;
+        m_transform.markDirty();
     }
 
-    auto scale = m_transform.getScale();
-    ImGui::InputFloat3("Scale", &scale.x);
-    if (ImGui::IsItemDeactivatedAfterEdit()) {
-        m_transform.setScale(scale);
+    ImGui::TableNextColumn();
+    ImGui::Text("Rotation: ");
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);
+    if (ImGui::InputFloat3("Rotation", &m_transform.unsafe_getRotation()->x)) {
+        m_transform.markDirty();
     }
+
+    ImGui::TableNextColumn();
+    ImGui::Text("Scale: ");
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-0.001f);
+    if (ImGui::InputFloat3("Scale", &m_transform.unsafe_getScale()->x)) {
+        m_transform.markDirty();
+    }
+
+    ImGui::EndTable();
 }
 
-}; // namespace Hex
+}; // namespace hex

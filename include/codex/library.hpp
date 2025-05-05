@@ -1,7 +1,5 @@
 #pragma once
 
-#include "codex/shader.hpp"
-
 #include "resource.hpp"
 #include "filenode.hpp"
 
@@ -10,10 +8,7 @@
 #include <queue>
 #include <map>
 
-// TODO: remove
-extern Codex::Shader* shader;
-
-namespace Codex {
+namespace codex {
 
 struct AsyncIOAction {
     FileNode* node;
@@ -21,15 +16,12 @@ struct AsyncIOAction {
 };
 
 class Library {
-friend FileNode;
 public:
-    static Library& instance() {
-        static Library instance;
-        return instance;
-    }
-
     Library(const Library&) = delete;
     Library& operator=(const Library&) = delete;
+    
+    Library();
+    ~Library();
 
     /**
      * @brief Initializes the asset library
@@ -125,6 +117,25 @@ public:
      * @brief The assets window for the UI
      */
     static void assetsWindow();
+
+    // ====================== //
+    /* Internal UI functions */
+
+    /**
+     * @brief Callback for the assets list element
+     * Gets called when an asset is selected
+     */
+    using onAssetSelectCallback = void (*)(FileNode* node);
+
+    /**
+     * @brief Displays the assets list
+     * @note This function is for internal use, it displays an imgui part, does not open a window
+     * 
+     * @param instance The library instance
+     * @param fill The percentage of the window to fill
+     * @param callback The callback for the asset selection
+     */
+    void assetsList(onAssetSelectCallback callback, float fill = 0.66f);
 protected:
     // Tree structure of the assets folder
     std::filesystem::path m_assetsRoot;
@@ -142,16 +153,13 @@ protected:
     std::thread m_asyncLoader;
     std::mutex m_asyncMutex;
 
-    // Internal functions
-    Library();
-    ~Library();
-
     void threadFunction();
     void mapAssetsFolder();
 
     // UI
-    void assetsBrowser(Library& instance);
-    void assetsInspector(Library& instance);
+    static void assetsBrowserCallback(FileNode* node);
+    void assetsBrowser();
+    void assetsInspector();
 
     FileNode* m_selectedNode = nullptr;
     char m_nameBuffer[64];
@@ -160,4 +168,4 @@ protected:
     IResourceBase* m_selectedAsset = nullptr;
 };
 
-}; // namespace Codex
+}; // namespace codex

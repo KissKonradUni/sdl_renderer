@@ -6,7 +6,7 @@
 
 #include <map>
 
-namespace Codex {
+namespace codex {
 
 struct MaterialData {
     std::string name;
@@ -35,4 +35,4 @@ protected:
     std::map<std::string, Texture*> m_textures;
 };
 
-}; // namespace Codex
+}; // namespace codex

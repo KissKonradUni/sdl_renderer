@@ -1,11 +1,11 @@
 #include "hex/component.hpp"
 #include "imgui.h"
 
-namespace Hex {
+namespace hex {
 
 void Component::editorUI() {
     ImGui::Text("%s", getPrettyName().c_str());
     ImGui::Separator();
 }
 
-}; // namespace Hex
+}; // namespace hex

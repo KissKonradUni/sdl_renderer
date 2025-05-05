@@ -2,7 +2,7 @@
 
 #include "codex/texture.hpp"
 
-namespace Hex {
+namespace hex {
 
 class Framebuffer {
 public:
@@ -14,12 +14,12 @@ public:
 
     void resize(int width, int height);
 
-    inline const Codex::Texture& getColorTarget() const { return m_colorTarget; }
+    inline const codex::Texture& getColorTarget() const { return m_colorTarget; }
 private:
     unsigned int m_framebufferHandle;
 
-    Codex::Texture m_colorTarget;
+    codex::Texture m_colorTarget;
     unsigned int m_depthStencilTarget;
 };
 
-}; // namespace Hex
+}; // namespace hex

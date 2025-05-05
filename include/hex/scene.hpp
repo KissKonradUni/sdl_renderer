@@ -2,7 +2,7 @@
 
 #include "hex/actor.hpp"
 
-namespace Hex {
+namespace hex {
 
 class Scene {
 public:
@@ -24,4 +24,4 @@ protected:
     void drawActorTree(Actor* actor, int depth = 0);
 };
 
-}; // namespace Hex
+}; // namespace hex

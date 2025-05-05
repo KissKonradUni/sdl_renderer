@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <glad.h>
 
-namespace Codex {
+namespace codex {
 
 // TODO: totally rework, it's garbage
 struct Layout {
@@ -86,6 +86,8 @@ protected:
 
     void uploadData(MeshPart* data);
     std::vector<Mesh*> m_meshParts;
+
+    static bool m_suppressDestroyMessage;
 };
 
-}; // namespace Codex
+}; // namespace codex

@@ -5,9 +5,9 @@
 #include <filesystem>
 #include <vector>
 
-namespace Codex {
+namespace codex {
 
-enum class FileType {
+enum FileType : uint8_t {
     DIRECTORY,
     SPECIAL,
 
@@ -71,4 +71,4 @@ struct FileNode {
     ~FileNode();
 };
 
-}; // namespace Codex
+}; // namespace codex

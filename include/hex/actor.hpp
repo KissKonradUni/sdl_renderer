@@ -3,10 +3,10 @@
 #include <memory>
 #include <vector>
 
-#include "echo/console.hpp"
+#include "cinder.hpp"
 #include "hex/component.hpp"
 
-namespace Hex {
+namespace hex {
 
 class Actor {
 public:
@@ -24,7 +24,7 @@ public:
     bool addComponent(Args&&... args) {
         for (const auto& component : m_components) {
             if (component->getID() == ComponentType::getStaticID()) {
-                Echo::warn("Actor already has component of type.");
+                cinder::warn("Actor already has component of type.");
                 return false;
             }
         }
@@ -42,7 +42,7 @@ public:
             }
         }
 
-        Echo::warn("Actor does not have component of requested type.");
+        cinder::warn("Actor does not have component of requested type.");
         return false;
     }
     
@@ -55,7 +55,7 @@ public:
         }
 
         if (!mayBeNull)
-            Echo::warn("Actor does not have component of requested type.");
+            cinder::warn("Actor does not have component of requested type.");
 
         return nullptr;
     }
@@ -73,9 +73,14 @@ public:
     void editorUI();
     inline void setEditorExpanded(const bool expanded) { m_editorExpanded = expanded; }
     inline bool isEditorExpanded() const { return m_editorExpanded; }
+
+    inline void setName(const std::string& name) { m_name = name; }
+    inline const std::string& getName() const { return m_name; }
 protected:
     bool m_enabled = true;
     bool m_editorExpanded = true;
+
+    std::string m_name;
 
     Actor* m_parent = nullptr;
     std::vector<Actor*> m_children;
@@ -83,4 +88,4 @@ protected:
     std::vector<std::unique_ptr<Component>> m_components;
 };
 
-}; // namespace Hex
+}; // namespace hex

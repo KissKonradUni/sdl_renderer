@@ -1,12 +1,12 @@
 # 🔥 Cinder - an SDL3 OpenGL rendering engine
 
-[![Makefile](https://img.shields.io/badge/Makefile-red?style=for-the-badge)](./makefile) ![C++](https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white) ![Version](https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge) [![view - Documentation](https://img.shields.io/badge/view-Documentation-blue?style=for-the-badge)](./docs/Cinder.md "Go to project documentation") [![view - License](https://img.shields.io/badge/view-License-green?style=for-the-badge)](./LICENSE.md "Go to project license")
+[![Makefile](https://img.shields.io/badge/Makefile-red?style=for-the-badge)](./makefile) ![C++](https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white) ![Version](https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge) [![view - Documentation](https://img.shields.io/badge/view-Documentation-blue?style=for-the-badge)](./docs/Cinder.md "Go to project documentation") [![view - License](https://img.shields.io/badge/view-License-green?style=for-the-badge)](./LICENSE.txt "Go to project license")
 
 > Created as a thesis for my Bachelor's degree in Computer Science.
 
-<ins>**Created by:**</ins>
-👤 Konrád Soma Kiss
-📚 CNY8MP
+<ins>**Created by:**</ins>  
+👤 Konrád Soma Kiss  
+📚 CNY8MP  
 
 ## 📕 Description
 
@@ -88,7 +88,7 @@ or
 
 > Of the project
 
-[GNU General Public License v3.0](./LICENSE.md)
+[GNU General Public License v3.0](./LICENSE.txt)
 
 > Of used 3rd party extras
 

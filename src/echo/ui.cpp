@@ -1,4 +1,4 @@
-#include "app.hpp"
+#include "cinder.hpp"
 #include "echo/ui.hpp"
 
 #include "imgui.h"
@@ -7,12 +7,13 @@
 
 #include <IconsMaterialSymbols.h>
 
-namespace Echo {
+namespace echo {
 
-SDL_AppResult UI::initUI() {
+SDL_AppResult UIManager::init(SDL_Window* window, SDL_GLContextState* glContext) {
     // TODO: Add Error checking
+    cinder::log("Initializing UIManager...");
 
-    Echo::log("Initializing ImGui...");
+    cinder::log("Initializing ImGui...");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -40,19 +41,21 @@ SDL_AppResult UI::initUI() {
     static const ImWchar iconsRanges[] = { ICON_MIN_MS, ICON_MAX_MS, 0 };
     io.Fonts->AddFontFromFileTTF("assets/fonts/" FONT_ICON_FILE_NAME_MSR, iconSize, &iconsConfig, iconsRanges);
 
-    ImGui_ImplSDL3_InitForOpenGL(Cinder::App::getWindowPtr(), Cinder::App::getGLContextPtr());
+    ImGui_ImplSDL3_InitForOpenGL(window, glContext);
     ImGui_ImplOpenGL3_Init();
 
-    Echo::log("Initialized ImGui.");
+    cinder::log("Initialized ImGui.");
+
+    cinder::log("Initialized UIManager.");
 
     return SDL_APP_CONTINUE;
 }
 
-void UI::processEvent(SDL_Event* event) {
+void UIManager::processEvent(SDL_Event* event) {
     ImGui_ImplSDL3_ProcessEvent(event);
 }
 
-void UI::newFrame() {
+void UIManager::newFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
@@ -64,7 +67,7 @@ void UI::newFrame() {
     }
 }
 
-void UI::render() {
+void UIManager::render() {
     ImGui::Render();
     auto data = ImGui::GetDrawData();
     if (data) {
@@ -72,27 +75,82 @@ void UI::render() {
     }
 }
 
-void UI::cleanup() {
+void UIManager::cleanup() {
     m_uiFunctions.clear();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 }
 
-unsigned int UI::addUIFunction(UIFunction uiFunction) {
+unsigned int UIManager::addUIFunction(UIFunction uiFunction) {
     int id = m_uiFunctions.size();
     m_uiFunctions[id] = uiFunction;
     return id;
 }
 
-void UI::removeUIFunction(unsigned int id) {
+void UIManager::removeUIFunction(unsigned int id) {
     m_uiFunctions.erase(id);
 }
 
-UI::~UI() {
+UIManager::~UIManager() {
     this->cleanup();
-    Echo::log("ImGui closed.");
-    Echo::log("Echo UI destroyed.");
+    cinder::log("ImGui closed.");
+    cinder::log("UIManager destroyed.");
 }
 
-}; // namespace Echo
+void UIManager::openAssetBrowserDialog(
+    int filter,
+    dialogSuccessCallback successCallback,
+    dialogCancelCallback cancelCallback,
+    bool dontFilter
+) {
+    m_lastFilter = filter;
+    m_lastSuccessCallback = successCallback;
+    m_lastCancelCallback = cancelCallback;
+
+    if (filter == 0) {
+        m_lastFilter = codex::FileType::TEXT_FILE;
+    }
+
+    if (dontFilter) {
+        m_lastFilter = 0;
+    }
+
+    m_lastDialogID = this->addUIFunction(UIManager::assetBrowserDialog);
+}
+
+void UIManager::assetBrowserDialog() {
+    auto instance = cinder::app->getUIManager();
+
+    ImGui::SetNextWindowBgAlpha(1.0f);
+    if (ImGui::Begin("Asset Picker...", nullptr, 
+        ImGuiWindowFlags_NoResize | 
+        ImGuiWindowFlags_NoCollapse | 
+        ImGuiWindowFlags_NoMove
+    )) {
+        auto screenSize = ImGui::GetMainViewport()->Size;
+        
+        ImGui::SetWindowSize(screenSize, ImGuiCond_Always);
+        ImGui::SetWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+
+        using namespace cinder;
+        auto library = app->getLibrary();
+
+        library->assetsList([](codex::FileNode* node) {
+            auto instance = cinder::app->getUIManager();
+            instance->m_lastSuccessCallback(node);
+            instance->removeUIFunction(instance->m_lastDialogID);
+        }, 0.95f);
+
+        if (ImGui::Button("Cancel")) {
+            if (instance->m_lastCancelCallback) {
+                instance->m_lastCancelCallback();
+            }
+            instance->removeUIFunction(instance->m_lastDialogID);
+        }
+
+        ImGui::End();
+    }
+}
+
+}; // namespace echo
