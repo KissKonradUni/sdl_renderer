@@ -55,8 +55,8 @@ std::unique_ptr<UniformBuffer> cameraUniformBuffer = nullptr;
 CameraInput cameraInput;
 
 // TODO: make it part of prism (rendering module)
-typedef struct { int x, y; bool changed; } windowStruct;
-windowStruct lastFrameWindowSize{100, 100, false};
+typedef struct { int x, y; float dpi; } windowStruct;
+windowStruct lastFrameWindowSize{100, 100, 1.0f};
 std::unique_ptr<Framebuffer> sceneFramebuffer = nullptr;
 
 void initCamera() {
@@ -244,13 +244,14 @@ void renderWindow() {
 
     int startPos = ImGui::GetCursorPos().y;
 
-    int width  = ImGui::GetContentRegionAvail().x;
-    int height = ImGui::GetContentRegionAvail().y;
+    const auto dpi = SDL_GetWindowPixelDensity(app->getWindowPtr());
+    int width  = ImGui::GetContentRegionAvail().x * dpi;
+    int height = ImGui::GetContentRegionAvail().y * dpi;
 
     if (lastFrameWindowSize.x != width || lastFrameWindowSize.y != height) {
         lastFrameWindowSize.x = width;
         lastFrameWindowSize.y = height;
-        lastFrameWindowSize.changed = true;
+        lastFrameWindowSize.dpi = dpi;
 
         camera->setViewport({
             0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)
@@ -263,12 +264,12 @@ void renderWindow() {
 
     ImGui::Image(
         sceneFramebuffer->getColorTarget().getHandle(),
-        ImVec2(width, height),
+        ImVec2(width / dpi, height / dpi),
         ImVec2(0, 1),
         ImVec2(1, 0)
     );
 
-    ImGui::SetCursorPos(ImVec2(0, startPos));
+    ImGui::SetCursorPos(ImVec2(10, startPos));
     ImGui::Text("Input: %s", cameraInput.lock ? "Locked" : "Captured");
 
     ImGui::End();

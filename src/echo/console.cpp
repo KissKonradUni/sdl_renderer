@@ -29,8 +29,11 @@ void Console::init() {
 void Console::drawConsole() {
 	ImGui::Begin("Console", nullptr);
 
-	ImGui::BeginChild("ConsoleOptions", ImVec2(0, 42));    
-		ImGui::Checkbox("Scroll to bottom", &m_scrollToBottom);
+	ImGui::BeginChild("ConsoleOptions", ImVec2(0, 24));    
+        bool shouldJump = false;
+		if (ImGui::Checkbox("Scroll to bottom", &m_scrollToBottom)) {
+            shouldJump = m_scrollToBottom;
+        }
 		auto width = ImGui::GetContentRegionAvail().x;
 		ImGui::SameLine(width - 96);
 		if (ImGui::Button("Clear", ImVec2(90, 0))) {
@@ -43,7 +46,7 @@ void Console::drawConsole() {
 
 	ImGui::Separator();
 
-	ImGui::BeginChild("ConsoleMessages", ImVec2(0, -48), false, false);
+	ImGui::BeginChild("ConsoleMessages", ImVec2(0, -32), false, false);
 		ImVec4 color;
 		for (const auto& message : m_messages) {
 			switch (message->level) {
@@ -67,6 +70,9 @@ void Console::drawConsole() {
 				this->m_prefix.c_str(),
 				message->message.c_str()
 			);
+
+            if (shouldJump)
+                ImGui::SetScrollHereY(1.0f);
 		}
 
 		m_scrollToBottom = !(ImGui::GetScrollY() < ImGui::GetScrollMaxY());

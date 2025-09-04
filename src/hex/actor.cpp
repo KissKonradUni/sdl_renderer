@@ -82,7 +82,7 @@ void Actor::setParent(Actor* actor) {
 void Actor::editorUI() {  
     static char name[64];
     snprintf(name, sizeof(name), "%s##%p", m_enabled ? ICON_MS_CHECK_BOX : ICON_MS_CHECK_BOX_OUTLINE_BLANK, this);
-    if (ImGui::Selectable(name, m_enabled, 0, ImVec2(42, 36))) {
+    if (ImGui::Button(name, ImVec2(30, 24))) {
         m_enabled = !m_enabled;
     }
     ImGui::SameLine();
@@ -98,7 +98,7 @@ void Actor::editorUI() {
         ImGui::BeginChild(component->getPrettyName().c_str(), ImVec2(availableSpace.x, 0), ImGuiChildFlags_Border | ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY);
         
         snprintf(name, sizeof(name), "%s##%p", component->isEnabled() ? ICON_MS_CHECK_BOX : ICON_MS_DISABLED_BY_DEFAULT, component.get());
-        if (ImGui::Selectable(name, component->isEnabled(), 0, ImVec2(42, 32))) {
+        if (ImGui::Selectable(name, component->isEnabled(), 0, ImVec2(20, 0))) {
             component->setEnabled(!component->isEnabled());
         }
         ImGui::SameLine();

@@ -224,7 +224,7 @@ void Library::assetsList(onAssetSelectCallback callback, float fill) {
             folderNode[i]
         );
 
-        if (ImGui::Button(instance->m_nameBuffer, ImVec2(0, 32))) {
+        if (ImGui::Button(instance->m_nameBuffer, ImVec2(0, 24))) {
             instance->m_selectedNode = folderNode[i];
         }
 

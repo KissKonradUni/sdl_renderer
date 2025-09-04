@@ -22,7 +22,7 @@ SDL_AppResult App::initWindow() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
     SDL_SetHint(SDL_HINT_OPENGL_ES_DRIVER, "1");
 
-    SDL_Window* rawWindow = SDL_CreateWindow("Cinder", 1920, 1200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    SDL_Window* rawWindow = SDL_CreateWindow("Cinder", 1920, 1200, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     if (rawWindow == NULL) {
         cinder::error("Couldn't create window.");
         cinder::error(SDL_GetError());
