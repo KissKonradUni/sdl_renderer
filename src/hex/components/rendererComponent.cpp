@@ -23,16 +23,17 @@ void RendererComponent::update() {
 }
 
 void RendererComponent::render() {
-    if (m_shader == nullptr || m_material == nullptr || m_mesh == nullptr) {
+    if (m_shader == nullptr || m_mesh == nullptr) {
         return;
     }
 
-    if (!m_shader->isInitialized() || !m_material->isInitialized() || !m_mesh->isInitialized()) {
+    if (!m_shader->isInitialized() || !m_mesh->isInitialized()) {
         return;
     }
 
     m_shader->bind();
-    m_material->bindTextures(m_shader);
+    if (m_material != nullptr && m_material->isInitialized())
+        m_material->bindTextures(m_shader);
 
     if (m_transformComponent == nullptr) {
         cinder::warn("Renderer component requires a transform component.");

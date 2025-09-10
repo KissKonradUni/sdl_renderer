@@ -57,7 +57,8 @@ CameraInput cameraInput;
 // TODO: make it part of prism (rendering module)
 typedef struct { int x, y; float dpi; } windowStruct;
 windowStruct lastFrameWindowSize{100, 100, 1.0f};
-std::unique_ptr<Framebuffer> sceneFramebuffer = nullptr;
+std::unique_ptr<GBuffer> sceneFramebuffer = nullptr;
+std::unique_ptr<Framebuffer> combinedFramebuffer = nullptr;
 
 void initCamera() {
     camera = std::make_unique<Camera>(
@@ -76,12 +77,15 @@ void initGLParams() {
     glFrontFace(GL_CCW);
 }
 
+codex::Mesh *quadMesh = nullptr;
+codex::Shader *combineShader = nullptr;
+
 void initDebugStuff() {
     using namespace cinder;
 
     auto library = app->getLibrary();
 
-    std::filesystem::path assetPath = "./assets/shaders/glsl/Basic.shader";
+    std::filesystem::path assetPath = "./assets/shaders/glsl/Deferred.shader";
     library->formatPath(&assetPath);
     auto shaderNode = library->tryGetAssetNode(assetPath);
     auto shader = library->tryLoadResource<Shader>(shaderNode);
@@ -96,11 +100,20 @@ void initDebugStuff() {
     auto meshNode = library->tryGetAssetNode(assetPath);
     auto mesh = library->tryLoadResource<Mesh>(meshNode);
 
-    Actor* actor = new Actor();
+    Actor* actor = scene.newActor();
     actor->setName("Sponza");
     actor->addComponent<TransformComponent>();
     actor->addComponent<RendererComponent>(shader, material, mesh);
-    scene.addActor(actor);
+
+    assetPath = "./assets/models/quad.glb";
+    library->formatPath(&assetPath);
+    auto quadNode = library->tryGetAssetNode(assetPath);
+    quadMesh = library->tryLoadResource<Mesh>(quadNode);
+
+    assetPath = "./assets/shaders/glsl/Combined.shader";
+    library->formatPath(&assetPath);
+    auto combineNode = library->tryGetAssetNode(assetPath);
+    combineShader = library->tryLoadResource<Shader>(combineNode);
 }
 
 void initEvents() {    
@@ -239,6 +252,8 @@ void performanceWindow() {
     ImGui::End();
 }
 
+unsigned int targetHandle = -1;
+
 void renderWindow() {
     ImGui::Begin("Render", nullptr);
 
@@ -260,10 +275,15 @@ void renderWindow() {
         glViewport(0, 0, width, height);
 
         sceneFramebuffer->resize(width, height);
+        combinedFramebuffer->resize(width, height);
+    }
+
+    if (targetHandle == -1) {
+        targetHandle = sceneFramebuffer->getColorTarget().getHandle();
     }
 
     ImGui::Image(
-        sceneFramebuffer->getColorTarget().getHandle(),
+        targetHandle,
         ImVec2(width / dpi, height / dpi),
         ImVec2(0, 1),
         ImVec2(1, 0)
@@ -271,6 +291,34 @@ void renderWindow() {
 
     ImGui::SetCursorPos(ImVec2(10, startPos));
     ImGui::Text("Input: %s", cameraInput.lock ? "Locked" : "Captured");
+
+    ImGui::End();
+}
+
+void debugWindow() {
+    ImGui::Begin("Debug", nullptr);
+
+    ImGui::Text("Current render target: %u", targetHandle);
+    
+    unsigned int combinedHandle = combinedFramebuffer->getColorTarget().getHandle();
+    bool combinedTarget = ImGui::RadioButton("Combined", targetHandle == combinedHandle);
+    if (combinedTarget) targetHandle = combinedHandle;
+
+    unsigned int colorHandle = sceneFramebuffer->getColorTarget().getHandle();
+    bool colorTarget = ImGui::RadioButton("Color", targetHandle == colorHandle);
+    if (colorTarget) targetHandle = colorHandle;
+
+    unsigned int normalHandle = sceneFramebuffer->getNormalTarget().getHandle();
+    bool normalTarget = ImGui::RadioButton("Normal", targetHandle == normalHandle);
+    if (normalTarget) targetHandle = normalHandle;
+
+    unsigned int positionHandle = sceneFramebuffer->getPositionTarget().getHandle();
+    bool positionTarget = ImGui::RadioButton("Position", targetHandle == positionHandle);
+    if (positionTarget) targetHandle = positionHandle;
+
+    unsigned int aoRoughnessMetallicHandle = sceneFramebuffer->getAORoughnessMetallicTarget().getHandle();
+    bool aoRoughnessMetallicTarget = ImGui::RadioButton("AO/Roughness/Metallic", targetHandle == aoRoughnessMetallicHandle);
+    if (aoRoughnessMetallicTarget) targetHandle = aoRoughnessMetallicHandle;
 
     ImGui::End();
 }
@@ -292,7 +340,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     initDebugStuff();
 
-    sceneFramebuffer = std::make_unique<Framebuffer>(1920, 1200);
+    sceneFramebuffer = std::make_unique<GBuffer>(1920, 1200);
+    combinedFramebuffer = std::make_unique<Framebuffer>(1920, 1200);
 
     // Enable adaptive vsync
     SDL_GL_SetSwapInterval(-1);
@@ -300,6 +349,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     auto ui = app->getUIManager();
     ui->addUIFunction(renderWindow);
     ui->addUIFunction(performanceWindow);
+    ui->addUIFunction(debugWindow);
     ui->addUIFunction(Library::assetsWindow);
     ui->addUIFunction([]() {
         app->getConsole()->drawConsole();
@@ -362,6 +412,33 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         scene.render();
 
     sceneFramebuffer->unbind();
+
+    if (combineShader->isInitialized()) {
+
+    combinedFramebuffer->bind();
+
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
+
+        combineShader->bind();
+        combineShader->setUniform("gDiffuse", 0);
+        combineShader->setUniform("gNormal", 1);
+        combineShader->setUniform("gPosition", 2);
+        combineShader->setUniform("gAORoughnessMetallic", 3);
+
+        sceneFramebuffer->getColorTarget().bind(0);
+        sceneFramebuffer->getNormalTarget().bind(1);
+        sceneFramebuffer->getPositionTarget().bind(2);
+        sceneFramebuffer->getAORoughnessMetallicTarget().bind(3);
+
+        glDisable(GL_CULL_FACE);
+        cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
+        quadMesh->draw();
+        glEnable(GL_CULL_FACE);
+
+    combinedFramebuffer->unbind();
+
+    }
 
     // Draw UI on top of everything
     app->getUIManager()->render();

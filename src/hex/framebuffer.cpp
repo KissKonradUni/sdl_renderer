@@ -50,4 +50,53 @@ void Framebuffer::resize(int width, int height) {
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
+GBuffer::GBuffer(int width, int height) 
+    : Framebuffer(width, height) 
+    , m_normalTarget(nullptr, width, height, 4, true)
+    , m_positionTarget(nullptr, width, height, 4, true)
+    , m_aoRoughnessMetallicTarget(nullptr, width, height, 4)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferHandle);
+
+    m_normalTarget.bind(1);
+    m_normalTarget.attachToFramebuffer(GL_COLOR_ATTACHMENT1);
+
+    m_positionTarget.bind(2);
+    m_positionTarget.attachToFramebuffer(GL_COLOR_ATTACHMENT2);
+
+    m_aoRoughnessMetallicTarget.bind(3);
+    m_aoRoughnessMetallicTarget.attachToFramebuffer(GL_COLOR_ATTACHMENT3);
+
+    GLenum attachments[4] = {
+        GL_COLOR_ATTACHMENT0, 
+        GL_COLOR_ATTACHMENT1, 
+        GL_COLOR_ATTACHMENT2, 
+        GL_COLOR_ATTACHMENT3
+    };
+    glDrawBuffers(4, attachments);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        cinder::error("GBuffer is not complete!");
+    }
+    cinder::log("Created GBuffer.");
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+GBuffer::~GBuffer() {
+    // Base destructor will be called automatically
+    cinder::log("GBuffer destroyed.");
+}
+
+void GBuffer::resize(int width, int height) {
+    m_colorTarget.resize(width, height);
+    m_normalTarget.resize(width, height);
+    m_positionTarget.resize(width, height);
+    m_aoRoughnessMetallicTarget.resize(width, height);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, m_depthStencilTarget);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
 }

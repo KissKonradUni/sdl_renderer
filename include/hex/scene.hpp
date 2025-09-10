@@ -12,7 +12,7 @@ public:
     void update();
     void render();
 
-    void addActor(Actor* actor);
+    Actor* newActor();
     void removeActor(Actor* actor);
 
     void editorUI();

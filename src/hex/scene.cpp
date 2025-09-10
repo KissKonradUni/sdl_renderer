@@ -25,8 +25,10 @@ void Scene::render() {
     }
 }
 
-void Scene::addActor(Actor* actor) {
+Actor* Scene::newActor() {
+    auto actor = new Actor();
     m_actors.push_back(std::unique_ptr<Actor>(actor));
+    return actor;
 }
 
 void Scene::removeActor(Actor* actor) {

@@ -23,7 +23,7 @@ struct TextureData {
  */
 class Texture : public IResource<TextureData> {
 public:
-    Texture(unsigned char* pixels, int width, int height, int channels);
+    Texture(unsigned char* pixels, int width, int height, int channels, bool highPrecision = false);
     Texture(const TextureData* data);
     Texture(const vector4f& color);
     Texture();
@@ -31,14 +31,12 @@ public:
 
     /**
      * @brief Loads a texture's raw data from a file
-     * 
-     * @param filename - The path to the file
+     *
+     * @param file - The file node to load the texture from
      */
     void loadData(const FileNode* file);
     /**
      * @brief Uploads the texture to the GPU
-     *
-     * @param filename - The path to the file
      */
     void loadResource();
     
@@ -46,7 +44,7 @@ public:
      * @brief Binds the texture to a texture slot
      * @param slot - The slot to bind the texture to
      */
-    void bind(int slot);
+    void bind(int slot) const;
     /**
      * @brief Resizes the texture
      * 
@@ -73,6 +71,7 @@ public:
 protected:
     unsigned int m_textureHandle;
     int m_width, m_height, m_channels;
+    bool m_highPrecision = false;
 };
 
 }; // namespace codex

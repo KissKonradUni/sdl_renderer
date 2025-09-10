@@ -12,7 +12,8 @@ TextureData::~TextureData() {
     stbi_image_free(pixels); 
 }
 
-Texture::Texture(unsigned char* pixels, int width, int height, int channels) {
+Texture::Texture(unsigned char* pixels, int width, int height, int channels, bool highPrecision) {
+    this->m_highPrecision = highPrecision;
     this->m_data.reset(new TextureData{pixels, width, height, channels});
     this->loadResource();
     this->m_data.reset(); // Seems wasteful, but we must standardize the IResource interface
@@ -91,8 +92,10 @@ void Texture::loadResource() {
 
     bool empty = m_data->pixels == nullptr;
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_data->width, m_data->height,
-                 0, GL_RGBA, GL_UNSIGNED_BYTE, empty ? NULL : m_data->pixels);
+    unsigned int internalFormat = m_highPrecision ? GL_RGBA16F : GL_RGBA8;
+    unsigned int type = m_highPrecision ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_data->width, m_data->height,
+                 0, GL_RGBA, type, empty ? NULL : m_data->pixels);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -102,20 +105,32 @@ void Texture::loadResource() {
     if (!empty)
         glGenerateMipmap(GL_TEXTURE_2D);
 
+    // Check if the texture was created successfully
+    int success;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &success);
+    if (success == 0) {
+        cinder::error("Failed to create texture on GPU.");
+        glDeleteTextures(1, &m_textureHandle);
+        m_textureHandle = 0;
+        return;
+    }
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
     this->m_initialized = true;
     this->m_data.reset(); // We don't need the data anymore
 }
 
-void Texture::bind(int slot) {
+void Texture::bind(int slot) const {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, m_textureHandle);
 }
 
 void Texture::resize(int width, int height) {
     glBindTexture(GL_TEXTURE_2D, m_textureHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    unsigned int internalFormat = m_highPrecision ? GL_RGBA16F : GL_RGBA8;
+    unsigned int type = m_highPrecision ? GL_FLOAT : GL_UNSIGNED_BYTE;
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_RGBA, type, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
