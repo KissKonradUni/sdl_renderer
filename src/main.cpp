@@ -371,6 +371,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event* event) {
     return app->getEventManager()->handle(event);
 }
 
+#define NS_TO_S 0.000'000'001
+
 SDL_AppResult SDL_AppIterate(void *appstate) {
     using namespace cinder;
 
@@ -381,7 +383,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // ======================
     // Time management
     
-    nowTime = static_cast<double>(SDL_GetTicks()) / 1000.0;
+    nowTime = static_cast<double>(SDL_GetTicksNS() * NS_TO_S);
     deltaTime = nowTime - lastTime;
     lastTime = nowTime;
 
@@ -413,7 +415,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     sceneFramebuffer->unbind();
 
-    if (combineShader->isInitialized()) {
+    if (combineShader->isInitialized() && quadMesh->isInitialized()) {
 
     combinedFramebuffer->bind();
 
