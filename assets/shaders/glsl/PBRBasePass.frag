@@ -9,8 +9,12 @@ uniform sampler2D gNormal;
 uniform sampler2D gPosition;
 uniform sampler2D gAORoughnessMetallic;
 
+uniform vec4 screenSize;
+
 in vec3 cameraPosition;
 in vec3 cameraDirection;
+in mat4 cameraMatrix;
+in mat4 cameraInverseMatrix;
 
 void main()
 {
@@ -22,8 +26,6 @@ void main()
     float ao        = aoRoughnessMetallic.r;
     float roughness = aoRoughnessMetallic.g;
     float metallic  = aoRoughnessMetallic.b;
-
-    roughness = max(roughness, metallic);
 
     vec3 lightPos   = vec3(-2.5, 3.0, -0.5);
 

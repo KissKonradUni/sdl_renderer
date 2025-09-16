@@ -3,11 +3,12 @@
 #include "floatmath.hpp"
 
 #include "hex/components/rendererComponent.hpp"
+#include "hex/components/transformComponent.hpp"
 #include "hex/scene.hpp"
 #include "hex/actor.hpp"
 #include "hex/camera.hpp"
 #include "hex/framebuffer.hpp"
-#include "hex/components/transformComponent.hpp"
+#include "hex/lighting.hpp"
 
 #include "echo/ui.hpp"
 #include "echo/event.hpp"
@@ -59,6 +60,11 @@ typedef struct { int x, y; float dpi; } windowStruct;
 windowStruct lastFrameWindowSize{100, 100, 1.0f};
 std::unique_ptr<GBuffer> sceneFramebuffer = nullptr;
 std::unique_ptr<Framebuffer> combinedFramebuffer = nullptr;
+std::unique_ptr<Framebuffer> radianceProbesFramebuffer = nullptr;
+
+codex::Mesh *quadMesh = nullptr;
+codex::Shader *combineShader = nullptr;
+codex::Shader *probesShader = nullptr;
 
 void initCamera() {
     camera = std::make_unique<Camera>(
@@ -76,9 +82,6 @@ void initGLParams() {
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 }
-
-codex::Mesh *quadMesh = nullptr;
-codex::Shader *combineShader = nullptr;
 
 void initDebugStuff() {
     using namespace cinder;
@@ -110,10 +113,15 @@ void initDebugStuff() {
     auto quadNode = library->tryGetAssetNode(assetPath);
     quadMesh = library->tryLoadResource<Mesh>(quadNode);
 
-    assetPath = "./assets/shaders/glsl/Combined.shader";
+    assetPath = "./assets/shaders/glsl/PBRBasePass.shader";
     library->formatPath(&assetPath);
     auto combineNode = library->tryGetAssetNode(assetPath);
     combineShader = library->tryLoadResource<Shader>(combineNode);
+
+    assetPath = "./assets/shaders/glsl/Probes.shader";
+    library->formatPath(&assetPath);
+    auto probesNode = library->tryGetAssetNode(assetPath);
+    probesShader = library->tryLoadResource<Shader>(probesNode);
 }
 
 void initEvents() {    
@@ -279,7 +287,7 @@ void renderWindow() {
     }
 
     if (targetHandle == -1) {
-        targetHandle = sceneFramebuffer->getColorTarget().getHandle();
+        targetHandle = combinedFramebuffer->getColorTarget().getHandle();
     }
 
     ImGui::Image(
@@ -320,6 +328,10 @@ void debugWindow() {
     bool aoRoughnessMetallicTarget = ImGui::RadioButton("AO/Roughness/Metallic", targetHandle == aoRoughnessMetallicHandle);
     if (aoRoughnessMetallicTarget) targetHandle = aoRoughnessMetallicHandle;
 
+    unsigned int radianceProbesHandle = radianceProbesFramebuffer->getColorTarget().getHandle();
+    bool radianceProbesTarget = ImGui::RadioButton("Radiance Probes", targetHandle == radianceProbesHandle);
+    if (radianceProbesTarget) targetHandle = radianceProbesHandle;
+
     ImGui::End();
 }
 
@@ -342,6 +354,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
     sceneFramebuffer = std::make_unique<GBuffer>(1920, 1200);
     combinedFramebuffer = std::make_unique<Framebuffer>(1920, 1200);
+    radianceProbesFramebuffer = std::make_unique<Framebuffer>(RADIANCE_TEXTURE_SIZE, RADIANCE_TEXTURE_SIZE);
 
     // Enable adaptive vsync
     SDL_GL_SetSwapInterval(-1);
@@ -407,8 +420,13 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     sceneFramebuffer->bind();
 
+        glViewport(0, 0, lastFrameWindowSize.x, lastFrameWindowSize.y);
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
 
         cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
         scene.render();
@@ -427,6 +445,12 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         combineShader->setUniform("gNormal", 1);
         combineShader->setUniform("gPosition", 2);
         combineShader->setUniform("gAORoughnessMetallic", 3);
+        combineShader->setUniform("screenSize", vector4f(
+            static_cast<float>(lastFrameWindowSize.x),
+            static_cast<float>(lastFrameWindowSize.y),
+            0.0f,
+            0.0f
+        ));
 
         sceneFramebuffer->getColorTarget().bind(0);
         sceneFramebuffer->getNormalTarget().bind(1);
@@ -436,9 +460,43 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glDisable(GL_CULL_FACE);
         cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
         quadMesh->draw();
-        glEnable(GL_CULL_FACE);
 
     combinedFramebuffer->unbind();
+
+    }
+
+    if (probesShader->isInitialized()) {
+
+    radianceProbesFramebuffer->bind();
+
+        glViewport(0, 0, RADIANCE_TEXTURE_SIZE, RADIANCE_TEXTURE_SIZE);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        probesShader->bind();
+        /*
+        probesShader->setUniform("gDiffuse", 0);
+        probesShader->setUniform("gNormal", 1);
+        probesShader->setUniform("gPosition", 2);
+        probesShader->setUniform("gAORoughnessMetallic", 3);
+        probesShader->setUniform("screenAndTextureSize", vector4f(
+            static_cast<float>(lastFrameWindowSize.x),
+            static_cast<float>(lastFrameWindowSize.y),
+            static_cast<float>(RADIANCE_TEXTURE_SIZE),
+            static_cast<float>(RADIANCE_TEXTURE_SIZE)
+        ));
+        */
+
+        sceneFramebuffer->getColorTarget().bind(0);
+        sceneFramebuffer->getNormalTarget().bind(1);
+        sceneFramebuffer->getPositionTarget().bind(2);
+        sceneFramebuffer->getAORoughnessMetallicTarget().bind(3);
+        
+        glDisable(GL_CULL_FACE);
+        cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
+        quadMesh->draw();
+
+    radianceProbesFramebuffer->unbind();
 
     }
 

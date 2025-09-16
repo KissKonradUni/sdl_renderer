@@ -2,8 +2,11 @@
 #include "hex/framebuffer.hpp"
 
 #include <glad.h>
+#include <math.h>
 
 namespace hex {
+
+// Framebuffer
     
 Framebuffer::Framebuffer(int width, int height) 
     : m_colorTarget(nullptr, width, height, 4)
@@ -50,6 +53,8 @@ void Framebuffer::resize(int width, int height) {
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
+// GBuffer
+
 GBuffer::GBuffer(int width, int height) 
     : Framebuffer(width, height) 
     , m_normalTarget(nullptr, width, height, 4, true)
@@ -67,13 +72,13 @@ GBuffer::GBuffer(int width, int height)
     m_aoRoughnessMetallicTarget.bind(3);
     m_aoRoughnessMetallicTarget.attachToFramebuffer(GL_COLOR_ATTACHMENT3);
 
-    GLenum attachments[4] = {
+    GLenum attachments[6] = {
         GL_COLOR_ATTACHMENT0, 
         GL_COLOR_ATTACHMENT1, 
         GL_COLOR_ATTACHMENT2, 
-        GL_COLOR_ATTACHMENT3
+        GL_COLOR_ATTACHMENT3,
     };
-    glDrawBuffers(4, attachments);
+    glDrawBuffers(6, attachments);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         cinder::error("GBuffer is not complete!");

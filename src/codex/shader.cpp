@@ -66,6 +66,9 @@ void Shader::setUniform(const std::string& name, const int& value) {
         cinder::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
+    if (location < -1) {
+        return;
+    }
     glUniform1i(location, value);
 }
 
@@ -75,6 +78,9 @@ void Shader::setUniform(const std::string& name, const vector4f& value) {
         cinder::warn(std::string("Couldn't find uniform: ") + name);
         return;
     }
+    if (location < -1) {
+        return;
+    }
     glUniform4fv(location, 1, value.as_array.data());
 }
 
@@ -82,6 +88,9 @@ void Shader::setUniform(const std::string& name, const matrix4x4f& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
         cinder::warn(std::string("Couldn't find uniform: ") + name);
+        return;
+    }
+    if (location < -1) {
         return;
     }
     glUniformMatrix4fv(location, 1, GL_FALSE, value.as_array.data());
@@ -208,6 +217,10 @@ void Shader::loadResource() {
 unsigned int Shader::getUniformLocation(const std::string& name) {
     auto it = m_uniformLocations.find(name);
     if (it != m_uniformLocations.end()) {
+        if (it->second == -1) {
+            it->second = -2;
+            return -1;
+        }
         return it->second;
     }
 
