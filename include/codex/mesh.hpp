@@ -1,6 +1,7 @@
 #pragma once
 
 #include "codex/resource.hpp"
+#include "floatmath.hpp"
 
 #include <assimp/scene.h>
 #include <cstdint>
@@ -53,6 +54,7 @@ struct MeshPart {
     std::vector<uint32_t> indices;
     uint32_t vertexCount = -1;
     uint32_t indexCount  = -1;
+    transformf partTransform;
 
     MeshPart() = default;
     ~MeshPart() = default;
@@ -70,11 +72,14 @@ public:
     ~Mesh();
 
     void loadData(const FileNode* node) override;
-    void loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* scene);
     void loadResource() override;
+
+    inline transformf* getTransform() const { return m_transform; }
 
     void draw() const;
 protected:
+    void loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* scene, transformf* parentTransform = nullptr);
+
     std::vector<Layout> m_layout;
 
     uint32_t m_vertexArrayObjectHandle  = -1;
@@ -86,6 +91,7 @@ protected:
 
     void uploadData(MeshPart* data);
     std::vector<Mesh*> m_meshParts;
+    transformf* m_transform;
 
     static bool m_suppressDestroyMessage;
 };

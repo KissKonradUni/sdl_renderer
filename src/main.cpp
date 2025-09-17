@@ -98,16 +98,6 @@ void initDebugStuff() {
     auto materialNode = library->tryGetAssetNode(assetPath);
     auto material = library->tryLoadResource<Material>(materialNode);
 
-    assetPath = "./assets/models/sponza.glb";
-    library->formatPath(&assetPath);
-    auto meshNode = library->tryGetAssetNode(assetPath);
-    auto mesh = library->tryLoadResource<Mesh>(meshNode);
-
-    Actor* actor = scene.newActor();
-    actor->setName("Sponza");
-    actor->addComponent<TransformComponent>();
-    actor->addComponent<RendererComponent>(shader, material, mesh);
-
     assetPath = "./assets/models/quad.glb";
     library->formatPath(&assetPath);
     auto quadNode = library->tryGetAssetNode(assetPath);
@@ -122,6 +112,30 @@ void initDebugStuff() {
     library->formatPath(&assetPath);
     auto probesNode = library->tryGetAssetNode(assetPath);
     probesShader = library->tryLoadResource<Shader>(probesNode);
+
+    // Load later so shaders are ready
+    assetPath = "./assets/models/sponza.glb";
+    //assetPath = "./assets/models/NewSponza_Main_glTF_003.gltf";
+    library->formatPath(&assetPath);
+    auto meshNode = library->tryGetAssetNode(assetPath);
+    auto mesh = library->tryLoadResource<Mesh>(meshNode);
+
+    Actor* actor = scene.newActor();
+    actor->setName("Sponza");
+    actor->addComponent<TransformComponent>();
+    actor->addComponent<RendererComponent>(shader, material, mesh);
+
+    /*
+    assetPath = "./assets/models/curtains.glb";
+    library->formatPath(&assetPath);
+    auto meshNode2 = library->tryGetAssetNode(assetPath);
+    auto mesh2 = library->tryLoadResource<Mesh>(meshNode2);
+
+    actor = scene.newActor();
+    actor->setName("Curtains");
+    actor->addComponent<TransformComponent>();
+    actor->addComponent<RendererComponent>(shader, material, mesh2);
+    */
 }
 
 void initEvents() {    
@@ -439,6 +453,16 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, sceneFramebuffer->getHandle());
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, combinedFramebuffer->getHandle());
+        glBlitFramebuffer(
+            0, 0, lastFrameWindowSize.x, lastFrameWindowSize.y,
+            0, 0, lastFrameWindowSize.x, lastFrameWindowSize.y,
+            GL_DEPTH_BUFFER_BIT,
+            GL_NEAREST
+        );
+        glBindFramebuffer(GL_FRAMEBUFFER, combinedFramebuffer->getHandle());
 
         combineShader->bind();
         combineShader->setUniform("gDiffuse", 0);

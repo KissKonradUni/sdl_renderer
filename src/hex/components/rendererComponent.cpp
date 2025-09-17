@@ -40,7 +40,10 @@ void RendererComponent::render() {
         return;
     }
 
-    m_shader->setUniform("modelMatrix", m_transformComponent->getTransform().getModelMatrix());
+    matrix4x4f& baseTransform = m_transformComponent->getTransform().getModelMatrix();
+    matrix4x4f& meshTransform = m_mesh->getTransform()->getModelMatrix();
+
+    m_shader->setUniform("modelMatrix", baseTransform * meshTransform);
     m_mesh->draw();
 }
 

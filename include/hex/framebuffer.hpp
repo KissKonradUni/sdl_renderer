@@ -15,6 +15,8 @@ public:
     void resize(int width, int height);
 
     inline const codex::Texture& getColorTarget() const { return m_colorTarget; }
+
+    inline const unsigned int getHandle() const { return m_framebufferHandle; }
 protected:
     unsigned int m_framebufferHandle;
 

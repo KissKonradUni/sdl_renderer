@@ -15,8 +15,8 @@ Mesh::Mesh(MeshPart* data, std::vector<Layout>& layout) {
     m_node = nullptr;
     m_initialized = false;
     m_runtimeResource = true;
-
     m_layout = layout;
+    m_transform = new transformf(data->partTransform);
     uploadData(data);
     m_data.reset();
 
@@ -31,6 +31,7 @@ Mesh::Mesh() {
     m_node = nullptr;
     m_runtimeResource = true;
     m_initialized = false;
+    m_transform = new transformf();
 
     cinder::log("Mesh placeholder created.");
 }
@@ -48,6 +49,24 @@ Mesh::~Mesh() {
         cinder::log("Mesh destroyed... extra messages supressed.");
         Mesh::m_suppressDestroyMessage = true;
     }
+
+    delete m_transform;
+}
+
+void convertAITransformToTransformf(aiMatrix4x4& aiTransform, transformf* outTransform, transformf* parentTransform = nullptr) {
+    //aiMatrix4x4 transposed = aiTransform.Transpose();
+
+    aiVector3f position, rotation, scale;
+    aiTransform.Decompose(scale, rotation, position);
+
+    vector4f positionVec = vector4f(position.x, position.y, position.z, 0.0f);
+    vector4f rotationVec = vector4f(rotation.x, rotation.y, rotation.z, 0.0f);
+    vector4f scaleVec    = vector4f(scale.x, scale.y, scale.z, 1.0f);
+
+    outTransform->setPosition(positionVec);
+    outTransform->setRotation(rotationVec);
+    outTransform->setScale(scaleVec);
+    outTransform->setParent(parentTransform);
 }
 
 void Mesh::loadData(const FileNode* node) {
@@ -80,25 +99,31 @@ void Mesh::loadData(const FileNode* node) {
     };
 
     // Initialize the mesh data
-    m_data = std::unique_ptr<MeshData>(new MeshData());
+    m_data = std::make_unique<MeshData>();
     m_data->layout = layout;
     m_node = node;
     m_layout = layout;
 
     aiNode* rootNode = scene->mRootNode;
-    loadDataRecursive(m_data.get(), rootNode, scene);
+    auto rootTransform = rootNode->mTransformation;
+    convertAITransformToTransformf(rootTransform, m_transform);
+
+    loadDataRecursive(m_data.get(), rootNode, scene, m_transform);
 
     importer.FreeScene();
     m_runtimeResource = false;
     cinder::log("Loaded mesh data from file: " + node->path.string());
 }
 
-void Mesh::loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* scene) {
+void Mesh::loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* scene, transformf* parentTransform) {
     for (unsigned int i = 0; i < node->mNumMeshes; i++) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
         MeshPart* meshPart = new MeshPart();
         meshPart->vertices.reserve(mesh->mNumVertices * Layout::calculateStride(m_layout));
         meshPart->indices.reserve(mesh->mNumFaces * 3);
+
+        aiMatrix4x4 aiTransform = node->mTransformation;
+        convertAITransformToTransformf(aiTransform, &meshPart->partTransform, parentTransform);
 
         for (unsigned int k = 0; k < mesh->mNumVertices; k++) {
             aiVector3D vertex = mesh->mVertices[k];
@@ -126,7 +151,7 @@ void Mesh::loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* 
             for (unsigned int l = 0; l < face.mNumIndices; l++) {
                 meshPart->indices.push_back(face.mIndices[l]);
             }
-        }
+        } 
 
         meshPart->vertexCount = mesh->mNumVertices;
         meshPart->indexCount = mesh->mNumFaces * 3;
@@ -135,7 +160,11 @@ void Mesh::loadDataRecursive(MeshData* data, const aiNode* node, const aiScene* 
     }
 
     for (unsigned int i = 0; i < node->mNumChildren; i++) {
-        loadDataRecursive(data, node->mChildren[i], scene);
+        transformf* nodeTransform = new transformf();
+        aiMatrix4x4 aiTransform = node->mChildren[i]->mTransformation;
+        convertAITransformToTransformf(aiTransform, nodeTransform, parentTransform);
+
+        loadDataRecursive(data, node->mChildren[i], scene, nodeTransform);
     }
 }
 
@@ -164,9 +193,6 @@ void Mesh::loadResource() {
     folderNode->name = baseName;
 
     for (int i = 0; i < m_data->meshParts.size(); i++) {
-        if (i == 0)
-            continue;
-
         MeshPart* meshPart = m_data->meshParts[i].get();
         
         std::string partName = std::format("part_{:0>3}.mesh", i);
@@ -189,6 +215,10 @@ void Mesh::loadResource() {
 
     MeshPart* meshPart = m_data->meshParts[0].get();
     uploadData(meshPart);
+    //if (m_transform != nullptr) {
+    //    delete m_transform;
+    //}
+    //m_transform = new transformf(meshPart->partTransform);
 
     cinder::log("Mesh created with " + std::to_string(m_data->meshParts.size()) + " parts.");
     m_data.reset();

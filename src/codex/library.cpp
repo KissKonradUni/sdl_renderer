@@ -352,6 +352,20 @@ void Library::assetsInspector() {
             ImGui::EndChild();
 
             } break;
+        case FileType::MESH_PART:
+        case FileType::MESH_FILE: {
+                auto mesh = (Mesh*)(instance->m_selectedAsset);
+
+                ImGui::Text("Mesh: %s", mesh->getNode()->name.c_str());
+                ImGui::Text("Transform: ");
+                auto transform = mesh->getTransform();
+                auto position = transform->unsafe_getPosition();
+                auto rotation = transform->unsafe_getRotation();
+                auto scale    = transform->unsafe_getScale();
+                ImGui::InputFloat3("Position", &position->x);
+                ImGui::InputFloat3("Rotation", &rotation->x);
+                ImGui::InputFloat3("Scale",    &scale->x);
+            } break;
         default:
             ImGui::Text("No inspector for this asset type.");
             break;

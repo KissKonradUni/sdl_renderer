@@ -270,6 +270,21 @@ vector4f matrix4x4f::operator*(const vector4f& vector) const {
 }
 
 // Transformf
+transformf::transformf(const transformf& other) {
+    this->m_position = other.m_position;
+    this->m_rotation = other.m_rotation;
+    this->m_scale    = other.m_scale;
+    this->m_parent   = other.m_parent;
+    this->m_dirty    = true; 
+}
+
+transformf::transformf(const vector4f& position, const vector4f& rotation, const vector4f& scale) {
+    this->m_position = position;
+    this->m_rotation = rotation;
+    this->m_scale    = scale;
+    this->m_parent   = nullptr;
+    this->m_dirty    = true;
+}
 
 void transformf::moveBy(const vector4f& movement) {
     m_position += movement;
@@ -288,7 +303,7 @@ void transformf::scaleBy(const vector4f& scale) {
     m_dirty = true;
 }
 
-matrix4x4f transformf::getModelMatrix() {
+matrix4x4f& transformf::getModelMatrix() {
     if (!m_dirty) {
         return m_modelMatrix;
     }

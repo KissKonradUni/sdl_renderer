@@ -285,12 +285,29 @@ struct alignas(16) transformf {
 public:
     // Create a base transform at the origin
     transformf() {}
+
     /**
      * @brief Create a transform with a parent.
      * 
      * @param parent The parent transform.
      */
     transformf(transformf* parent) : m_parent(parent) {}
+
+    /**
+     * @brief Clone the transform.
+     * 
+     * @param other The transform to clone.
+     */
+    transformf(const transformf& other);
+
+    /**
+     * @brief Construct a new transformf object with position, rotation and scale.
+     * 
+     * @param position The position of the object.
+     * @param rotation The rotation of the object.
+     * @param scale    The scale of the object.
+     */
+    transformf(const vector4f& position, const vector4f& rotation, const vector4f& scale);
 
     /**
      * @return vector4f The position of the object.
@@ -348,7 +365,7 @@ public:
     /**
      * @return matrix4x4f The model matrix of the object. (World -> Local)
      */
-    matrix4x4f getModelMatrix();
+    matrix4x4f& getModelMatrix();
 
     /**
      * @brief Gets the position of the object, but in a direct way.
@@ -376,6 +393,33 @@ public:
      * @return vector4f* The scale of the object.
      */
     inline vector4f* unsafe_getScale() { return &m_scale; }
+
+    /**
+     * @brief Sets the position of the object, but in a direct way.
+     * This is not recommended to use, as it does not update the model matrix.
+     * Use `setPosition()` instead.
+     * 
+     * @param position The new position of the object.
+     */
+    inline void unsafe_setPosition(const vector4f& position) { this->m_position = position; }
+
+    /**
+     * @brief Sets the rotation of the object, but in a direct way.
+     * This is not recommended to use, as it does not update the model matrix.
+     * Use `setRotation()` instead.
+     *
+     * @param rotation 
+     */
+    inline void unsafe_setRotation(const vector4f& rotation) { this->m_rotation = rotation; }
+
+    /**
+     * @brief Sets the scale of the object, but in a direct way.
+     * This is not recommended to use, as it does not update the model matrix.
+     * Use `setScale()` instead.
+     *
+     * @param scale 
+     */
+    inline void unsafe_setScale(const vector4f& scale) { this->m_scale = scale; }
 
     /**
      * @brief Mark the transform as dirty.
