@@ -40,14 +40,19 @@ protected:
 
     float m_fieldOfView;
 
-    // Order is specific to allow memcpy to work
+    // Order is important for std140 layout
     matrix4x4f m_translation;
     matrix4x4f m_lookAt;
-    matrix4x4f m_view;
-    matrix4x4f m_projection;
+    union {
+        struct {
+            matrix4x4f m_view;
+            matrix4x4f m_projection;
 
-    vector4f m_position;
-    vector4f m_forward;
+            vector4f m_position;
+            vector4f m_forward;
+        };
+        CameraUniformBufferData m_shaderBufferData;
+    };
     vector4f m_rotation;
 public:
     Camera(CameraViewport viewport, float fieldOfView, vector4f position, vector4f rotation);

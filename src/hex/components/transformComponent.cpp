@@ -26,7 +26,7 @@ void TransformComponent::update() {
     // Nothing to do
 }
 
-void TransformComponent::render() {
+void TransformComponent::render(codex::Shader* overrideShader) {
     // Nothing to do
 }
 

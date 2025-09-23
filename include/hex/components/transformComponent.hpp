@@ -14,7 +14,7 @@ public:
     constexpr const std::string getPrettyName() const override { return "Transform"; }
 
     void update() override;
-    void render() override;
+    void render(codex::Shader* overrideShader = nullptr) override;
 
     inline transformf& getTransform() { return m_transform; }
 

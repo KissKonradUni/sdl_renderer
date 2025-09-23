@@ -19,7 +19,7 @@ public:
     constexpr const std::string getPrettyName() const override { return "Renderer"; }
 
     void update() override;
-    void render() override;
+    void render(codex::Shader* overrideShader = nullptr) override;
 
     virtual bool resolveDependencies() override;
     virtual void onParentChanged() override;

@@ -34,14 +34,14 @@ void Actor::update() {
     }
 }
 
-void Actor::render() {
+void Actor::render(codex::Shader* overrideShader) {
     if (!m_enabled) {
         return;
     }
 
     for (const auto& component : m_components) {
         if (component->isEnabled())
-            component->render();
+            component->render(overrideShader);
     }
 }
 

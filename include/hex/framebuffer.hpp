@@ -6,7 +6,7 @@ namespace hex {
 
 class Framebuffer {
 public:
-    Framebuffer(int width, int height);
+    Framebuffer(int width, int height, bool depthOnly = false);
     ~Framebuffer();
 
     void bind();

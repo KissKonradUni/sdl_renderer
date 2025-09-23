@@ -92,7 +92,7 @@ void Texture::loadResource() {
 
     bool empty = m_data->pixels == nullptr;
 
-    unsigned int internalFormat = m_highPrecision ? GL_RGBA16F : GL_RGBA8;
+    unsigned int internalFormat = m_highPrecision ? (m_channels == 1 ? GL_R16F : GL_RGBA16F) : (m_channels == 1 ? GL_R8 : GL_RGBA8);
     unsigned int type = m_highPrecision ? GL_FLOAT : GL_UNSIGNED_BYTE;
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_data->width, m_data->height,
                  0, GL_RGBA, type, empty ? NULL : m_data->pixels);
@@ -128,7 +128,7 @@ void Texture::bind(int slot) const {
 
 void Texture::resize(int width, int height) {
     glBindTexture(GL_TEXTURE_2D, m_textureHandle);
-    unsigned int internalFormat = m_highPrecision ? GL_RGBA16F : GL_RGBA8;
+    unsigned int internalFormat = m_highPrecision ? (m_channels == 1 ? GL_R16F : GL_RGBA16F) : (m_channels == 1 ? GL_R8 : GL_RGBA8);
     unsigned int type = m_highPrecision ? GL_FLOAT : GL_UNSIGNED_BYTE;
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_RGBA, type, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);

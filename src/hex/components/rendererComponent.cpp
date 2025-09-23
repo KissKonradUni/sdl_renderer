@@ -22,7 +22,7 @@ void RendererComponent::update() {
     // Nothing to do here
 }
 
-void RendererComponent::render() {
+void RendererComponent::render(codex::Shader* overrideShader) {
     if (m_shader == nullptr || m_mesh == nullptr) {
         return;
     }
@@ -31,19 +31,24 @@ void RendererComponent::render() {
         return;
     }
 
-    m_shader->bind();
-    if (m_material != nullptr && m_material->isInitialized())
-        m_material->bindTextures(m_shader);
+    matrix4x4f& baseTransform = m_transformComponent->getTransform().getModelMatrix();
+    matrix4x4f& meshTransform = m_mesh->getTransform()->getModelMatrix();
+
+    if (overrideShader == nullptr) {
+        m_shader->bind();
+        if (m_material != nullptr && m_material->isInitialized())
+            m_material->bindTextures(m_shader);
+        m_shader->setUniform("modelMatrix", baseTransform * meshTransform);
+    } else {
+        overrideShader->bind();
+        overrideShader->setUniform("modelMatrix", baseTransform * meshTransform);
+    }
 
     if (m_transformComponent == nullptr) {
         cinder::warn("Renderer component requires a transform component.");
         return;
     }
 
-    matrix4x4f& baseTransform = m_transformComponent->getTransform().getModelMatrix();
-    matrix4x4f& meshTransform = m_mesh->getTransform()->getModelMatrix();
-
-    m_shader->setUniform("modelMatrix", baseTransform * meshTransform);
     m_mesh->draw();
 }
 

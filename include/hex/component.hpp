@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+#include "codex/shader.hpp"
+
 namespace hex {
 
 // Forward declaration
@@ -35,7 +37,7 @@ public:
     virtual constexpr const std::string getPrettyName() const = 0;
 
     virtual void update() = 0;
-    virtual void render() = 0;
+    virtual void render(codex::Shader* overrideShader = nullptr) = 0;
 
     Actor* const getActor() const;
 

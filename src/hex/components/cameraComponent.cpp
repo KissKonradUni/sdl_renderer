@@ -15,7 +15,7 @@ void CameraComponent::update() {
 
 }
 
-void CameraComponent::render() {
+void CameraComponent::render(codex::Shader* overrideShader) {
     if (m_cameraUniformBuffer)
         m_cameraUniformBuffer->updateData(m_camera->getShaderBufferPointer());
     else 

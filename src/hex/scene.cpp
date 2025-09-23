@@ -19,9 +19,9 @@ void Scene::update() {
     }
 }
 
-void Scene::render() {
+void Scene::render(codex::Shader* overrideShader) {
     for (const auto& actor : m_actors) {
-        actor->render();
+        actor->render(overrideShader);
     }
 }
 

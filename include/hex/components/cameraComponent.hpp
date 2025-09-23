@@ -14,9 +14,10 @@ public:
     constexpr const std::string getPrettyName() const override { return "Camera"; }
 
     void update() override;
-    void render() override;
+    void render(codex::Shader* overrideShader = nullptr) override;
 
     inline CameraInput* getCameraInput() { return &m_cameraInput; }
+    inline Camera* getCamera() const { return m_camera.get(); }
 
     void resizeCamera(float width, float height);
     void sendDebugCameraInput(float deltaTime);

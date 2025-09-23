@@ -52,7 +52,7 @@ void Camera::updateProjectionMatrix() {
         this->m_fieldOfView * (SDL_PI_F / 180.0f), 
         this->m_viewport.w / this->m_viewport.h, 
         0.5f,   
-        100.0f
+        100.0f //TODO: make configurable
     );
 }
 
@@ -75,7 +75,7 @@ CameraUniformBufferData* Camera::getShaderBufferPointer() {
     updateViewMatrix();
     updateForwardVector();
 
-    return reinterpret_cast<CameraUniformBufferData*>(&m_view);
+    return &m_shaderBufferData;
 }
 
 void Camera::cameraWindow(bool separateWindow) {

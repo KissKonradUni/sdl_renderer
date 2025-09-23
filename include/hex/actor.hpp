@@ -5,6 +5,7 @@
 
 #include "cinder.hpp"
 #include "hex/component.hpp"
+#include "codex/shader.hpp"
 
 namespace hex {
 
@@ -18,7 +19,7 @@ public:
     Actor& operator=(const Actor&) = delete;
 
     void update();
-    void render();
+    void render(codex::Shader* overrideShader = nullptr);
 
     template<typename ComponentType = Component, typename... Args>
     bool addComponent(Args&&... args) {

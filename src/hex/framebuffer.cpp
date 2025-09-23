@@ -8,8 +8,8 @@ namespace hex {
 
 // Framebuffer
     
-Framebuffer::Framebuffer(int width, int height) 
-    : m_colorTarget(nullptr, width, height, 4)
+Framebuffer::Framebuffer(int width, int height, bool depthOnly) 
+    : m_colorTarget(nullptr, width, height, depthOnly ? 1 : 4, depthOnly)
 {
     glGenFramebuffers(1, &m_framebufferHandle);
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferHandle);

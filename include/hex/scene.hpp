@@ -10,7 +10,7 @@ public:
     ~Scene();
 
     void update();
-    void render();
+    void render(codex::Shader* overrideShader = nullptr);
 
     Actor* newActor();
     void removeActor(Actor* actor);
