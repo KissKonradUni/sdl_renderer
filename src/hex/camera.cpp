@@ -78,8 +78,9 @@ CameraUniformBufferData* Camera::getShaderBufferPointer() {
     return reinterpret_cast<CameraUniformBufferData*>(&m_view);
 }
 
-void Camera::cameraWindow() {
-    ImGui::Begin("Camera", nullptr);
+void Camera::cameraWindow(bool separateWindow) {
+    if (separateWindow)
+        ImGui::Begin("Camera", nullptr);
     
     if (!ImGui::BeginTable("##cam_props", 2, ImGuiTableFlags_SizingStretchProp)) {
         ImGui::End();
@@ -120,7 +121,8 @@ void Camera::cameraWindow() {
 
     ImGui::EndTable();
 
-    ImGui::End();
+    if (separateWindow)
+        ImGui::End();
 }
 
 }; // namespace hex

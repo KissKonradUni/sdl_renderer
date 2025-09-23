@@ -78,7 +78,7 @@ public:
     const vector4f& getRotation() const { return m_rotation; }
     void setRotation(vector4f rotation) { m_rotation = rotation; }
 
-    void cameraWindow();
+    void cameraWindow(bool separateWindow = true);
 };
 
 } // namespace hex

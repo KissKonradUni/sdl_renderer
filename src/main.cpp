@@ -2,6 +2,7 @@
 #include "cinder.hpp"
 #include "floatmath.hpp"
 
+#include "hex/components/cameraComponent.hpp"
 #include "hex/components/rendererComponent.hpp"
 #include "hex/components/transformComponent.hpp"
 #include "hex/scene.hpp"
@@ -49,9 +50,7 @@ std::unique_ptr<cinder::App> app;
 // TODO: make some kind of manager, move to app
 Scene scene;
 
-// TODO: make a component for this, add to actor, move to scene
-std::unique_ptr<Camera> camera = nullptr;
-std::unique_ptr<UniformBuffer> cameraUniformBuffer = nullptr;
+CameraComponent* activeCameraComponent = nullptr;
 // TODO: make it a part of input maybe?
 CameraInput cameraInput;
 
@@ -66,16 +65,6 @@ codex::Mesh *quadMesh = nullptr;
 codex::Shader *combineShader = nullptr;
 codex::Shader *probesShader = nullptr;
 
-void initCamera() {
-    camera = std::make_unique<Camera>(
-        CameraViewport{0.0f, 0.0f, 1920.0f, 1200.0f},
-        80.0f,
-        vector4f(0.0f, 0.0f, 4.0f, 0.0f),
-        vector4f::zero()
-    );
-    cameraUniformBuffer = std::make_unique<UniformBuffer>(sizeof(CameraUniformBufferData), 0);
-}
-
 void initGLParams() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -87,6 +76,11 @@ void initDebugStuff() {
     using namespace cinder;
 
     auto library = app->getLibrary();
+
+    Actor* cameraActor = scene.newActor();
+    cameraActor->setName("Camera");
+    cameraActor->addComponent<CameraComponent>();
+    activeCameraComponent = cameraActor->getComponent<CameraComponent>();
 
     std::filesystem::path assetPath = "./assets/shaders/glsl/Deferred.shader";
     library->formatPath(&assetPath);
@@ -290,12 +284,7 @@ void renderWindow() {
         lastFrameWindowSize.y = height;
         lastFrameWindowSize.dpi = dpi;
 
-        camera->setViewport({
-            0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)
-        });
-        camera->updateProjectionMatrix();
-        glViewport(0, 0, width, height);
-
+        activeCameraComponent->resizeCamera(width, height);
         sceneFramebuffer->resize(width, height);
         combinedFramebuffer->resize(width, height);
     }
@@ -360,7 +349,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     if (result != SDL_APP_CONTINUE)
         return result;
 
-    initCamera();
     initGLParams();
     initEvents();
 
@@ -380,7 +368,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     ui->addUIFunction(Library::assetsWindow);
     ui->addUIFunction([]() {
         app->getConsole()->drawConsole();
-        camera->cameraWindow();
         scene.editorUI();
     });
 
@@ -418,7 +405,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // Process new frame
 
     app->getUIManager()->newFrame();
-    camera->update(cameraInput, deltaTime);
+    activeCameraComponent->sendDebugCameraInput(cameraInput, deltaTime);
     
     // ======================
     // Update "game" logic
@@ -442,7 +429,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
 
-        cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
         scene.render();
 
     sceneFramebuffer->unbind();
@@ -482,7 +468,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         sceneFramebuffer->getAORoughnessMetallicTarget().bind(3);
 
         glDisable(GL_CULL_FACE);
-        cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
         quadMesh->draw();
 
     combinedFramebuffer->unbind();
@@ -517,7 +502,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         sceneFramebuffer->getAORoughnessMetallicTarget().bind(3);
         
         glDisable(GL_CULL_FACE);
-        cameraUniformBuffer->updateData(camera->getShaderBufferPointer());
         quadMesh->draw();
 
     radianceProbesFramebuffer->unbind();
