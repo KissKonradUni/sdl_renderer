@@ -49,10 +49,7 @@ std::unique_ptr<cinder::App> app;
 
 // TODO: make some kind of manager, move to app
 Scene scene;
-
 CameraComponent* activeCameraComponent = nullptr;
-// TODO: make it a part of input maybe?
-CameraInput cameraInput;
 
 // TODO: make it part of prism (rendering module)
 typedef struct { int x, y; float dpi; } windowStruct;
@@ -141,26 +138,26 @@ void initEvents() {
     events->add(SDL_EVENT_KEY_DOWN, [](SDL_Event* event) {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
-                cameraInput.movement.y = -1.0f;
+                activeCameraComponent->getCameraInput()->movement.y = -1.0f;
                 break;
             case SDL_SCANCODE_S:
-                cameraInput.movement.y = 1.0f;
+                activeCameraComponent->getCameraInput()->movement.y = 1.0f;
                 break;
             case SDL_SCANCODE_A:
-                cameraInput.movement.x = -1.0f;
+                activeCameraComponent->getCameraInput()->movement.x = -1.0f;
                 break;
             case SDL_SCANCODE_D:
-                cameraInput.movement.x = 1.0f;
+                activeCameraComponent->getCameraInput()->movement.x = 1.0f;
                 break;
             case SDL_SCANCODE_SPACE:
-                cameraInput.movement.z = 1.0f;
+                activeCameraComponent->getCameraInput()->movement.z = 1.0f;
                 break;
             case SDL_SCANCODE_LSHIFT:
-                cameraInput.movement.z = -1.0f;
+                activeCameraComponent->getCameraInput()->movement.z = -1.0f;
                 break;
             case SDL_SCANCODE_ESCAPE:
-                cameraInput.lock = !cameraInput.lock;
-                cameraInput.rotation = {0.0f, 0.0f};
+                activeCameraComponent->getCameraInput()->lock = !activeCameraComponent->getCameraInput()->lock;
+                activeCameraComponent->getCameraInput()->rotation = {0.0f, 0.0f};
                 break;
             default:
                 break;
@@ -171,15 +168,15 @@ void initEvents() {
         switch (event->key.scancode) {
             case SDL_SCANCODE_W:
             case SDL_SCANCODE_S:
-                cameraInput.movement.y = 0.0f;
+                activeCameraComponent->getCameraInput()->movement.y = 0.0f;
                 break;
             case SDL_SCANCODE_A:
             case SDL_SCANCODE_D:
-                cameraInput.movement.x = 0.0f;
+                activeCameraComponent->getCameraInput()->movement.x = 0.0f;
                 break;
             case SDL_SCANCODE_SPACE:
             case SDL_SCANCODE_LSHIFT:
-                cameraInput.movement.z = 0.0f;
+                activeCameraComponent->getCameraInput()->movement.z = 0.0f;
                 break;
             default:
                 break;
@@ -187,8 +184,8 @@ void initEvents() {
         return SDL_APP_CONTINUE;
     });
     events->add(SDL_EVENT_MOUSE_MOTION, [](SDL_Event* event) {        
-        cameraInput.rotation.pitch += event->motion.xrel;
-        cameraInput.rotation.yaw   += event->motion.yrel;
+        activeCameraComponent->getCameraInput()->rotation.pitch += event->motion.xrel;
+        activeCameraComponent->getCameraInput()->rotation.yaw   += event->motion.yrel;
 
         return SDL_APP_CONTINUE;
     });
@@ -301,7 +298,7 @@ void renderWindow() {
     );
 
     ImGui::SetCursorPos(ImVec2(10, startPos));
-    ImGui::Text("Input: %s", cameraInput.lock ? "Locked" : "Captured");
+    ImGui::Text("Input: %s", activeCameraComponent->getCameraInput()->lock ? "Locked" : "Captured");
 
     ImGui::End();
 }
@@ -405,7 +402,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // Process new frame
 
     app->getUIManager()->newFrame();
-    activeCameraComponent->sendDebugCameraInput(cameraInput, deltaTime);
+    activeCameraComponent->sendDebugCameraInput(deltaTime);
     
     // ======================
     // Update "game" logic

@@ -28,8 +28,8 @@ void CameraComponent::resizeCamera(float width, float height) {
     glViewport(0, 0, width, height);
 }
 
-void CameraComponent::sendDebugCameraInput(CameraInput& input, float deltaTime) {
-    m_camera->update(input, deltaTime);
+void CameraComponent::sendDebugCameraInput(float deltaTime) {
+    m_camera->update(m_cameraInput, deltaTime);
 }
 
 void CameraComponent::editorUI() {

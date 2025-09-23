@@ -16,13 +16,16 @@ public:
     void update() override;
     void render() override;
 
+    inline CameraInput* getCameraInput() { return &m_cameraInput; }
+
     void resizeCamera(float width, float height);
-    void sendDebugCameraInput(CameraInput& input, float deltaTime);
+    void sendDebugCameraInput(float deltaTime);
 
     virtual void editorUI() override;
 protected:
     std::unique_ptr<Camera> m_camera = nullptr;
     std::unique_ptr<codex::UniformBuffer> m_cameraUniformBuffer = nullptr;
+    CameraInput m_cameraInput;
 };
 
 }; // namespace hex
