@@ -9,18 +9,16 @@ uniform sampler2D gNormal;
 uniform sampler2D gPosition;
 uniform sampler2D gAORoughnessMetallic;
 
-uniform vec4 screenSize;
-
 in vec3 cameraPosition;
 in vec3 cameraDirection;
 in mat4 cameraMatrix;
-in mat4 cameraInverseMatrix;
 
 uniform sampler2D shadowMap;
 uniform mat4 lightViewMatrix;
 uniform mat4 lightProjectionMatrix;
+uniform vec4 lightDirection;
 
-float checkShadow(vec3 fragPos)
+float checkShadow(vec3 fragPos, vec3 normal)
 {
     vec4 lightSpacePos = vec4(fragPos, 1.0) * lightViewMatrix * lightProjectionMatrix;
     vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
@@ -30,7 +28,7 @@ float checkShadow(vec3 fragPos)
     if(projCoords.z > 1.0 || projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0)
         return 0.0;
 
-    float bias = 0.005;
+    float bias = 0.0005;
     float shadow = 0.0;
     float samples = 0.0;
     float texelSize = 1.0 / textureSize(shadowMap, 0).x;
@@ -52,12 +50,9 @@ float checkShadow(vec3 fragPos)
 // Direcitional light
 vec2 calculateSkyboxLighting(vec3 position, vec3 normal, vec3 viewDir)
 {
-    vec3 lightRot = vec3(1.4, 0.3, 0.0);
-    vec3 lightDir = vec3(sin(lightRot.y) * cos(lightRot.x), sin(lightRot.x), cos(lightRot.y) * cos(lightRot.x));
-    lightDir = normalize(lightDir);
-    vec3 halfwayDir = normalize(lightDir + viewDir);
+    vec3 halfwayDir = normalize(lightDirection.xyz + viewDir);
 
-    float diff = max(dot(normal, lightDir), 0.0);
+    float diff = max(dot(normal, lightDirection.xyz), 0.0);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 256.0);
 
     return vec2(diff, spec);
@@ -74,36 +69,17 @@ void main()
     float roughness = aoRoughnessMetallic.g;
     float metallic  = aoRoughnessMetallic.b;
 
-    vec4 skyboxColor = vec4(0.5, 0.7, 1.0, 1.0);
-    if (length(position) <= 0.001) {
-        outputColor = skyboxColor;
-        return;
+    vec4 skyboxColor = vec4(0.8, 0.9, 1.0, 1.0);
+    if (length(position) <= 0.001)
+    {
+        discard;
     }
 
-    vec3 lightPos   = vec3(-2.5, 3.0, -0.5);
-
-    vec3 lightDir   = normalize(lightPos - position);
-    vec3 viewDir    = normalize(cameraPosition - position);
-    vec3 halfwayDir = normalize(lightDir + viewDir);
-
-    float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = albedo * diff;
-
-    float specPower = mix(16.0, 256.0, 1.0 - roughness);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), specPower);
-    vec3 specular = vec3(0.5) * spec;
-
-    float strength = 3.0;
-    float attenuation = 1.0 / length(lightPos - position) * strength;
-    attenuation = clamp(attenuation, 0.0, 1.0);
-
-    diffuse *= attenuation;
-    specular *= attenuation;
-
-    float shadow = checkShadow(position);
-    vec2 skyboxLighting = calculateSkyboxLighting(position, normal, viewDir) * (1.0 - shadow);
-    diffuse += albedo * skyboxColor.xyz * skyboxLighting.x;
-    specular += skyboxColor.xyz * skyboxLighting.y;
+    // Sample the skybox in the direction of the normal
+    float shadow = checkShadow(position, normal);
+    vec2 skyboxLighting = calculateSkyboxLighting(position, normal, cameraDirection) * (1.0 - shadow * 0.80);
+    vec3 diffuse = albedo * skyboxColor.xyz * skyboxLighting.x;
+    vec3 specular = skyboxColor.xyz * skyboxLighting.y;
 
     outputColor = vec4(diffuse + specular, 1.0);
     outputColor.rgb *= (ao * 0.5 + 0.5);

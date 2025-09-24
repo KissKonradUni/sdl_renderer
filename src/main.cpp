@@ -56,6 +56,7 @@ windowStruct lastFrameWindowSize{100, 100, 1.0f};
 std::unique_ptr<GBuffer> sceneFramebuffer = nullptr;
 std::unique_ptr<Framebuffer> combinedFramebuffer = nullptr;
 
+vector4f lightDirection = vector4f::zero();
 matrix4x4f lightViewMatrix = matrix4x4f::identity();
 matrix4x4f lightProjectionMatrix = matrix4x4f::identity();
 std::unique_ptr<Framebuffer> shadowCastingFramebuffer = nullptr;
@@ -63,6 +64,11 @@ std::unique_ptr<Framebuffer> shadowCastingFramebuffer = nullptr;
 codex::Mesh *quadMesh = nullptr;
 codex::Shader *combineShader = nullptr;
 codex::Shader *shadowShader = nullptr;
+double shadowLastTime = 0.0;
+
+codex::Mesh *skyboxMesh = nullptr;
+codex::Shader *skyboxShader = nullptr;
+codex::Texture *skyboxTexture = nullptr;
 
 void initGLParams() {
     glEnable(GL_DEPTH_TEST);
@@ -107,7 +113,7 @@ void initDebugStuff() {
     shadowShader = library->tryLoadResource<Shader>(probesNode);
 
     // Load later so shaders are ready
-    assetPath = "./assets/models/sponza.glb";
+    assetPath = "./assets/models/shading_example.glb";
     //assetPath = "./assets/models/NewSponza_Main_glTF_003.gltf";
     library->formatPath(&assetPath);
     auto meshNode = library->tryGetAssetNode(assetPath);
@@ -131,11 +137,32 @@ void initDebugStuff() {
     actor->getComponent<TransformComponent>()->getTransform().setPosition(vector4f(0.0f, 0.0f, -5.0f, 0.0f));
     */
 
+    // Setup light
+    
+    lightDirection = vector4f(SDL_PI_F / 2 * 0.75, SDL_PI_F / 4, 0.0f, 0.0f);
     matrix4x4f lightTranslation = matrix4x4f::translation(vector4f(0.0f, 45.0f, 0.0f, 1.0f) * -1.0f);
-    matrix4x4f lightRotation = matrix4x4f::lookAt(vector4f(1.4f, 0.3f, 0.0f, 0.0f));
-    matrix4x4f lightPerspective = matrix4x4f::orthographic(-20.0f, 20.0f, -30.0f, 0.0f, 0.1f, 100.0f);
-    lightViewMatrix = lightTranslation * lightRotation;
+    matrix4x4f lightLookAt = matrix4x4f::lookAt(lightDirection);
+    matrix4x4f lightPerspective = matrix4x4f::orthographic(-25.0f, 25.0f, -40.0f, 10.0f, 0.1f, 100.0f);
+    lightViewMatrix = lightTranslation * lightLookAt;
     lightProjectionMatrix = lightPerspective;
+    lightDirection = (vector4f::front() * lightLookAt * -1.0f).normalize3d();
+
+    // Setup skybox
+
+    assetPath = "./assets/models/skybox.glb";
+    library->formatPath(&assetPath);
+    auto skyboxNode = library->tryGetAssetNode(assetPath);
+    skyboxMesh = library->tryLoadResource<Mesh>(skyboxNode);
+
+    assetPath = "./assets/images/hdri.jpg";
+    library->formatPath(&assetPath);
+    auto skyboxTexNode = library->tryGetAssetNode(assetPath);
+    skyboxTexture = library->tryLoadResource<Texture>(skyboxTexNode);
+
+    assetPath = "./assets/shaders/glsl/Skybox.shader";
+    library->formatPath(&assetPath);
+    auto skyboxShaderNode = library->tryGetAssetNode(assetPath);
+    skyboxShader = library->tryLoadResource<Shader>(skyboxShaderNode);
 }
 
 void initEvents() {    
@@ -443,7 +470,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // Shadow pass
     // TODO: only render when something changed or from time to time
 
-    if (shadowShader->isInitialized()) {
+    if (shadowShader->isInitialized() && shadowLastTime + 1 < nowTime) {
+    shadowLastTime = nowTime;
 
     shadowCastingFramebuffer->bind();
 
@@ -500,8 +528,27 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
         combineShader->setUniform("lightViewMatrix", lightViewMatrix);
         combineShader->setUniform("lightProjectionMatrix", lightProjectionMatrix);
+        combineShader->setUniform("lightDirection", lightDirection);
 
         quadMesh->draw();
+
+        if (skyboxShader->isInitialized() && skyboxMesh->isInitialized() && skyboxTexture->isInitialized()) {
+            glDisable(GL_CULL_FACE);
+            glEnable(GL_DEPTH_TEST);
+
+            skyboxShader->bind();
+            skyboxShader->setUniform("viewMatrix", activeCameraComponent->getCamera()->getViewMatrix());
+            skyboxShader->setUniform("projectionMatrix", activeCameraComponent->getCamera()->getProjectionMatrix());
+            skyboxShader->setUniform("cameraPosition", activeCameraComponent->getCamera()->getPosition());
+            
+            skyboxTexture->bind(0);
+            skyboxShader->setUniform("skyboxTexture", 0);
+
+            skyboxMesh->draw();
+
+            glEnable(GL_CULL_FACE);
+            glDisable(GL_DEPTH_TEST);
+        }
 
     combinedFramebuffer->unbind();
 

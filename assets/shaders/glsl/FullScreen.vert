@@ -15,7 +15,6 @@ layout(std140, binding = 0) uniform Camera {
 out vec3 cameraPosition;
 out vec3 cameraDirection;
 out mat4 cameraMatrix;
-out mat4 cameraInverseMatrix;
 
 void main()
 {
@@ -25,5 +24,4 @@ void main()
     cameraPosition = camPosition;
     cameraDirection = camDirection;
     cameraMatrix = camProjection * camView;
-    cameraInverseMatrix = inverse(cameraMatrix);
 }
