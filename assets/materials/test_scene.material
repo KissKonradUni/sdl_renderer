@@ -1,0 +1,8 @@
+{
+    "name": "Test scene material",
+    "textures": {
+        "textureDiffuse":             "./assets/images/test_scene/diffuse.png",
+        "textureNormal":              "./assets/images/test_scene/normal.png",
+        "textureAORoughnessMetallic": "./assets/images/test_scene/aorm.png"
+    }
+}

@@ -54,8 +54,11 @@ protected:
         CameraUniformBufferData m_shaderBufferData;
     };
     vector4f m_rotation;
+
+    bool m_isOrthographic = false;
 public:
     Camera(CameraViewport viewport, float fieldOfView, vector4f position, vector4f rotation);
+    Camera(float left, float right, float bottom, float top, float nearPlane, float farPlane);
     Camera(CameraViewport viewport);
 
     void update(CameraInput& input, float deltaTime, float mouseSensitivity = 0.314f);

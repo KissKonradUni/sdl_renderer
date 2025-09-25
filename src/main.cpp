@@ -56,9 +56,11 @@ windowStruct lastFrameWindowSize{100, 100, 1.0f};
 std::unique_ptr<GBuffer> sceneFramebuffer = nullptr;
 std::unique_ptr<Framebuffer> combinedFramebuffer = nullptr;
 
-vector4f lightDirection = vector4f::zero();
-matrix4x4f lightViewMatrix = matrix4x4f::identity();
-matrix4x4f lightProjectionMatrix = matrix4x4f::identity();
+Camera ligthCamera(
+    25.0f, -25.0f,
+    -50.0f, 0.0f,
+    0.1f, 100.0f
+);
 std::unique_ptr<Framebuffer> shadowCastingFramebuffer = nullptr;
 
 codex::Mesh *quadMesh = nullptr;
@@ -113,7 +115,7 @@ void initDebugStuff() {
     shadowShader = library->tryLoadResource<Shader>(probesNode);
 
     // Load later so shaders are ready
-    assetPath = "./assets/models/shading_example.glb";
+    assetPath = "./assets/models/sponza.glb";
     //assetPath = "./assets/models/NewSponza_Main_glTF_003.gltf";
     library->formatPath(&assetPath);
     auto meshNode = library->tryGetAssetNode(assetPath);
@@ -139,13 +141,9 @@ void initDebugStuff() {
 
     // Setup light
     
-    lightDirection = vector4f(SDL_PI_F / 2 * 0.75, SDL_PI_F / 4, 0.0f, 0.0f);
-    matrix4x4f lightTranslation = matrix4x4f::translation(vector4f(0.0f, 45.0f, 0.0f, 1.0f) * -1.0f);
-    matrix4x4f lightLookAt = matrix4x4f::lookAt(lightDirection);
-    matrix4x4f lightPerspective = matrix4x4f::orthographic(-25.0f, 25.0f, -35.0f, 15.0f, 0.1f, 100.0f);
-    lightViewMatrix = lightTranslation * lightLookAt;
-    lightProjectionMatrix = lightPerspective;
-    lightDirection = (vector4f::front() * lightLookAt * -1.0f).normalize3d();
+    auto lightRotation = vector4f(SDL_PI_F / 2.0f * 0.75f, SDL_PI_F / -4.0f * 3.0f, 0.0f, 0.0f);
+    ligthCamera.setPosition(vector4f(0.0f, 45.0f, 0.0f, 0.0f));
+    ligthCamera.setRotation(lightRotation);
 
     // Setup skybox
 
@@ -445,6 +443,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     // if (mesh)
     //     mesh->rotation.y += deltaTime * 0.314f;
+    
 
     // ======================
     // Render
@@ -470,7 +469,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     // Shadow pass
     // TODO: only render when something changed or from time to time
 
-    if (shadowShader->isInitialized() && shadowLastTime + 1 < nowTime) {
+    if (shadowShader->isInitialized() && shadowLastTime + 0.32 < nowTime) {
     shadowLastTime = nowTime;
 
     shadowCastingFramebuffer->bind();
@@ -483,8 +482,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glDepthFunc(GL_LESS);
         
         shadowShader->bind();
-        shadowShader->setUniform("viewMatrix", lightViewMatrix);
-        shadowShader->setUniform("projectionMatrix", lightProjectionMatrix);
+        shadowShader->setUniform("viewMatrix", ligthCamera.getViewMatrix());
+        shadowShader->setUniform("projectionMatrix", ligthCamera.getProjectionMatrix());
         // Render all objects again
         scene.render(shadowShader);
 
@@ -526,9 +525,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         sceneFramebuffer->getAORoughnessMetallicTarget().bind(3);
         shadowCastingFramebuffer->getColorTarget().bind(4);
 
-        combineShader->setUniform("lightViewMatrix", lightViewMatrix);
-        combineShader->setUniform("lightProjectionMatrix", lightProjectionMatrix);
-        combineShader->setUniform("lightDirection", lightDirection);
+        combineShader->setUniform("lightViewMatrix"      , ligthCamera.getViewMatrix());
+        combineShader->setUniform("lightProjectionMatrix", ligthCamera.getProjectionMatrix());
+        combineShader->setUniform("lightDirection"       , ligthCamera.getForwardVector());
 
         skyboxTexture->bind(5);
         combineShader->setUniform("skyboxTexture", 5);

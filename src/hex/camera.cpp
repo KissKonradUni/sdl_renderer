@@ -14,6 +14,17 @@ Camera::Camera(CameraViewport viewport, float fieldOfView, vector4f position, ve
     this->updateProjectionMatrix();
 }
 
+Camera::Camera(float left, float right, float bottom, float top, float nearPlane, float farPlane) {
+    this->m_isOrthographic = true;
+    this->m_viewport = {0.0f, 0.0f, right - left, top - bottom};
+    this->m_fieldOfView = 0.0f;
+
+    this->m_position = vector4f::zero();
+    this->m_rotation = vector4f::zero();
+
+    this->m_projection = matrix4x4f::orthographic(left, right, bottom, top, nearPlane, farPlane);
+}
+
 Camera::Camera(CameraViewport viewport): Camera(viewport, 80.0f, vector4f::zero(), vector4f::zero()) {}
 
 void Camera::update(CameraInput& input, float deltaTime, float mouseSensitivity) {
@@ -48,6 +59,9 @@ matrix4x4f Camera::getViewMatrix() {
 }
 
 void Camera::updateProjectionMatrix() {
+    if (this->m_isOrthographic)
+        return; // TODO: make it changeable
+
     this->m_projection = matrix4x4f::perspective(
         this->m_fieldOfView * (SDL_PI_F / 180.0f), 
         this->m_viewport.w / this->m_viewport.h, 
