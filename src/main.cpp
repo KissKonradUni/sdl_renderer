@@ -142,7 +142,7 @@ void initDebugStuff() {
     lightDirection = vector4f(SDL_PI_F / 2 * 0.75, SDL_PI_F / 4, 0.0f, 0.0f);
     matrix4x4f lightTranslation = matrix4x4f::translation(vector4f(0.0f, 45.0f, 0.0f, 1.0f) * -1.0f);
     matrix4x4f lightLookAt = matrix4x4f::lookAt(lightDirection);
-    matrix4x4f lightPerspective = matrix4x4f::orthographic(-25.0f, 25.0f, -40.0f, 10.0f, 0.1f, 100.0f);
+    matrix4x4f lightPerspective = matrix4x4f::orthographic(-25.0f, 25.0f, -35.0f, 15.0f, 0.1f, 100.0f);
     lightViewMatrix = lightTranslation * lightLookAt;
     lightProjectionMatrix = lightPerspective;
     lightDirection = (vector4f::front() * lightLookAt * -1.0f).normalize3d();
@@ -530,6 +530,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         combineShader->setUniform("lightProjectionMatrix", lightProjectionMatrix);
         combineShader->setUniform("lightDirection", lightDirection);
 
+        skyboxTexture->bind(5);
+        combineShader->setUniform("skyboxTexture", 5);
+
         quadMesh->draw();
 
         if (skyboxShader->isInitialized() && skyboxMesh->isInitialized() && skyboxTexture->isInitialized()) {
@@ -540,7 +543,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
             skyboxShader->setUniform("viewMatrix", activeCameraComponent->getCamera()->getViewMatrix());
             skyboxShader->setUniform("projectionMatrix", activeCameraComponent->getCamera()->getProjectionMatrix());
             skyboxShader->setUniform("cameraPosition", activeCameraComponent->getCamera()->getPosition());
-            
+
             skyboxTexture->bind(0);
             skyboxShader->setUniform("skyboxTexture", 0);
 

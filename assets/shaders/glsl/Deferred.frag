@@ -31,15 +31,11 @@ vec3 normalWithMap()
 void main()
 {
     vec4 combinedData = texture(textureAORoughnessMetallic, fragmentUV);
-    float ao        = combinedData.r;
-    float roughness = combinedData.g;
-    float metallic  = combinedData.b;
-
     vec3 normal = normalWithMap();
     vec3 diffuse = texture(textureDiffuse, fragmentUV).rgb;
 
     gDiffuse = vec4(diffuse, 1.0);
     gNormal = vec4(normal * 0.5 + 0.5, 1.0);
     gPosition = vec4(fragmentPosition, 1.0);
-    gAORoughnessMetallic = vec4(ao, roughness, metallic, 1.0);
+    gAORoughnessMetallic = combinedData;
 }
