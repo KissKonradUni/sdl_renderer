@@ -107,9 +107,12 @@ void Actor::editorUI() {
         ImGui::Separator();
         component->editorUI();
         ImGui::Separator();
-        ImGui::Text("Pointer: %p", this);
+        ImGui::Text("Pointer: %p", component.get());
         ImGui::EndChild();
     }
+
+    ImGui::Separator();
+    ImGui::Text("Pointer: %p", this);
 }
 
 }; // namespace hex

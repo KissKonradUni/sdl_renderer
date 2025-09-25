@@ -56,11 +56,7 @@ windowStruct lastFrameWindowSize{100, 100, 1.0f};
 std::unique_ptr<GBuffer> sceneFramebuffer = nullptr;
 std::unique_ptr<Framebuffer> combinedFramebuffer = nullptr;
 
-Camera ligthCamera(
-    25.0f, -25.0f,
-    -50.0f, 0.0f,
-    0.1f, 100.0f
-);
+Camera* lightCamera = nullptr;
 std::unique_ptr<Framebuffer> shadowCastingFramebuffer = nullptr;
 
 codex::Mesh *quadMesh = nullptr;
@@ -94,7 +90,7 @@ void initDebugStuff() {
     auto shaderNode = library->tryGetAssetNode(assetPath);
     auto shader = library->tryLoadResource<Shader>(shaderNode);
 
-    assetPath = "./assets/materials/Plaster.material";
+    assetPath = "./assets/materials/test_scene.material";
     library->formatPath(&assetPath);
     auto materialNode = library->tryGetAssetNode(assetPath);
     auto material = library->tryLoadResource<Material>(materialNode);
@@ -115,7 +111,7 @@ void initDebugStuff() {
     shadowShader = library->tryLoadResource<Shader>(probesNode);
 
     // Load later so shaders are ready
-    assetPath = "./assets/models/sponza.glb";
+    assetPath = "./assets/models/shading_example.glb";
     //assetPath = "./assets/models/NewSponza_Main_glTF_003.gltf";
     library->formatPath(&assetPath);
     auto meshNode = library->tryGetAssetNode(assetPath);
@@ -141,9 +137,16 @@ void initDebugStuff() {
 
     // Setup light
     
+    Actor* lightActor = scene.newActor();
+    lightActor->setName("Sky light");
+    lightActor->addComponent<CameraComponent>(25.0f, -25.0f, -50.0f, 0.0f, 0.1f, 100.0f);
+    lightCamera = lightActor->getComponent<CameraComponent>()->getCamera();
+    
     auto lightRotation = vector4f(SDL_PI_F / 2.0f * 0.75f, SDL_PI_F / -4.0f * 3.0f, 0.0f, 0.0f);
-    ligthCamera.setPosition(vector4f(0.0f, 45.0f, 0.0f, 0.0f));
-    ligthCamera.setRotation(lightRotation);
+    lightCamera->setPosition(vector4f(0.0f, 45.0f, 0.0f, 0.0f));
+    lightCamera->setRotation(lightRotation);
+
+    lightActor->getComponent<CameraComponent>()->setEnabled(false);
 
     // Setup skybox
 
@@ -482,8 +485,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         glDepthFunc(GL_LESS);
         
         shadowShader->bind();
-        shadowShader->setUniform("viewMatrix", ligthCamera.getViewMatrix());
-        shadowShader->setUniform("projectionMatrix", ligthCamera.getProjectionMatrix());
+        shadowShader->setUniform("viewMatrix", lightCamera->getViewMatrix());
+        shadowShader->setUniform("projectionMatrix", lightCamera->getProjectionMatrix());
         // Render all objects again
         scene.render(shadowShader);
 
@@ -525,9 +528,9 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         sceneFramebuffer->getAORoughnessMetallicTarget().bind(3);
         shadowCastingFramebuffer->getColorTarget().bind(4);
 
-        combineShader->setUniform("lightViewMatrix"      , ligthCamera.getViewMatrix());
-        combineShader->setUniform("lightProjectionMatrix", ligthCamera.getProjectionMatrix());
-        combineShader->setUniform("lightDirection"       , ligthCamera.getForwardVector());
+        combineShader->setUniform("lightViewMatrix"      , lightCamera->getViewMatrix());
+        combineShader->setUniform("lightProjectionMatrix", lightCamera->getProjectionMatrix());
+        combineShader->setUniform("lightDirection"       , lightCamera->getForwardVector());
 
         skyboxTexture->bind(5);
         combineShader->setUniform("skyboxTexture", 5);

@@ -87,6 +87,8 @@ public:
     void setRotation(vector4f rotation) { m_rotation = rotation; }
 
     void cameraWindow(bool separateWindow = true);
+
+    const bool isOrtographic() const { return m_isOrthographic; }
 };
 
 } // namespace hex
