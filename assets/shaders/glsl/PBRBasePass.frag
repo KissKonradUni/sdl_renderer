@@ -174,7 +174,7 @@ vec3 diffuseBrdf(vec3 normal, vec3 viewDir, vec3 lightDir) {
     vec3 albedo = mix(
         brdfInfo.diffuseColor,
         mix(brdfInfo.lightColor, brdfInfo.reflectionColor, brdfInfo.metallic * 0.8 + 0.2),
-        brdfInfo.metallic * 0.6 + 0.2
+        (1.0 - brdfInfo.metallic) * 0.5
     );
     return orenNayarDiffuse(normal, viewDir, lightDir, brdfInfo.roughness, albedo);
 }
@@ -194,7 +194,11 @@ vec3 specularBrdf(vec3 incomingDir, vec3 outgoingDir, vec3 normal) {
     // Industry standard denominator
     float denominator = max(4.0 * NdotV * NdotL, 0.001);
 
-    vec3 materialBaseColor = mix(brdfInfo.diffuseColor, brdfInfo.reflectionColor, brdfInfo.metallic * 0.5);
+    vec3 materialBaseColor = mix(
+        brdfInfo.reflectionColor,
+        brdfInfo.diffuseColor,
+        brdfInfo.metallic
+    );
 
     return vec3((D * F * G) / denominator) * materialBaseColor;
 }
