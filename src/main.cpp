@@ -467,6 +467,24 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
         scene.render();
 
+        if (skyboxShader->isInitialized() && skyboxMesh->isInitialized() && skyboxTexture->isInitialized()) {
+            glDisable(GL_CULL_FACE);
+            glEnable(GL_DEPTH_TEST);
+
+            skyboxShader->bind();
+            skyboxShader->setUniform("viewMatrix", activeCameraComponent->getCamera()->getViewMatrix());
+            skyboxShader->setUniform("projectionMatrix", activeCameraComponent->getCamera()->getProjectionMatrix());
+            skyboxShader->setUniform("cameraPosition", activeCameraComponent->getCamera()->getPosition());
+
+            skyboxTexture->bind(0);
+            skyboxShader->setUniform("skyboxTexture", 0);
+
+            skyboxMesh->draw();
+
+            glEnable(GL_CULL_FACE);
+            glDisable(GL_DEPTH_TEST);
+        }
+
     sceneFramebuffer->unbind();
 
     // Shadow pass
@@ -536,24 +554,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
         combineShader->setUniform("skyboxTexture", 5);
 
         quadMesh->draw();
-
-        if (skyboxShader->isInitialized() && skyboxMesh->isInitialized() && skyboxTexture->isInitialized()) {
-            glDisable(GL_CULL_FACE);
-            glEnable(GL_DEPTH_TEST);
-
-            skyboxShader->bind();
-            skyboxShader->setUniform("viewMatrix", activeCameraComponent->getCamera()->getViewMatrix());
-            skyboxShader->setUniform("projectionMatrix", activeCameraComponent->getCamera()->getProjectionMatrix());
-            skyboxShader->setUniform("cameraPosition", activeCameraComponent->getCamera()->getPosition());
-
-            skyboxTexture->bind(0);
-            skyboxShader->setUniform("skyboxTexture", 0);
-
-            skyboxMesh->draw();
-
-            glEnable(GL_CULL_FACE);
-            glDisable(GL_DEPTH_TEST);
-        }
 
     combinedFramebuffer->unbind();
 

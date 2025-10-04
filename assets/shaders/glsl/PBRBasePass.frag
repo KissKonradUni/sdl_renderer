@@ -1,4 +1,5 @@
 #version 460 core
+precision highp float;
 
 in vec2 fragmentUV;
 
@@ -31,6 +32,48 @@ struct brdfInformation {
     vec3 lightColor;
     vec3 reflectionColor;
 } brdfInfo;
+
+vec3 rgbToOklab(vec3 c) {
+    // Correct Linear RGB to OKLCh intermediate space
+    const mat3 M1 = mat3(
+        0.4122214708, 0.2119034982, 0.0883024619,
+        0.5363325363, 0.6806995451, 0.2817188376,
+        0.0514459929, 0.1073969566, 0.6299787005
+    );
+    vec3 lms = M1 * c;
+    
+    // Safe cube root with sign preservation
+    lms = sign(lms) * pow(abs(lms), vec3(1.0/3.0));
+
+    // LMS to Oklab
+    const mat3 M2 = mat3(
+        0.2104542553,  1.9779984951,  0.0259040371,
+        0.7936177850, -2.4285922050,  0.7827717662,
+       -0.0040720468,  0.4505937099, -0.8086757660
+    );
+    return M2 * lms;
+}
+
+vec3 oklabToRgb(vec3 lab) {
+    // Oklab to LMS
+    const mat3 M1 = mat3(
+        1.0,  1.0,  1.0,
+        0.3963377774, -0.1055613458, -0.0894841775,
+        0.2158037573, -0.0638541728, -1.2914855480
+    );
+    vec3 lms = M1 * lab;
+    
+    // Cube the values with sign preservation
+    lms = lms * lms * lms;
+
+    // LMS to Linear RGB
+    const mat3 M2 = mat3(
+         4.0767416621, -1.2684380046, -0.0041960863,
+        -3.3077115913,  2.6097574011, -0.7034186147,
+         0.2309699292, -0.3413193965,  1.7076147010
+    );
+    return M2 * lms;
+}
 
 vec2 sampleEquirectangularMap(vec3 dir)
 {
@@ -160,21 +203,51 @@ vec3 brdf(vec3 incomingDir, vec3 outgoingDir, vec3 normal) {
     return diffuseBrdf(normal, outgoingDir, incomingDir) + specularBrdf(incomingDir, outgoingDir, normal);
 }
 
+vec3 applyToneMapping(vec3 color) {
+    // Convert to Oklab
+    vec3 lab = rgbToOklab(color);
+    
+    // Convert to Oklch
+    float C = sqrt(lab.y * lab.y + lab.z * lab.z);
+    float h = atan(lab.z, lab.y);
+
+    // Apply tone mapping to L channel
+    lab.x = 1.0 - exp(-lab.x * 2.0);
+    // Increase saturation and compress chroma
+    C = pow(C, 0.9) * 1.1;
+    // Wrap hue to [0, 2PI]
+    h = mod(h, 2.0 * PI);
+
+    // Convert back to Oklab
+    lab.y = C * cos(h);
+    lab.z = C * sin(h);
+
+    // Convert back to RGB
+    vec3 result = oklabToRgb(lab);
+    return clamp(result, 0.0, 1.0);
+}
+
 void main()
 {
+    float gamma = 2.2;
+
     vec3 normal = normalize(texture(gNormal, fragmentUV).rgb * 2.0 - 1.0);
     vec3 position = texture(gPosition, fragmentUV).rgb;
     vec4 aoRoughnessMetallic = texture(gAORoughnessMetallic, fragmentUV);
 
-    brdfInfo.diffuseColor = texture(gDiffuse, fragmentUV).rgb;
+    brdfInfo.diffuseColor = pow(texture(gDiffuse, fragmentUV).rgb, vec3(gamma));
     brdfInfo.roughness    = 1.0 - aoRoughnessMetallic.g;
     brdfInfo.metallic     = aoRoughnessMetallic.b;
     float ao              = aoRoughnessMetallic.r;
 
-    // If the fragment has no geometry, discard it
+    // If the fragment has no geometry, show the skybox
     if (length(position) <= 0.001)
     {
-        discard;
+        outputColor = vec4(brdfInfo.diffuseColor, 1.0);
+        outputColor.rgb = applyToneMapping(outputColor.rgb);
+        outputColor.rgb = clamp(outputColor.rgb, 0.0, 1.0);
+        outputColor.rgb = pow(outputColor.rgb, vec3(1.0 / gamma));
+        return;
     }
 
     // Base lighting calculations
@@ -184,11 +257,11 @@ void main()
 
     // Diffuse lighting from skybox
     vec2 diffuseSkyUV = sampleEquirectangularMap(normal);
-    brdfInfo.lightColor = texture(skyboxTexture, diffuseSkyUV).rgb;
+    brdfInfo.lightColor = pow(texture(skyboxTexture, diffuseSkyUV).rgb, vec3(gamma));
 
     // Specular lighting from skybox
     vec2 specularSkyUV = sampleEquirectangularMap(reflect(-viewDir, normal));
-    brdfInfo.reflectionColor = texture(skyboxTexture, specularSkyUV).rgb;
+    brdfInfo.reflectionColor = pow(texture(skyboxTexture, specularSkyUV).rgb, vec3(gamma));
 
     // Shadow calculation
     float shadow = checkSkylightShadow(position, normal);
@@ -200,6 +273,12 @@ void main()
         brdf(lightDir, viewDir, normal) *
         cosPhi *
         ao *
-        (1.0 - shadow * 0.8 + 0.2)
+        (1.0 - shadow * 0.95 + 0.05)
     , 1.0);
+
+    // Gamma correction
+    outputColor.rgb = applyToneMapping(outputColor.rgb);
+
+    outputColor.rgb = clamp(outputColor.rgb, 0.0, 1.0);
+    outputColor.rgb = pow(outputColor.rgb, vec3(1.0 / gamma));
 }

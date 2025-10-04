@@ -9,10 +9,11 @@ namespace hex {
 // Framebuffer
     
 Framebuffer::Framebuffer(int width, int height, bool depthOnly) 
-    : m_colorTarget(nullptr, width, height, depthOnly ? 1 : 4, depthOnly)
+    : m_colorTarget(nullptr, width, height, depthOnly ? 1 : 4, true)
 {
     glGenFramebuffers(1, &m_framebufferHandle);
     glBindFramebuffer(GL_FRAMEBUFFER, m_framebufferHandle);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SRGB_DECODE_EXT, GL_DECODE_EXT);
 
     m_colorTarget.bind(0);
     m_colorTarget.attachToFramebuffer(GL_COLOR_ATTACHMENT0);
